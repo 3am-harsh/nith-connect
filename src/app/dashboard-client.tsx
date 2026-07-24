@@ -721,10 +721,14 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         );
       case 'feed': {
         const filteredAnnouncements = announcements.filter(ann => {
+          if (!ann) return false;
           const isApproved = ann.approved !== false;
-          const matchesQuery = (ann.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                               ann.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                               ann.publisher?.toLowerCase().includes(searchQuery.toLowerCase()));
+          const title = ann.title || '';
+          const desc = ann.description || '';
+          const pub = ann.publisher || '';
+          const matchesQuery = title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                               desc.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                               pub.toLowerCase().includes(searchQuery.toLowerCase());
           return isApproved && matchesQuery;
         });
 
@@ -1148,8 +1152,11 @@ export default function DashboardClient({ user }: DashboardClientProps) {
       }
       case 'marketplace': {
         const filteredItems = marketplaceItems.filter(item => {
-          const matchesSearch = item.title.toLowerCase().includes(marketplaceSearchQuery.toLowerCase()) ||
-                               item.description.toLowerCase().includes(marketplaceSearchQuery.toLowerCase());
+          if (!item) return false;
+          const title = item.title || '';
+          const desc = item.description || '';
+          const matchesSearch = title.toLowerCase().includes(marketplaceSearchQuery.toLowerCase()) ||
+                               desc.toLowerCase().includes(marketplaceSearchQuery.toLowerCase());
           const matchesCategory = selectedMarketplaceCategory === 'all' || item.category === selectedMarketplaceCategory;
           return matchesSearch && matchesCategory;
         });
@@ -1262,9 +1269,12 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   const isOwner = item.user_id === user.id;
 
                   // Clean contact number for WhatsApp Link formatting
-                  const cleanPhone = item.contact_number.replace(/\D/g, '');
+                  const phoneNum = item.contact_number || '';
+                  const cleanPhone = phoneNum.replace(/\D/g, '');
                   const waPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
-                  const waUrl = `https://wa.me/${waPhone}?text=Hi%20${encodeURIComponent(item.user_name)},%20I%20am%20interested%20in%20your%20listing%20"${encodeURIComponent(item.title)}"%20on%20NITH%20Connect.`;
+                  const sellerName = item.user_name || 'Seller';
+                  const itemTitle = item.title || 'Item';
+                  const waUrl = `https://wa.me/${waPhone}?text=Hi%20${encodeURIComponent(sellerName)},%20I%20am%20interested%20in%20your%20listing%20"${encodeURIComponent(itemTitle)}"%20on%20NITH%20Connect.`;
 
                   return (
                     <div 
