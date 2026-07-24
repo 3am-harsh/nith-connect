@@ -42,6 +42,74 @@ import {
   ArrowRight
 } from 'lucide-react';
 
+interface ClassSlot {
+  time: string;
+  subject: string;
+  code: string;
+  room: string;
+  isLunch?: boolean;
+}
+
+const weeklyTimetable: Record<string, ClassSlot[]> = {
+  Monday: [
+    { time: '9-10', subject: 'Analog Electronics', code: 'EC-201', room: 'LH-101' },
+    { time: '10-11', subject: 'Data Structures', code: 'CS-202', room: 'LH-102' },
+    { time: '11-12', subject: 'Signals & Systems', code: 'EC-203', room: 'LH-103' },
+    { time: '12-1', subject: 'Mathematics III', code: 'MA-201', room: 'LH-104' },
+    { time: '1-2', subject: 'Lunch Break', code: 'LUNCH', room: 'Mess', isLunch: true },
+    { time: '2-3', subject: 'Analog Electronics Lab', code: 'EC-211', room: 'Lab-1' },
+    { time: '3-4', subject: 'Analog Electronics Lab', code: 'EC-211', room: 'Lab-1' },
+    { time: '4-5', subject: 'Technical Seminar', code: 'CS-205', room: 'LH-102' },
+    { time: '5-6', subject: 'Club Activities', code: 'CLUBS', room: 'OAT' }
+  ],
+  Tuesday: [
+    { time: '9-10', subject: 'Mathematics III', code: 'MA-201', room: 'LH-104' },
+    { time: '10-11', subject: 'Digital Design', code: 'EC-202', room: 'LH-201' },
+    { time: '11-12', subject: 'Data Structures', code: 'CS-202', room: 'LH-102' },
+    { time: '12-1', subject: 'Humanities & Social Sci', code: 'HS-201', room: 'LH-202' },
+    { time: '1-2', subject: 'Lunch Break', code: 'LUNCH', room: 'Mess', isLunch: true },
+    { time: '2-3', subject: 'Signals & Systems', code: 'EC-203', room: 'LH-103' },
+    { time: '3-4', subject: 'Technical Seminar', code: 'CS-205', room: 'LH-102' },
+    { time: '4-5', subject: 'Sports / Leisure', code: 'FITNESS', room: 'Grounds' },
+    { time: '5-6', subject: 'Club Activities', code: 'CLUBS', room: 'OAT' }
+  ],
+  Wednesday: [
+    { time: '9-10', subject: 'Signals & Systems', code: 'EC-203', room: 'LH-103' },
+    { time: '10-11', subject: 'Data Structures', code: 'CS-202', room: 'LH-102' },
+    { time: '11-12', subject: 'Analog Electronics', code: 'EC-201', room: 'LH-101' },
+    { time: '12-1', subject: 'Digital Design', code: 'EC-202', room: 'LH-201' },
+    { time: '1-2', subject: 'Lunch Break', code: 'LUNCH', room: 'Mess', isLunch: true },
+    { time: '2-3', subject: 'Data Structures Lab', code: 'CS-212', room: 'Lab-2' },
+    { time: '3-4', subject: 'Data Structures Lab', code: 'CS-212', room: 'Lab-2' },
+    { time: '4-5', subject: 'Aptitude & Placement Prep', code: 'PLACE', room: 'LH-101' },
+    { time: '5-6', subject: 'Club Activities', code: 'CLUBS', room: 'OAT' }
+  ],
+  Thursday: [
+    { time: '9-10', subject: 'Mathematics III', code: 'MA-201', room: 'LH-104' },
+    { time: '10-11', subject: 'Digital Design', code: 'EC-202', room: 'LH-201' },
+    { time: '11-12', subject: 'Analog Electronics', code: 'EC-201', room: 'LH-101' },
+    { time: '12-1', subject: 'Humanities & Social Sci', code: 'HS-201', room: 'LH-202' },
+    { time: '1-2', subject: 'Lunch Break', code: 'LUNCH', room: 'Mess', isLunch: true },
+    { time: '2-3', subject: 'Digital Design Lab', code: 'EC-212', room: 'Lab-3' },
+    { time: '3-4', subject: 'Digital Design Lab', code: 'EC-212', room: 'Lab-3' },
+    { time: '4-5', subject: 'Technical Seminar', code: 'CS-205', room: 'LH-102' },
+    { time: '5-6', subject: 'Club Activities', code: 'CLUBS', room: 'OAT' }
+  ],
+  Friday: [
+    { time: '9-10', subject: 'Signals & Systems', code: 'EC-203', room: 'LH-103' },
+    { time: '10-11', subject: 'Digital Design', code: 'EC-202', room: 'LH-201' },
+    { time: '11-12', subject: 'Humanities & Social Sci', code: 'HS-201', room: 'LH-202' },
+    { time: '12-1', subject: 'Analog Electronics', code: 'EC-201', room: 'LH-101' },
+    { time: '1-2', subject: 'Lunch Break', code: 'LUNCH', room: 'Mess', isLunch: true },
+    { time: '2-3', subject: 'Professional Comm', code: 'HS-202', room: 'LH-104' },
+    { time: '3-4', subject: 'Tutorial Class', code: 'TUT', room: 'LH-101' },
+    { time: '4-5', subject: 'Sports / Leisure', code: 'FITNESS', room: 'Grounds' },
+    { time: '5-6', subject: 'Club Activities', code: 'CLUBS', room: 'OAT' }
+  ],
+  Saturday: [],
+  Sunday: []
+};
+
 interface DashboardClientProps {
   user: UserSession;
 }
@@ -110,6 +178,17 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const [chatMessages, setChatMessages] = useState<FirestoreMessage[]>([]);
   const [newMsgText, setNewMsgText] = useState<string>('');
   const [isChatSidebarOpen, setIsChatSidebarOpen] = useState<boolean>(true);
+
+  // Timetable States
+  const [isTimetableModalOpen, setIsTimetableModalOpen] = useState<boolean>(false);
+  const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const currentDayName = weekdays[new Date().getDay()];
+  const [selectedTimetableDay, setSelectedTimetableDay] = useState<string>(
+    currentDayName === 'Saturday' || currentDayName === 'Sunday' ? 'Monday' : currentDayName
+  );
+  
+  // Hostel details modal state
+  const [activeHostelMenu, setActiveHostelMenu] = useState<string | null>(null);
 
   // Chat end scroll reference
   const chatEndRef = React.useRef<HTMLDivElement>(null);
@@ -225,7 +304,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
   const [selectedHostel, setSelectedHostel] = useState<string>(user.hostel || 'Kailash Hostel');
   const [selectedDay, setSelectedDay] = useState<string>(getTodayDay());
-  const [selectedMeal, setSelectedMeal] = useState<'breakfast' | 'lunch' | 'snacks' | 'dinner'>('dinner');
   const [messMenu, setMessMenu] = useState<MessMenuData | null>(null);
 
   // Fetch mess menu when day or hostel changes
@@ -263,79 +341,126 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     }
   };
 
-  const getMealMenu = () => {
-    if (!messMenu) return 'Loading menu details...';
-    switch (selectedMeal) {
-      case 'breakfast': return messMenu.breakfast || 'No menu uploaded';
-      case 'lunch': return messMenu.lunch || 'No menu uploaded';
-      case 'snacks': return messMenu.snacks || 'No menu uploaded';
-      case 'dinner': return messMenu.dinner || 'No menu uploaded';
-    }
-  };
+
 
   const renderActiveTabContent = () => {
     switch (activeTab) {
       case 'home':
         return (
           <div style={styles.dashboardHome} className="animate-fade-in">
-            {/* Mess Menu Card - Replicating screenshot */}
-            <div style={styles.messCard} className="glass-panel">
+            {/* Timetable Card - Replicating premium screenshot layout but with Daily Schedule */}
+            <div 
+              style={{
+                ...styles.messCard, 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: '12px',
+                cursor: 'pointer'
+              }} 
+              className="glass-panel glass-panel-hover"
+              onClick={() => setIsTimetableModalOpen(true)}
+            >
               <div style={styles.messHeader}>
-                <h3 style={styles.messTitle}>Mess Menu</h3>
-                <div style={styles.dropdownWrapper}>
-                  <select 
-                    value={selectedHostel}
-                    onChange={(e) => setSelectedHostel(e.target.value)}
-                    style={styles.messSelect}
-                  >
-                    {hostels.map(h => <option key={h} value={h}>{h}</option>)}
-                  </select>
-                  <select 
-                    value={selectedDay}
-                    onChange={(e) => setSelectedDay(e.target.value)}
-                    style={styles.messSelect}
-                  >
-                    {days.map(d => <option key={d} value={d}>{d}</option>)}
-                  </select>
+                <div>
+                  <h3 style={styles.messTitle}>Today&apos;s Schedule</h3>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                    {currentDayName === 'Saturday' || currentDayName === 'Sunday' ? 'Weekend' : `${currentDayName}, ${new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`}
+                  </span>
                 </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsTimetableModalOpen(true);
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--pine-primary)',
+                    fontSize: '12px',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <span>View Full Week</span>
+                  <ArrowRight size={14} />
+                </button>
               </div>
 
-              <div style={styles.messBody}>
-                {/* Left Side: Vertical Tabs */}
-                <div style={styles.messVerticalTabs}>
-                  {(['breakfast', 'lunch', 'snacks', 'dinner'] as const).map((meal) => {
-                    const isActive = selectedMeal === meal;
-                    return (
-                      <button
-                        key={meal}
-                        onClick={() => setSelectedMeal(meal)}
-                        style={{
-                          ...styles.messTabBtn,
-                          borderColor: isActive ? 'var(--pine-primary)' : 'transparent',
-                          backgroundColor: isActive ? 'var(--pine-light)' : 'transparent',
-                          color: isActive ? 'var(--pine-primary)' : 'var(--text-muted)',
-                          fontWeight: isActive ? '600' : '400',
-                        }}
-                      >
-                        {meal.charAt(0).toUpperCase() + meal.slice(1)}
-                      </button>
-                    );
-                  })}
+              {currentDayName === 'Saturday' || currentDayName === 'Sunday' ? (
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '24px',
+                  textAlign: 'center',
+                  color: 'var(--text-muted)',
+                  gap: '8px',
+                  flex: 1
+                }}>
+                  <Sparkles size={28} color="var(--aqua-primary)" />
+                  <p style={{ fontSize: '14px', fontWeight: '700', color: 'var(--pine-deep)' }}>It&apos;s the Weekend!</p>
+                  <p style={{ fontSize: '12px' }}>No classes scheduled today. Time to relax or code!</p>
                 </div>
-
-                {/* Right Side: Detail Panel */}
-                <div style={styles.messDetailCard}>
-                  <div style={styles.messMenuContent}>
-                    {getMealMenu()}
-                  </div>
-                  <div style={styles.messFooterRow}>
-                    <span style={styles.messTime}>{getMealTime(selectedMeal)}</span>
-                    <div style={styles.broadcastIconBg}>
-                      <Bell size={14} color="#ffffff" />
+              ) : (
+                <div 
+                  style={{
+                    display: 'flex',
+                    gap: '12px',
+                    overflowX: 'auto',
+                    paddingBottom: '8px',
+                    paddingRight: '4px',
+                    width: '100%',
+                    scrollbarWidth: 'thin'
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {(weeklyTimetable[currentDayName] || []).map((cls, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => setIsTimetableModalOpen(true)}
+                      className="glass-panel-hover"
+                      style={{
+                        flexShrink: 0,
+                        width: '145px',
+                        padding: '12px',
+                        borderRadius: 'var(--radius-md)',
+                        backgroundColor: cls.isLunch ? 'rgba(244, 162, 97, 0.08)' : '#ffffff',
+                        border: '1px solid var(--border-subtle)',
+                        borderLeft: `4px solid ${cls.isLunch ? '#f4a261' : 'var(--pine-primary)'}`,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        gap: '6px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <span style={{ fontSize: '11px', fontWeight: '800', color: cls.isLunch ? '#e76f51' : 'var(--pine-deep)' }}>
+                        {cls.time}
+                      </span>
+                      <h4 style={{
+                        fontSize: '13px',
+                        fontWeight: '700',
+                        color: 'var(--text-main)',
+                        margin: 0,
+                        lineHeight: '1.2',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }} title={cls.subject}>
+                        {cls.subject}
+                      </h4>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'var(--text-muted)' }}>
+                        <span>{cls.code}</span>
+                        <span>{cls.room}</span>
+                      </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
-              </div>
+              )}
             </div>
 
             {/* My QR Banner - Replicating screenshot */}
@@ -751,8 +876,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                         key={hostelName}
                         onClick={() => {
                           setSelectedHostel(hostelName);
-                          setActiveTab('home');
-                          setSelectedExploreCategory(null);
+                          setActiveHostelMenu(hostelName);
                         }}
                         style={styles.exploreHostelButton}
                         className="glass-panel glass-panel-hover"
@@ -2481,6 +2605,240 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 style={{ flex: 1, padding: '10px' }}
               >
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Detailed Weekly Timetable Modal */}
+      {isTimetableModalOpen && (
+        <div style={styles.modalOverlay} onClick={() => setIsTimetableModalOpen(false)}>
+          <div 
+            style={{ ...styles.idCardModal, maxWidth: '580px', width: '92%' }} 
+            className="glass-panel animate-fade-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div style={styles.modalHeader}>
+              <div>
+                <h3 style={styles.modalTitle}>Weekly Timetable 📅</h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0' }}>Academic Class Schedule (Mon - Fri)</p>
+              </div>
+              <button 
+                onClick={() => setIsTimetableModalOpen(false)}
+                style={styles.modalCloseBtn}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Day Picker Tabs inside Modal */}
+            <div style={{
+              display: 'flex',
+              gap: '6px',
+              overflowX: 'auto',
+              marginBottom: '16px',
+              borderBottom: '1px solid var(--border-subtle)',
+              paddingBottom: '8px',
+              scrollbarWidth: 'none'
+            }}>
+              {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map((day) => {
+                const isSelected = selectedTimetableDay === day;
+                return (
+                  <button
+                    key={day}
+                    onClick={() => setSelectedTimetableDay(day)}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: '20px',
+                      border: '1px solid var(--border-subtle)',
+                      backgroundColor: isSelected ? 'var(--pine-primary)' : 'transparent',
+                      color: isSelected ? '#ffffff' : 'var(--text-main)',
+                      fontSize: '12px',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {day}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Vertical List of Time Slots */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              maxHeight: '50vh',
+              overflowY: 'auto',
+              paddingRight: '6px',
+              scrollbarWidth: 'thin'
+            }}>
+              {(weeklyTimetable[selectedTimetableDay] || []).length === 0 ? (
+                <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  No classes scheduled.
+                </div>
+              ) : (
+                (weeklyTimetable[selectedTimetableDay] || []).map((slot, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '14px',
+                      padding: '12px 16px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-subtle)',
+                      backgroundColor: slot.isLunch ? 'rgba(244, 162, 97, 0.05)' : '#ffffff',
+                      borderLeft: `5px solid ${slot.isLunch ? '#f4a261' : 'var(--pine-primary)'}`,
+                    }}
+                  >
+                    {/* Time Slot Label */}
+                    <div style={{
+                      width: '65px',
+                      fontSize: '12px',
+                      fontWeight: '800',
+                      color: slot.isLunch ? '#e76f51' : 'var(--pine-deep)',
+                      flexShrink: 0
+                    }}>
+                      {slot.time}
+                    </div>
+
+                    {/* Class Details */}
+                    <div style={{ flex: 1 }}>
+                      <h4 style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-main)', margin: 0 }}>
+                        {slot.subject}
+                      </h4>
+                      {!slot.isLunch && (
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                          {slot.code} • Room {slot.room}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Close action */}
+            <div style={{ ...styles.idCardActions, marginTop: '20px' }}>
+              <button 
+                onClick={() => setIsTimetableModalOpen(false)}
+                className="btn-primary" 
+                style={{ flex: 1, padding: '10px' }}
+              >
+                Close View
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hostel Mess Menu Modal */}
+      {activeHostelMenu && (
+        <div style={styles.modalOverlay} onClick={() => setActiveHostelMenu(null)}>
+          <div 
+            style={{ ...styles.idCardModal, maxWidth: '500px', width: '92%' }} 
+            className="glass-panel animate-fade-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div style={styles.modalHeader}>
+              <div>
+                <h3 style={styles.modalTitle}>{activeHostelMenu} Mess Menu</h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0' }}>Daily food menu details</p>
+              </div>
+              <button 
+                onClick={() => setActiveHostelMenu(null)}
+                style={styles.modalCloseBtn}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Day Switcher */}
+            <div style={{ 
+              display: 'flex', 
+              gap: '8px', 
+              overflowX: 'auto', 
+              paddingBottom: '10px', 
+              marginBottom: '14px', 
+              borderBottom: '1px solid var(--border-subtle)',
+              scrollbarWidth: 'none'
+            }}>
+              {days.map((day) => {
+                const isSelected = selectedDay === day;
+                return (
+                  <button
+                    key={day}
+                    onClick={() => setSelectedDay(day)}
+                    style={{
+                      padding: '5px 12px',
+                      borderRadius: '16px',
+                      border: '1px solid var(--border-subtle)',
+                      backgroundColor: isSelected ? 'var(--pine-primary)' : 'transparent',
+                      color: isSelected ? '#ffffff' : 'var(--text-main)',
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {day}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Meals Grid */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '50vh', overflowY: 'auto', paddingRight: '4px' }}>
+              {(['breakfast', 'lunch', 'snacks', 'dinner'] as const).map((meal) => {
+                let mealMenuText = 'No menu uploaded';
+                if (messMenu) {
+                  if (meal === 'breakfast') mealMenuText = messMenu.breakfast || 'No menu uploaded';
+                  else if (meal === 'lunch') mealMenuText = messMenu.lunch || 'No menu uploaded';
+                  else if (meal === 'snacks') mealMenuText = messMenu.snacks || 'No menu uploaded';
+                  else if (meal === 'dinner') mealMenuText = messMenu.dinner || 'No menu uploaded';
+                }
+                return (
+                  <div 
+                    key={meal}
+                    style={{
+                      padding: '12px',
+                      borderRadius: '8px',
+                      backgroundColor: '#ffffff',
+                      border: '1px solid var(--border-subtle)',
+                      borderLeft: '4px solid var(--pine-primary)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: '800', color: 'var(--pine-deep)', textTransform: 'uppercase' }}>
+                        {meal}
+                      </span>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                        {getMealTime(meal)}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '13px', color: 'var(--text-main)', margin: 0, lineHeight: '1.4' }}>
+                      {mealMenuText}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Close action */}
+            <div style={{ ...styles.idCardActions, marginTop: '20px' }}>
+              <button 
+                onClick={() => setActiveHostelMenu(null)}
+                className="btn-primary" 
+                style={{ flex: 1, padding: '10px' }}
+              >
+                Close Mess Menu
               </button>
             </div>
           </div>
