@@ -110,6 +110,56 @@ const weeklyTimetable: Record<string, ClassSlot[]> = {
   Sunday: []
 };
 
+const parseSlotHours = (slotTime: string): { start: number; end: number } => {
+  switch (slotTime) {
+    case '9-10': return { start: 9, end: 10 };
+    case '10-11': return { start: 10, end: 11 };
+    case '11-12': return { start: 11, end: 12 };
+    case '12-1': return { start: 12, end: 13 };
+    case '1-2': return { start: 13, end: 14 };
+    case '2-3': return { start: 14, end: 15 };
+    case '3-4': return { start: 15, end: 16 };
+    case '4-5': return { start: 16, end: 17 };
+    case '5-6': return { start: 17, end: 18 };
+    default: return { start: 0, end: 0 };
+  }
+};
+
+const getSlotFillPercentage = (slotTime: string): number => {
+  const { start, end } = parseSlotHours(slotTime);
+  if (start === 0) return 0;
+
+  const now = new Date();
+  const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const currentDayName = weekdays[now.getDay()];
+  if (currentDayName === 'Saturday' || currentDayName === 'Sunday') return 0;
+
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+  const totalMinutesNow = currentHour * 60 + currentMinute;
+
+  const startMinutes = start * 60;
+  const endMinutes = end * 60;
+
+  if (totalMinutesNow >= endMinutes) return 100;
+  if (totalMinutesNow < startMinutes) return 0;
+
+  return Math.min(100, Math.max(0, Math.floor(((totalMinutesNow - startMinutes) / (endMinutes - startMinutes)) * 100)));
+};
+
+const isCurrentSlot = (slotTime: string): boolean => {
+  const { start, end } = parseSlotHours(slotTime);
+  if (start === 0) return false;
+
+  const now = new Date();
+  const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const currentDayName = weekdays[now.getDay()];
+  if (currentDayName === 'Saturday' || currentDayName === 'Sunday') return false;
+
+  const currentHour = now.getHours();
+  return currentHour >= start && currentHour < end;
+};
+
 interface DashboardClientProps {
   user: UserSession;
 }
@@ -189,6 +239,15 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   
   // Hostel details modal state
   const [activeHostelMenu, setActiveHostelMenu] = useState<string | null>(null);
+
+  // Live timetable refresh tick
+  const [timeTick, setTimeTick] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeTick(t => t + 1);
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Chat end scroll reference
   const chatEndRef = React.useRef<HTMLDivElement>(null);
@@ -348,23 +407,27 @@ export default function DashboardClient({ user }: DashboardClientProps) {
       case 'home':
         return (
           <div style={styles.dashboardHome} className="animate-fade-in">
-            {/* Timetable Card - Replicating premium screenshot layout but with Daily Schedule */}
+            {/* Timetable Card - Replicating premium 9-square grid with live filling */}
             <div 
               style={{
                 ...styles.messCard, 
                 display: 'flex', 
                 flexDirection: 'column', 
-                gap: '12px',
-                cursor: 'pointer'
+                gap: '10px',
+                cursor: 'pointer',
+                height: 'auto',
+                minHeight: '410px'
               }} 
               className="glass-panel glass-panel-hover"
               onClick={() => setIsTimetableModalOpen(true)}
             >
               <div style={styles.messHeader}>
                 <div>
-                  <h3 style={styles.messTitle}>Today&apos;s Schedule</h3>
+                  <h3 style={styles.messTitle}>Today&apos;s Classes</h3>
                   <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                    {currentDayName === 'Saturday' || currentDayName === 'Sunday' ? 'Weekend' : `${currentDayName}, ${new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`}
+                    {currentDayName === 'Saturday' || currentDayName === 'Sunday' 
+                      ? 'Weekend Preview (Monday)' 
+                      : `${currentDayName}, ${new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`}
                   </span>
                 </div>
                 <button
@@ -389,78 +452,136 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 </button>
               </div>
 
-              {currentDayName === 'Saturday' || currentDayName === 'Sunday' ? (
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '24px',
-                  textAlign: 'center',
-                  color: 'var(--text-muted)',
-                  gap: '8px',
-                  flex: 1
-                }}>
-                  <Sparkles size={28} color="var(--aqua-primary)" />
-                  <p style={{ fontSize: '14px', fontWeight: '700', color: 'var(--pine-deep)' }}>It&apos;s the Weekend!</p>
-                  <p style={{ fontSize: '12px' }}>No classes scheduled today. Time to relax or code!</p>
-                </div>
-              ) : (
-                <div 
-                  style={{
-                    display: 'flex',
-                    gap: '12px',
-                    overflowX: 'auto',
-                    paddingBottom: '8px',
-                    paddingRight: '4px',
-                    width: '100%',
-                    scrollbarWidth: 'thin'
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {(weeklyTimetable[currentDayName] || []).map((cls, idx) => (
-                    <div
-                      key={idx}
-                      onClick={() => setIsTimetableModalOpen(true)}
-                      className="glass-panel-hover"
-                      style={{
-                        flexShrink: 0,
-                        width: '145px',
-                        padding: '12px',
-                        borderRadius: 'var(--radius-md)',
-                        backgroundColor: cls.isLunch ? 'rgba(244, 162, 97, 0.08)' : '#ffffff',
-                        border: '1px solid var(--border-subtle)',
-                        borderLeft: `4px solid ${cls.isLunch ? '#f4a261' : 'var(--pine-primary)'}`,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        gap: '6px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <span style={{ fontSize: '11px', fontWeight: '800', color: cls.isLunch ? '#e76f51' : 'var(--pine-deep)' }}>
-                        {cls.time}
-                      </span>
-                      <h4 style={{
-                        fontSize: '13px',
-                        fontWeight: '700',
-                        color: 'var(--text-main)',
-                        margin: 0,
-                        lineHeight: '1.2',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis'
-                      }} title={cls.subject}>
-                        {cls.subject}
-                      </h4>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'var(--text-muted)' }}>
-                        <span>{cls.code}</span>
-                        <span>{cls.room}</span>
+              <div 
+                data-tick={timeTick}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: '10px',
+                  marginTop: '4px'
+                }}
+              >
+                {(() => {
+                  const timeSlots = ['9-10', '10-11', '11-12', '12-1', '1-2', '2-3', '3-4', '4-5', '5-6'];
+                  const activeDayName = (currentDayName === 'Saturday' || currentDayName === 'Sunday') ? 'Monday' : currentDayName;
+                  const dayClasses = weeklyTimetable[activeDayName] || [];
+
+                  const gridSlots = timeSlots.map(slotTime => {
+                    const found = dayClasses.find(c => c.time === slotTime);
+                    if (found) return found;
+                    if (slotTime === '1-2') {
+                      return { time: '1-2', subject: 'Lunch Break', code: 'LUNCH', room: 'Mess', isLunch: true };
+                    }
+                    return { time: slotTime, subject: 'Free Period', code: 'FREE', room: '-' };
+                  });
+
+                  return gridSlots.map((slot, idx) => {
+                    const percent = getSlotFillPercentage(slot.time);
+                    const isActive = isCurrentSlot(slot.time);
+                    const isFree = slot.code === 'FREE';
+
+                    // Dynamic background fill gradient based on time elapsed
+                    let bgFill = '';
+                    if (isFree) {
+                      bgFill = `linear-gradient(to top, rgba(140, 140, 140, 0.18) ${percent}%, rgba(255, 255, 255, 0.45) ${percent}%)`;
+                    } else if (slot.isLunch) {
+                      bgFill = `linear-gradient(to top, rgba(244, 162, 97, 0.35) ${percent}%, rgba(244, 162, 97, 0.08) ${percent}%)`;
+                    } else {
+                      bgFill = `linear-gradient(to top, rgba(42, 157, 143, 0.35) ${percent}%, rgba(42, 157, 143, 0.08) ${percent}%)`;
+                    }
+
+                    return (
+                      <div
+                        key={idx}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsTimetableModalOpen(true);
+                        }}
+                        style={{
+                          aspectRatio: '1',
+                          borderRadius: '12px',
+                          padding: '10px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                          background: bgFill,
+                          border: isActive 
+                            ? '2.5px solid var(--pine-primary)' 
+                            : '1px solid var(--border-subtle)',
+                          boxShadow: isActive ? '0 0 12px rgba(42, 157, 143, 0.35)' : 'none',
+                          position: 'relative',
+                          overflow: 'hidden',
+                          transition: 'all 0.2s ease',
+                          cursor: 'pointer'
+                        }}
+                        className="glass-panel-hover"
+                      >
+                        {/* Time slot header */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                          <span style={{ fontSize: '9px', fontWeight: '800', color: slot.isLunch ? '#e76f51' : 'var(--pine-deep)' }}>
+                            {slot.time}
+                          </span>
+                          {isActive && (
+                            <span style={{
+                              width: '6px',
+                              height: '6px',
+                              borderRadius: '50%',
+                              backgroundColor: '#e76f51',
+                              boxShadow: '0 0 6px #e76f51'
+                            }} title="Current class hour" />
+                          )}
+                        </div>
+
+                        {/* Subject inside Square */}
+                        <div style={{ margin: 'auto 0' }}>
+                          <h4 style={{
+                            fontSize: '11px',
+                            fontWeight: '800',
+                            color: isFree ? 'var(--text-muted)' : 'var(--text-main)',
+                            margin: 0,
+                            lineHeight: '1.2',
+                            textAlign: 'center',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
+                          }}>
+                            {slot.subject}
+                          </h4>
+                        </div>
+
+                        {/* Room/Code details */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '8px', color: 'var(--text-muted)' }}>
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '55%' }}>
+                            {slot.code}
+                          </span>
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '45%' }}>
+                            {slot.room}
+                          </span>
+                        </div>
+
+                        {/* Percent progress badge inside card */}
+                        {isActive && percent > 0 && percent < 100 && (
+                          <div style={{
+                            position: 'absolute',
+                            bottom: '2px',
+                            right: '4px',
+                            fontSize: '8px',
+                            color: 'var(--pine-deep)',
+                            fontWeight: '900',
+                            backgroundColor: 'rgba(255, 255, 255, 0.75)',
+                            padding: '1px 3px',
+                            borderRadius: '3px'
+                          }}>
+                            {percent}%
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    );
+                  });
+                })()}
+              </div>
             </div>
 
             {/* My QR Banner - Replicating screenshot */}
