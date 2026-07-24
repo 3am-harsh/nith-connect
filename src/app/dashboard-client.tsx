@@ -109,6 +109,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const [selectedRoomId, setSelectedRoomId] = useState<string>('chat-gen');
   const [chatMessages, setChatMessages] = useState<FirestoreMessage[]>([]);
   const [newMsgText, setNewMsgText] = useState<string>('');
+  const [isChatSidebarOpen, setIsChatSidebarOpen] = useState<boolean>(true);
 
   // Chat end scroll reference
   const chatEndRef = React.useRef<HTMLDivElement>(null);
@@ -143,6 +144,13 @@ export default function DashboardClient({ user }: DashboardClientProps) {
       scrollToBottom();
     }
   }, [chatMessages, activeTab]);
+
+  // Collapse sidebar on mobile initial load
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      setIsChatSidebarOpen(false);
+    }
+  }, []);
 
   // Polling for new messages
   useEffect(() => {
@@ -1610,7 +1618,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             {/* Left Column: Channels Selector */}
             <div style={{
               width: '260px',
-              display: 'flex',
+              display: isChatSidebarOpen ? 'flex' : 'none',
               flexDirection: 'column',
               gap: '12px',
               backgroundColor: 'var(--bg-card)',
@@ -1639,6 +1647,10 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                           onClick={() => {
                             setSelectedRoomId(room.id);
                             loadMessages(room.id);
+                            // Auto collapse on selection on mobile/narrow screens
+                            if (window.innerWidth < 768) {
+                              setIsChatSidebarOpen(false);
+                            }
                           }}
                           style={{
                             width: '100%',
@@ -1691,15 +1703,42 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 backgroundColor: 'rgba(255, 255, 255, 0.4)',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between'
+                justifyContent: 'space-between',
+                gap: '10px',
+                flexWrap: 'wrap'
               }}>
-                <div>
-                  <h3 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--pine-deep)', margin: 0 }}>
-                    # {activeRoom?.name || 'Loading Channel...'}
-                  </h3>
-                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0' }}>
-                    {activeRoom?.description || ''}
-                  </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  {/* Channels List Toggle Button */}
+                  <button
+                    onClick={() => setIsChatSidebarOpen(!isChatSidebarOpen)}
+                    style={{
+                      background: 'none',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: '6px',
+                      padding: '6px 12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      cursor: 'pointer',
+                      backgroundColor: isChatSidebarOpen ? 'rgba(42, 157, 143, 0.08)' : '#ffffff',
+                      color: 'var(--pine-primary)',
+                      transition: 'all 0.2s ease',
+                    }}
+                    title="Toggle channels list"
+                  >
+                    <MessageSquare size={14} />
+                    <span style={{ fontSize: '12px', marginLeft: '6px', fontWeight: '700' }}>
+                      {isChatSidebarOpen ? 'Hide Channels' : 'Channels'}
+                    </span>
+                  </button>
+
+                  <div>
+                    <h3 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--pine-deep)', margin: 0 }}>
+                      # {activeRoom?.name || 'Loading Channel...'}
+                    </h3>
+                    <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '2px 0 0' }}>
+                      {activeRoom?.description || ''}
+                    </p>
+                  </div>
                 </div>
               </div>
 
