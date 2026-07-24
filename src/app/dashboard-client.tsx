@@ -20,13 +20,22 @@ import {
   createMarketplaceItemAction, 
   updateMarketplaceItemStatusAction 
 } from './actions/marketplace';
+import {
+  submitTimetableAction,
+  fetchTimetableSubmissions,
+  fetchApprovedTimetables,
+  approveTimetableAction,
+  rejectTimetableAction
+} from './actions/timetable';
 import { 
   type FirestoreAnnouncement, 
   type FirestoreComment, 
   type FirestoreLostFoundItem,
   type FirestoreChatroom,
   type FirestoreMessage,
-  type FirestoreMarketplaceItem
+  type FirestoreMarketplaceItem,
+  type TimetableSubmission,
+  type ApprovedTimetable
 } from '@/lib/firestore';
 import { 
   Mountain, 
@@ -232,6 +241,19 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     }, 4000);
   };
 
+  // Timetable Year/Section selection and submission states
+  const [selectedYear, setSelectedYear] = useState('1st Year');
+  const [selectedSection, setSelectedSection] = useState('A');
+  const [approvedTimetables, setApprovedTimetables] = useState<ApprovedTimetable[]>([]);
+  const [timetableSubmissions, setTimetableSubmissions] = useState<TimetableSubmission[]>([]);
+  const [isUploadTimetableOpen, setIsUploadTimetableOpen] = useState(false);
+  const [uploadTimetableYear, setUploadTimetableYear] = useState('1st Year');
+  const [uploadTimetableSec, setUploadTimetableSec] = useState('A');
+  const [uploadTimetableFile, setUploadTimetableFile] = useState('');
+  const [uploadTimetableFileName, setUploadTimetableFileName] = useState('');
+  const [isSubmittingTimetable, setIsSubmittingTimetable] = useState(false);
+  const [timetableModalViewMode, setTimetableModalViewMode] = useState<'grid' | 'image'>('grid');
+
   // Lost & Found States
   const [lostFoundItems, setLostFoundItems] = useState<FirestoreLostFoundItem[]>([]);
   const [selectedLostFoundFilter, setSelectedLostFoundFilter] = useState<'all' | 'lost' | 'found'>('all');
@@ -371,20 +393,39 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     }
   };
 
+  const loadTimetablesData = async () => {
+    try {
+      const approved = await fetchApprovedTimetables();
+      setApprovedTimetables(approved);
+      if (user.role === 'developer') {
+        const subs = await fetchTimetableSubmissions();
+        setTimetableSubmissions(subs);
+      }
+    } catch (err) {
+      console.error('Failed to load timetables:', err);
+    }
+  };
+
   useEffect(() => {
     let active = true;
     const loadData = async () => {
       try {
         await runSeedingAction();
-        const [announcementsData, lostFoundData, marketplaceData] = await Promise.all([
+        const [announcementsData, lostFoundData, marketplaceData, approvedData] = await Promise.all([
           fetchAnnouncements(),
           fetchLostFoundItems(),
-          getMarketplaceItemsAction()
+          getMarketplaceItemsAction(),
+          fetchApprovedTimetables()
         ]);
         if (active) {
           setAnnouncements(announcementsData);
           setLostFoundItems(lostFoundData);
           setMarketplaceItems(marketplaceData);
+          setApprovedTimetables(approvedData);
+          if (user.role === 'developer') {
+            const subs = await fetchTimetableSubmissions();
+            setTimetableSubmissions(subs);
+          }
         }
       } catch (err) {
         console.error('Failed to fetch data in effect:', err);
@@ -468,7 +509,17 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 minHeight: '410px'
               }} 
               className="glass-panel glass-panel-hover"
-              onClick={() => setIsTimetableModalOpen(true)}
+              onClick={() => {
+                const hasCustom = approvedTimetables.some(
+                  t => t.year === selectedYear && t.section === selectedSection
+                );
+                if (hasCustom) {
+                  setTimetableModalViewMode('image');
+                } else {
+                  setTimetableModalViewMode('grid');
+                }
+                setIsTimetableModalOpen(true);
+              }}
             >
               <div style={styles.messHeader}>
                 <div>
@@ -482,6 +533,14 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
+                    const hasCustom = approvedTimetables.some(
+                      t => t.year === selectedYear && t.section === selectedSection
+                    );
+                    if (hasCustom) {
+                      setTimetableModalViewMode('image');
+                    } else {
+                      setTimetableModalViewMode('grid');
+                    }
                     setIsTimetableModalOpen(true);
                   }}
                   style={{
@@ -501,16 +560,103 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 </button>
               </div>
 
+              {/* Year & Section Selector Row */}
               <div 
-                data-tick={timeTick}
+                onClick={(e) => e.stopPropagation()}
                 style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(3, 1fr)',
-                  gap: '10px',
-                  marginTop: '4px'
+                  display: 'flex',
+                  gap: '8px',
+                  marginTop: '4px',
+                  marginBottom: '8px',
+                  flexWrap: 'wrap'
                 }}
               >
-                {(() => {
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  <label style={{ fontSize: '9px', fontWeight: '800', color: 'var(--text-placeholder)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Year</label>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(e.target.value)}
+                    style={{
+                      padding: '6px 10px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-subtle)',
+                      backgroundColor: '#ffffff',
+                      color: 'var(--text-main)',
+                      fontSize: '12px',
+                      fontWeight: '700',
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="1st Year">1st Year</option>
+                    <option value="2nd Year">2nd Year</option>
+                    <option value="3rd Year">3rd Year</option>
+                    <option value="4th Year">4th Year</option>
+                  </select>
+                </div>
+
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  <label style={{ fontSize: '9px', fontWeight: '800', color: 'var(--text-placeholder)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Section</label>
+                  <select
+                    value={selectedSection}
+                    onChange={(e) => setSelectedSection(e.target.value)}
+                    style={{
+                      padding: '6px 10px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-subtle)',
+                      backgroundColor: '#ffffff',
+                      color: 'var(--text-main)',
+                      fontSize: '12px',
+                      fontWeight: '700',
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'].map(sec => (
+                      <option key={sec} value={sec}>Section {sec}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {(() => {
+                const customTimetable = approvedTimetables.find(
+                  t => t.year === selectedYear && t.section === selectedSection
+                );
+
+                if (customTimetable) {
+                  return (
+                    <div 
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '10px',
+                        padding: '14px',
+                        borderRadius: '12px',
+                        border: '1px dashed var(--pine-primary)',
+                        backgroundColor: 'rgba(18, 91, 68, 0.02)',
+                        textAlign: 'center',
+                        marginTop: '4px'
+                      }}
+                    >
+                      <div style={{ position: 'relative', width: '100%', height: '150px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
+                        <img 
+                          src={customTimetable.file_data} 
+                          alt="Timetable Thumbnail" 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                      </div>
+                      <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--pine-deep)' }}>
+                        Official Timetable Active
+                      </span>
+                    </div>
+                  );
+                }
+
+                const isMockPrefilled = selectedYear === '2nd Year' && selectedSection === 'A';
+                
+                if (isMockPrefilled) {
                   const timeSlots = ['9-10', '10-11', '11-12', '12-1', '1-2', '2-3', '3-4', '4-5', '5-6'];
                   const activeDayName = (currentDayName === 'Saturday' || currentDayName === 'Sunday') ? 'Monday' : currentDayName;
                   const dayClasses = weeklyTimetable[activeDayName] || [];
@@ -524,113 +670,166 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     return { time: slotTime, subject: 'Free Period', code: 'FREE', room: '-' };
                   });
 
-                  return gridSlots.map((slot, idx) => {
-                    const percent = getSlotFillPercentage(slot.time);
-                    const isActive = isCurrentSlot(slot.time);
-                    const isFree = slot.code === 'FREE';
+                  return (
+                    <div 
+                      data-tick={timeTick}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(3, 1fr)',
+                        gap: '10px',
+                        marginTop: '4px'
+                      }}
+                    >
+                      {gridSlots.map((slot, idx) => {
+                        const percent = getSlotFillPercentage(slot.time);
+                        const isActive = isCurrentSlot(slot.time);
+                        const isFree = slot.code === 'FREE';
 
-                    // Dynamic background fill gradient based on time elapsed
-                    let bgFill = '';
-                    if (isFree) {
-                      bgFill = `linear-gradient(to top, rgba(140, 140, 140, 0.18) ${percent}%, rgba(255, 255, 255, 0.45) ${percent}%)`;
-                    } else if (slot.isLunch) {
-                      bgFill = `linear-gradient(to top, rgba(244, 162, 97, 0.35) ${percent}%, rgba(244, 162, 97, 0.08) ${percent}%)`;
-                    } else {
-                      bgFill = `linear-gradient(to top, rgba(42, 157, 143, 0.35) ${percent}%, rgba(42, 157, 143, 0.08) ${percent}%)`;
-                    }
+                        let bgFill = '';
+                        if (isFree) {
+                          bgFill = `linear-gradient(to top, rgba(140, 140, 140, 0.18) ${percent}%, rgba(255, 255, 255, 0.45) ${percent}%)`;
+                        } else if (slot.isLunch) {
+                          bgFill = `linear-gradient(to top, rgba(244, 162, 97, 0.35) ${percent}%, rgba(244, 162, 97, 0.08) ${percent}%)`;
+                        } else {
+                          bgFill = `linear-gradient(to top, rgba(42, 157, 143, 0.35) ${percent}%, rgba(42, 157, 143, 0.08) ${percent}%)`;
+                        }
 
-                    return (
-                      <div
-                        key={idx}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setIsTimetableModalOpen(true);
-                        }}
-                        style={{
-                          aspectRatio: '1',
-                          borderRadius: '12px',
-                          padding: '10px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          justifyContent: 'space-between',
-                          background: bgFill,
-                          border: isActive 
-                            ? '2.5px solid var(--pine-primary)' 
-                            : '1px solid var(--border-subtle)',
-                          boxShadow: isActive ? '0 0 12px rgba(42, 157, 143, 0.35)' : 'none',
-                          position: 'relative',
-                          overflow: 'hidden',
-                          transition: 'all 0.2s ease',
-                          cursor: 'pointer'
-                        }}
-                        className="glass-panel-hover"
-                      >
-                        {/* Time slot header */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                          <span style={{ fontSize: '9px', fontWeight: '800', color: slot.isLunch ? '#e76f51' : 'var(--pine-deep)' }}>
-                            {slot.time}
-                          </span>
-                          {isActive && (
-                            <span style={{
-                              width: '6px',
-                              height: '6px',
-                              borderRadius: '50%',
-                              backgroundColor: '#e76f51',
-                              boxShadow: '0 0 6px #e76f51'
-                            }} title="Current class hour" />
-                          )}
-                        </div>
+                        return (
+                          <div
+                            key={idx}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setTimetableModalViewMode('grid');
+                              setIsTimetableModalOpen(true);
+                            }}
+                            style={{
+                              aspectRatio: '1',
+                              borderRadius: '12px',
+                              padding: '10px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              justifyContent: 'space-between',
+                              background: bgFill,
+                              border: isActive 
+                                ? '2.5px solid var(--pine-primary)' 
+                                : '1px solid var(--border-subtle)',
+                              boxShadow: isActive ? '0 0 12px rgba(42, 157, 143, 0.35)' : 'none',
+                              position: 'relative',
+                              overflow: 'hidden',
+                              transition: 'all 0.2s ease',
+                              cursor: 'pointer'
+                            }}
+                            className="glass-panel-hover"
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                              <span style={{ fontSize: '9px', fontWeight: '800', color: slot.isLunch ? '#e76f51' : 'var(--pine-deep)' }}>
+                                {slot.time}
+                              </span>
+                              {isActive && (
+                                <span style={{
+                                  width: '6px',
+                                  height: '6px',
+                                  borderRadius: '50%',
+                                  backgroundColor: '#e76f51',
+                                  boxShadow: '0 0 6px #e76f51'
+                                }} title="Current class hour" />
+                              )}
+                            </div>
 
-                        {/* Subject inside Square */}
-                        <div style={{ margin: 'auto 0' }}>
-                          <h4 style={{
-                            fontSize: '11px',
-                            fontWeight: '800',
-                            color: isFree ? 'var(--text-muted)' : 'var(--text-main)',
-                            margin: 0,
-                            lineHeight: '1.2',
-                            textAlign: 'center',
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis'
-                          }}>
-                            {slot.subject}
-                          </h4>
-                        </div>
+                            <div style={{ margin: 'auto 0' }}>
+                              <h4 style={{
+                                fontSize: '11px',
+                                fontWeight: '800',
+                                color: isFree ? 'var(--text-muted)' : 'var(--text-main)',
+                                margin: 0,
+                                lineHeight: '1.2',
+                                textAlign: 'center',
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
+                              }}>
+                                {slot.subject}
+                              </h4>
+                            </div>
 
-                        {/* Room/Code details */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '8px', color: 'var(--text-muted)' }}>
-                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '55%' }}>
-                            {slot.code}
-                          </span>
-                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '45%' }}>
-                            {slot.room}
-                          </span>
-                        </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '8px', color: 'var(--text-muted)' }}>
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '55%' }}>
+                                {slot.code}
+                              </span>
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '45%' }}>
+                                {slot.room}
+                              </span>
+                            </div>
 
-                        {/* Percent progress badge inside card */}
-                        {isActive && percent > 0 && percent < 100 && (
-                          <div style={{
-                            position: 'absolute',
-                            bottom: '2px',
-                            right: '4px',
-                            fontSize: '8px',
-                            color: 'var(--pine-deep)',
-                            fontWeight: '900',
-                            backgroundColor: 'rgba(255, 255, 255, 0.75)',
-                            padding: '1px 3px',
-                            borderRadius: '3px'
-                          }}>
-                            {percent}%
+                            {isActive && percent > 0 && percent < 100 && (
+                              <div style={{
+                                position: 'absolute',
+                                bottom: '2px',
+                                right: '4px',
+                                fontSize: '8px',
+                                color: 'var(--pine-deep)',
+                                fontWeight: '900',
+                                backgroundColor: 'rgba(255, 255, 255, 0.75)',
+                                padding: '1px 3px',
+                                borderRadius: '3px'
+                              }}>
+                                {percent}%
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
+                        );
+                      })}
+                    </div>
+                  );
+                }
+
+                return (
+                  <div 
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '30px 16px',
+                      borderRadius: '12px',
+                      border: '1px dashed var(--border-subtle)',
+                      backgroundColor: 'rgba(0,0,0,0.01)',
+                      textAlign: 'center',
+                      marginTop: '4px',
+                      flex: 1,
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <BookOpen size={32} style={{ color: 'var(--text-placeholder)', opacity: 0.7 }} />
+                    <div>
+                      <h4 style={{ fontSize: '13px', fontWeight: '800', color: 'var(--text-main)', margin: 0 }}>
+                        Timetable Not Available
+                      </h4>
+                      <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '4px 0 0', lineHeight: '1.4' }}>
+                        Timetable for {selectedYear} - Section {selectedSection} has not been uploaded yet.
+                      </p>
+                    </div>
+                    {user.role !== 'guest' && (
+                      <button
+                        onClick={() => {
+                          setUploadTimetableYear(selectedYear);
+                          setUploadTimetableSec(selectedSection);
+                          setUploadTimetableFile('');
+                          setUploadTimetableFileName('');
+                          setIsUploadTimetableOpen(true);
+                        }}
+                        className="btn-primary"
+                        style={{ padding: '8px 16px', fontSize: '11px', fontWeight: '700' }}
+                      >
+                        Upload Timetable
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* My QR Banner - Replicating screenshot */}
@@ -2548,6 +2747,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           }
         };
         const pendingAnnouncements = announcements.filter(ann => ann.approved === false);
+        const pendingTimetables = timetableSubmissions.filter(t => t.status === 'pending');
 
         return (
           <div style={styles.exploreTabContainer} className="animate-fade-in">
@@ -2732,6 +2932,144 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                             >
                               Reject & Delete
                             </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Pending Timetables Section */}
+              <div 
+                className="glass-panel" 
+                style={{ 
+                  gridColumn: '1 / -1', 
+                  padding: '24px', 
+                  backgroundColor: '#ffffff', 
+                  border: '1px solid var(--border-subtle)', 
+                  borderRadius: 'var(--radius-lg)',
+                  marginTop: '16px'
+                }}
+              >
+                <h3 style={{ fontSize: '16px', fontWeight: '800', color: 'var(--pine-deep)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>Pending Timetables Approvals</span>
+                  {pendingTimetables.length > 0 && (
+                    <span style={{
+                      backgroundColor: '#e76f51',
+                      color: '#ffffff',
+                      fontSize: '11px',
+                      fontWeight: '800',
+                      padding: '2px 8px',
+                      borderRadius: '10px'
+                    }}>
+                      {pendingTimetables.length}
+                    </span>
+                  )}
+                </h3>
+
+                {pendingTimetables.length === 0 ? (
+                  <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                    No pending timetables to review. You&apos;re all caught up! ✨
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {pendingTimetables.map((sub) => {
+                      return (
+                        <div 
+                          key={sub.id}
+                          style={{
+                            padding: '16px',
+                            borderRadius: '10px',
+                            border: '1px solid var(--border-subtle)',
+                            backgroundColor: 'rgba(0,0,0,0.01)',
+                            display: 'flex',
+                            gap: '16px',
+                            alignItems: 'flex-start',
+                            flexWrap: 'wrap'
+                          }}
+                        >
+                          {/* Timetable Thumbnail Preview */}
+                          <div 
+                            style={{
+                              width: '120px',
+                              height: '120px',
+                              borderRadius: '8px',
+                              overflow: 'hidden',
+                              border: '1px solid var(--border-subtle)',
+                              backgroundColor: '#ffffff',
+                              flexShrink: 0
+                            }}
+                          >
+                            <img 
+                              src={sub.file_data} 
+                              alt="Timetable Preview" 
+                              style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }}
+                              onClick={() => {
+                                const win = window.open();
+                                if (win) {
+                                  win.document.write(`<img src="${sub.file_data}" style="max-width:100%; height:auto;" />`);
+                                }
+                              }}
+                              title="Click to view full size"
+                            />
+                          </div>
+
+                          {/* Submission Details */}
+                          <div style={{ flex: 1, minWidth: '200px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                              <div>
+                                <h4 style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-main)', margin: 0 }}>
+                                  {sub.year} — Section {sub.section}
+                                </h4>
+                                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                  Submitted by: <strong>{sub.uploaded_by}</strong> ({sub.uploaded_by_email})
+                                </span>
+                              </div>
+                              <span style={{
+                                fontSize: '10px',
+                                backgroundColor: 'rgba(231, 111, 81, 0.15)',
+                                color: '#e76f51',
+                                fontWeight: '800',
+                                padding: '2px 8px',
+                                borderRadius: '4px'
+                              }}>
+                                New Timetable Submission
+                              </span>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
+                              <button
+                                onClick={async () => {
+                                  const success = await approveTimetableAction(sub.id!, sub.year, sub.section, sub.file_data);
+                                  if (success) {
+                                    showToast(`Timetable approved!`, 'success');
+                                    loadTimetablesData();
+                                  } else {
+                                    showToast('Failed to approve timetable.', 'error');
+                                  }
+                                }}
+                                className="btn-primary"
+                                style={{ padding: '8px 16px', fontSize: '12px' }}
+                              >
+                                Approve & Publish
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  const success = await rejectTimetableAction(sub.id!);
+                                  if (success) {
+                                    showToast('Timetable submission rejected.', 'info');
+                                    loadTimetablesData();
+                                  } else {
+                                    showToast('Failed to reject timetable.', 'error');
+                                  }
+                                }}
+                                className="btn-secondary"
+                                style={{ padding: '8px 16px', fontSize: '12px', color: '#e76f51', borderColor: 'rgba(231, 111, 81, 0.2)' }}
+                              >
+                                Reject & Delete
+                              </button>
+                            </div>
                           </div>
                         </div>
                       );
@@ -3267,96 +3605,191 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               </button>
             </div>
 
-            {/* Day Picker Tabs inside Modal */}
-            <div style={{
-              display: 'flex',
-              gap: '6px',
-              overflowX: 'auto',
-              marginBottom: '16px',
-              borderBottom: '1px solid var(--border-subtle)',
-              paddingBottom: '8px',
-              scrollbarWidth: 'none'
-            }}>
-              {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map((day) => {
-                const isSelected = selectedTimetableDay === day;
-                return (
-                  <button
-                    key={day}
-                    onClick={() => setSelectedTimetableDay(day)}
-                    style={{
-                      padding: '6px 14px',
-                      borderRadius: '20px',
-                      border: '1px solid var(--border-subtle)',
-                      backgroundColor: isSelected ? 'var(--pine-primary)' : 'transparent',
-                      color: isSelected ? '#ffffff' : 'var(--text-main)',
-                      fontSize: '12px',
-                      fontWeight: '700',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    {day}
-                  </button>
-                );
-              })}
-            </div>
+            {(() => {
+              const customTimetable = approvedTimetables.find(
+                t => t.year === selectedYear && t.section === selectedSection
+              );
 
-            {/* Vertical List of Time Slots */}
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '10px',
-              maxHeight: '50vh',
-              overflowY: 'auto',
-              paddingRight: '6px',
-              scrollbarWidth: 'thin'
-            }}>
-              {(weeklyTimetable[selectedTimetableDay] || []).length === 0 ? (
-                <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  No classes scheduled.
-                </div>
-              ) : (
-                (weeklyTimetable[selectedTimetableDay] || []).map((slot, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '14px',
-                      padding: '12px 16px',
-                      borderRadius: '8px',
-                      border: '1px solid var(--border-subtle)',
-                      backgroundColor: slot.isLunch ? 'rgba(244, 162, 97, 0.05)' : '#ffffff',
-                      borderLeft: `5px solid ${slot.isLunch ? '#f4a261' : 'var(--pine-primary)'}`,
-                    }}
-                  >
-                    {/* Time Slot Label */}
-                    <div style={{
-                      width: '65px',
-                      fontSize: '12px',
-                      fontWeight: '800',
-                      color: slot.isLunch ? '#e76f51' : 'var(--pine-deep)',
-                      flexShrink: 0
-                    }}>
-                      {slot.time}
+              if (customTimetable && timetableModalViewMode === 'image') {
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {/* Mode Toggle Button inside modal */}
+                    <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                      <button
+                        onClick={() => setTimetableModalViewMode('grid')}
+                        style={{
+                          flex: 1,
+                          padding: '8px',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border-subtle)',
+                          backgroundColor: 'transparent',
+                          color: 'var(--text-main)',
+                          fontSize: '12px',
+                          fontWeight: '700',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Live Grid View
+                      </button>
+                      <button
+                        onClick={() => setTimetableModalViewMode('image')}
+                        style={{
+                          flex: 1,
+                          padding: '8px',
+                          borderRadius: '8px',
+                          border: '1px solid var(--pine-primary)',
+                          backgroundColor: 'var(--pine-primary)',
+                          color: '#ffffff',
+                          fontSize: '12px',
+                          fontWeight: '700',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Official Image View
+                      </button>
                     </div>
 
-                    {/* Class Details */}
-                    <div style={{ flex: 1 }}>
-                      <h4 style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-main)', margin: 0 }}>
-                        {slot.subject}
-                      </h4>
-                      {!slot.isLunch && (
-                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                          {slot.code} • Room {slot.room}
-                        </span>
-                      )}
+                    <div style={{ width: '100%', maxHeight: '55vh', overflow: 'auto', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
+                      <img 
+                        src={customTimetable.file_data} 
+                        alt="Official Timetable" 
+                        style={{ width: '100%', height: 'auto', display: 'block' }}
+                      />
                     </div>
                   </div>
-                ))
-              )}
-            </div>
+                );
+              }
+
+              return (
+                <>
+                  {customTimetable && (
+                    <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+                      <button
+                        onClick={() => setTimetableModalViewMode('grid')}
+                        style={{
+                          flex: 1,
+                          padding: '8px',
+                          borderRadius: '8px',
+                          border: '1px solid var(--pine-primary)',
+                          backgroundColor: 'var(--pine-primary)',
+                          color: '#ffffff',
+                          fontSize: '12px',
+                          fontWeight: '700',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Live Grid View
+                      </button>
+                      <button
+                        onClick={() => setTimetableModalViewMode('image')}
+                        style={{
+                          flex: 1,
+                          padding: '8px',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border-subtle)',
+                          backgroundColor: 'transparent',
+                          color: 'var(--text-main)',
+                          fontSize: '12px',
+                          fontWeight: '700',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Official Image View
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Day Picker Tabs inside Modal */}
+                  <div style={{
+                    display: 'flex',
+                    gap: '6px',
+                    overflowX: 'auto',
+                    marginBottom: '16px',
+                    borderBottom: '1px solid var(--border-subtle)',
+                    paddingBottom: '8px',
+                    scrollbarWidth: 'none'
+                  }}>
+                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map((day) => {
+                      const isSelected = selectedTimetableDay === day;
+                      return (
+                        <button
+                          key={day}
+                          onClick={() => setSelectedTimetableDay(day)}
+                          style={{
+                            padding: '6px 14px',
+                            borderRadius: '20px',
+                            border: '1px solid var(--border-subtle)',
+                            backgroundColor: isSelected ? 'var(--pine-primary)' : 'transparent',
+                            color: isSelected ? '#ffffff' : 'var(--text-main)',
+                            fontSize: '12px',
+                            fontWeight: '700',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          {day}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Vertical List of Time Slots */}
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                    maxHeight: '45vh',
+                    overflowY: 'auto',
+                    paddingRight: '6px',
+                    scrollbarWidth: 'thin'
+                  }}>
+                    {(weeklyTimetable[selectedTimetableDay] || []).length === 0 ? (
+                      <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        No classes scheduled.
+                      </div>
+                    ) : (
+                      (weeklyTimetable[selectedTimetableDay] || []).map((slot, idx) => (
+                        <div
+                          key={idx}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '14px',
+                            padding: '12px 16px',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border-subtle)',
+                            backgroundColor: slot.isLunch ? 'rgba(244, 162, 97, 0.05)' : '#ffffff',
+                            borderLeft: `5px solid ${slot.isLunch ? '#f4a261' : 'var(--pine-primary)'}`,
+                          }}
+                        >
+                          <div style={{
+                            width: '65px',
+                            fontSize: '12px',
+                            fontWeight: '800',
+                            color: slot.isLunch ? '#e76f51' : 'var(--pine-deep)',
+                            flexShrink: 0
+                          }}>
+                            {slot.time}
+                          </div>
+
+                          <div style={{ flex: 1 }}>
+                            <h4 style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-main)', margin: 0 }}>
+                              {slot.subject}
+                            </h4>
+                            {!slot.isLunch && (
+                              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                {slot.code} • Room {slot.room}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </>
+              );
+            })()}
 
             {/* Close action */}
             <div style={{ ...styles.idCardActions, marginTop: '20px' }}>
@@ -3366,6 +3799,153 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 style={{ flex: 1, padding: '10px' }}
               >
                 Close View
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Upload Timetable Modal */}
+      {isUploadTimetableOpen && (
+        <div style={styles.modalOverlay} onClick={() => setIsUploadTimetableOpen(false)}>
+          <div 
+            style={{ ...styles.idCardModal, maxWidth: '480px', width: '92%' }} 
+            className="glass-panel animate-fade-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={styles.modalHeader}>
+              <div>
+                <h3 style={styles.modalTitle}>Upload Timetable 📅</h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0' }}>
+                  Submit the official timetable to the developer for review
+                </p>
+              </div>
+              <button 
+                onClick={() => setIsUploadTimetableOpen(false)}
+                style={styles.modalCloseBtn}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '10px' }}>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={styles.formLabel}>Selected Year</label>
+                  <input 
+                    type="text" 
+                    value={uploadTimetableYear} 
+                    disabled 
+                    style={{ ...styles.formInput, backgroundColor: 'rgba(0,0,0,0.03)', color: 'var(--text-muted)', padding: '8px 12px' }} 
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={styles.formLabel}>Selected Section</label>
+                  <input 
+                    type="text" 
+                    value={`Section ${uploadTimetableSec}`} 
+                    disabled 
+                    style={{ ...styles.formInput, backgroundColor: 'rgba(0,0,0,0.03)', color: 'var(--text-muted)', padding: '8px 12px' }} 
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={styles.formLabel}>Timetable Image (PNG/JPG)</label>
+                <div 
+                  style={{
+                    border: '2px dashed var(--border-subtle)',
+                    borderRadius: '8px',
+                    padding: '24px 16px',
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    backgroundColor: 'rgba(0,0,0,0.01)',
+                    position: 'relative'
+                  }}
+                >
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setUploadTimetableFile(reader.result as string);
+                          setUploadTimetableFileName(file.name);
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      opacity: 0,
+                      cursor: 'pointer'
+                    }}
+                  />
+                  {uploadTimetableFile ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ width: '80px', height: '80px', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
+                        <img src={uploadTimetableFile} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Preview" />
+                      </div>
+                      <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-main)' }}>
+                        {uploadTimetableFileName}
+                      </span>
+                      <span style={{ fontSize: '10px', color: 'var(--pine-primary)' }}>Click to replace file</span>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                      <Download size={24} style={{ color: 'var(--text-placeholder)', opacity: 0.7 }} />
+                      <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-main)' }}>Choose Timetable Image</span>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Drag & drop or click to upload</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ ...styles.idCardActions, marginTop: '20px' }}>
+              <button 
+                onClick={async () => {
+                  if (!uploadTimetableFile) {
+                    showToast('Please select a timetable image to upload.', 'error');
+                    return;
+                  }
+                  setIsSubmittingTimetable(true);
+                  const success = await submitTimetableAction(
+                    uploadTimetableYear,
+                    uploadTimetableSec,
+                    uploadTimetableFile,
+                    uploadTimetableFileName,
+                    user.name,
+                    user.email
+                  );
+                  setIsSubmittingTimetable(false);
+                  if (success) {
+                    showToast('Success! Timetable sent to developer for review.', 'success');
+                    setIsUploadTimetableOpen(false);
+                    loadTimetablesData();
+                  } else {
+                    showToast('Failed to submit timetable. Try again.', 'error');
+                  }
+                }}
+                className="btn-primary" 
+                disabled={isSubmittingTimetable}
+                style={{ flex: 1, padding: '10px' }}
+              >
+                {isSubmittingTimetable ? 'Submitting...' : 'Submit for Review'}
+              </button>
+              <button 
+                onClick={() => setIsUploadTimetableOpen(false)}
+                className="btn-secondary" 
+                disabled={isSubmittingTimetable}
+                style={{ flex: 1, padding: '10px' }}
+              >
+                Cancel
               </button>
             </div>
           </div>

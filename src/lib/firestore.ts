@@ -614,3 +614,124 @@ export async function updateMarketplaceItemStatus(id: string, status: 'active' |
     return false;
   }
 }
+
+export interface TimetableSubmission {
+  id?: string;
+  year: string;
+  section: string;
+  file_data: string;
+  file_name: string;
+  uploaded_by: string;
+  uploaded_by_email: string;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at?: string | null;
+}
+
+export interface ApprovedTimetable {
+  id?: string;
+  year: string;
+  section: string;
+  file_data: string;
+  created_at?: string | null;
+}
+
+export async function createTimetableSubmission(submission: Omit<TimetableSubmission, 'id' | 'status' | 'created_at'>): Promise<boolean> {
+  try {
+    await addDoc(collection(db, 'timetable_submissions'), {
+      ...submission,
+      status: 'pending',
+      created_at: serverTimestamp()
+    });
+    return true;
+  } catch (error) {
+    console.error('Error creating timetable submission:', error);
+    return false;
+  }
+}
+
+export async function getTimetableSubmissions(): Promise<TimetableSubmission[]> {
+  try {
+    const q = query(collection(db, 'timetable_submissions'), orderBy('created_at', 'desc'));
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => {
+      const data = doc.data();
+      const createdAt = data.created_at;
+      let serializableCreatedAt = null;
+      if (createdAt && typeof createdAt === 'object') {
+        const ts = createdAt as { toDate?: () => { toISOString: () => string }; seconds?: number };
+        if (typeof ts.toDate === 'function') {
+          serializableCreatedAt = ts.toDate().toISOString();
+        } else if (typeof ts.seconds === 'number') {
+          serializableCreatedAt = new Date(ts.seconds * 1000).toISOString();
+        }
+      } else if (createdAt) {
+        serializableCreatedAt = String(createdAt);
+      }
+      return {
+        id: doc.id,
+        year: data.year || '',
+        section: data.section || '',
+        file_data: data.file_data || '',
+        file_name: data.file_name || '',
+        uploaded_by: data.uploaded_by || '',
+        uploaded_by_email: data.uploaded_by_email || '',
+        status: data.status || 'pending',
+        created_at: serializableCreatedAt
+      };
+    });
+  } catch (error) {
+    console.error('Error fetching timetable submissions:', error);
+    return [];
+  }
+}
+
+export async function getApprovedTimetables(): Promise<ApprovedTimetable[]> {
+  try {
+    const q = query(collection(db, 'approved_timetables'), orderBy('year', 'asc'));
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        year: data.year || '',
+        section: data.section || '',
+        file_data: data.file_data || ''
+      };
+    });
+  } catch (error) {
+    console.error('Error fetching approved timetables:', error);
+    return [];
+  }
+}
+
+export async function approveTimetableSubmission(submissionId: string, year: string, section: string, fileData: string): Promise<boolean> {
+  try {
+    const subRef = doc(db, 'timetable_submissions', submissionId);
+    await updateDoc(subRef, { status: 'approved' });
+
+    const customId = `${year.replace(/\s+/g, '_')}_Section_${section}`;
+    const timetableRef = doc(db, 'approved_timetables', customId);
+    await setDoc(timetableRef, {
+      year,
+      section,
+      file_data: fileData,
+      created_at: serverTimestamp()
+    }, { merge: true });
+
+    return true;
+  } catch (error) {
+    console.error('Error approving timetable:', error);
+    return false;
+  }
+}
+
+export async function rejectTimetableSubmission(submissionId: string): Promise<boolean> {
+  try {
+    const subRef = doc(db, 'timetable_submissions', submissionId);
+    await updateDoc(subRef, { status: 'rejected' });
+    return true;
+  } catch (error) {
+    console.error('Error rejecting timetable:', error);
+    return false;
+  }
+}
