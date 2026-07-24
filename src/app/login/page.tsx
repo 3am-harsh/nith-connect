@@ -43,7 +43,7 @@ export default function LoginPage() {
     });
   };
 
-  const handleDevLogin = (role: 'student' | 'guest') => {
+  const handleDevLogin = (role: 'student' | 'guest' | 'developer') => {
     setErrorMessage(null);
     startTransition(async () => {
       const result = await loginDeveloper(role);
@@ -113,6 +113,14 @@ export default function LoginPage() {
 
               {/* Dev mode options */}
               <div style={styles.devButtons}>
+                <button 
+                  onClick={() => handleDevLogin('developer')}
+                  style={{ ...styles.devBtn, backgroundColor: 'rgba(42, 157, 143, 0.1)', borderColor: 'var(--pine-primary)' }}
+                  disabled={isPending}
+                >
+                  <Sparkles size={16} color="var(--pine-primary)" />
+                  <span style={{ fontWeight: 'bold', color: 'var(--pine-deep)' }}>Developer Mode (Harsh)</span>
+                </button>
                 <button 
                   onClick={() => handleDevLogin('student')}
                   style={styles.devBtn}

@@ -58,6 +58,7 @@ export async function loginWithEmail(formData: FormData): Promise<LoginResult> {
     }
 
     // Set the cookie session
+    const finalRole = email === '25bec047@nith.ac.in' ? 'developer' : (user.role || 'student');
     await setSession({
       id: userId,
       email: user.email,
@@ -66,7 +67,7 @@ export async function loginWithEmail(formData: FormData): Promise<LoginResult> {
       department: user.department,
       hostel: user.hostel,
       blood_group: user.blood_group,
-      role: user.role
+      role: finalRole
     });
 
   } catch (error: unknown) {
@@ -80,7 +81,7 @@ export async function loginWithEmail(formData: FormData): Promise<LoginResult> {
   return { success: true };
 }
 
-export async function loginDeveloper(type: 'student' | 'guest'): Promise<LoginResult> {
+export async function loginDeveloper(type: 'student' | 'guest' | 'developer'): Promise<LoginResult> {
   const mockProfiles = {
     student: {
       id: 'dev_student',
@@ -101,6 +102,16 @@ export async function loginDeveloper(type: 'student' | 'guest'): Promise<LoginRe
       hostel: 'NITH Guest House',
       blood_group: 'N/A',
       role: 'guest'
+    },
+    developer: {
+      id: '25bec047',
+      email: '25bec047@nith.ac.in',
+      name: 'Harsh (Developer)',
+      roll_number: '25BEC047',
+      department: 'Electronics & Communication',
+      hostel: 'Himadri Hostel',
+      blood_group: 'O+',
+      role: 'developer'
     }
   };
 

@@ -249,6 +249,10 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     { id: 'chat', label: 'Communities', icon: MessageSquare, color: '#9b5de5' },
   ];
 
+  if (user.role === 'developer') {
+    menuItems.push({ id: 'dev_tools', label: 'Dev Mode 🛠️', icon: Sparkles, color: '#e76f51' });
+  }
+
   const getMealTime = (meal: string) => {
     switch (meal) {
       case 'breakfast': return '7:30 AM - 9:00 AM';
@@ -1893,6 +1897,120 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           </div>
         );
       }
+      case 'dev_tools': {
+        const handleInjectLostItem = async () => {
+          const success = await createLostFoundItemAction(
+            "Developer Test Wallet (Mock)",
+            "A test item automatically injected from the Developer Console. Black leather wallet with student library card.",
+            "lost",
+            "Audi Hall, 3rd row",
+            "Today",
+            "+919816012345",
+            "",
+            user.id,
+            user.name
+          );
+          if (success) {
+            alert("Success! Staged mock lost item in Firestore 'lost_found' collection.");
+            loadLostFoundItems();
+          } else {
+            alert("Failed to inject mock item.");
+          }
+        };
+
+        const handleInjectAnnouncement = async () => {
+          const success = await createAnnouncementAction(
+            "Developer Update: System Under Test",
+            "This announcement has been automatically injected from the Developer Console to verify feed synchronization. System status is nominal.",
+            "All Students",
+            "Today",
+            "12:00 PM",
+            "Cloud Console",
+            "Developer Tools",
+            "pine"
+          );
+          if (success) {
+            alert("Success! Staged mock announcement in Firestore 'announcements' collection.");
+            loadAnnouncements();
+          } else {
+            alert("Failed to inject mock announcement.");
+          }
+        };
+
+        return (
+          <div style={styles.exploreTabContainer} className="animate-fade-in">
+            <div style={styles.exploreHeaderSection}>
+              <h2 style={styles.exploreTitle}>Developer <span style={{ color: '#e76f51' }}>Console</span> 🛠️</h2>
+              <p style={styles.exploreSubtitle}>Administrator utilities, Firestore seeding, and real-time environment status</p>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginTop: '20px' }}>
+              {/* Environment Status Card */}
+              <div className="glass-panel" style={{ padding: '20px', backgroundColor: '#ffffff', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)' }}>
+                <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--pine-deep)', marginBottom: '14px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '6px' }}>
+                  System Configuration
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px' }}>
+                  <div><strong>Developer Email:</strong> {user.email}</div>
+                  <div><strong>Developer Roll No:</strong> {user.roll_number || 'N/A'}</div>
+                  <div><strong>Session ID:</strong> {user.id}</div>
+                  <div><strong>Role Level:</strong> <span style={{ color: '#e76f51', fontWeight: 'bold' }}>{user.role}</span></div>
+                  <div><strong>Environment:</strong> development</div>
+                  <div><strong>Database Server:</strong> Google Cloud Firestore (asia-south1)</div>
+                </div>
+              </div>
+
+              {/* Database Controls Card */}
+              <div className="glass-panel" style={{ padding: '20px', backgroundColor: '#ffffff', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)' }}>
+                <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--pine-deep)', marginBottom: '14px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '6px' }}>
+                  Mock Data Injector
+                </h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+                  Simulate and inject live records directly into Cloud Firestore to test application views.
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <button 
+                    onClick={handleInjectLostItem}
+                    className="btn-primary" 
+                    style={{ padding: '10px 14px', backgroundColor: 'var(--pine-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                  >
+                    <span>Inject Mock Lost Item</span>
+                  </button>
+                  <button 
+                    onClick={handleInjectAnnouncement}
+                    className="btn-primary" 
+                    style={{ padding: '10px 14px', backgroundColor: 'var(--aqua-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                  >
+                    <span>Inject Mock Announcement</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Maintenance Tools Card */}
+              <div className="glass-panel" style={{ padding: '20px', backgroundColor: '#ffffff', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)' }}>
+                <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--pine-deep)', marginBottom: '14px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '6px' }}>
+                  Database Utilities
+                </h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+                  Trigger background data-healing and collection seeding routines.
+                </p>
+                <button 
+                  onClick={async () => {
+                    await runSeedingAction();
+                    alert("Success! Re-seeded missing default records in Firestore.");
+                    loadAnnouncements();
+                    loadLostFoundItems();
+                  }}
+                  className="btn-secondary" 
+                  style={{ width: '100%', padding: '10px 14px', fontWeight: '700' }}
+                >
+                  Force Firestore Re-seed
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      }
       default:
         return (
           <div style={styles.placeholderTab} className="glass-panel animate-fade-in">
@@ -2084,7 +2202,11 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     <div style={styles.idCardMainDetails}>
                       <h4 style={styles.idCardName}>{user.name}</h4>
                       <p style={styles.idCardRoleText}>
-                        {user.role === 'guest' ? 'Campus Guest' : 'Student Scholar'}
+                        {user.role === 'developer' 
+                          ? 'App Developer 🛠️' 
+                          : user.role === 'guest' 
+                            ? 'Campus Guest' 
+                            : 'Student Scholar'}
                       </p>
                     </div>
                   </div>
