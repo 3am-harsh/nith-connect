@@ -46,7 +46,9 @@ import {
   MapPin,
   Plus,
   ArrowRight,
-  Upload
+  Upload,
+  CheckCircle2,
+  Info
 } from 'lucide-react';
 
 interface ClassSlot {
@@ -213,6 +215,20 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const [newListingCategory, setNewListingCategory] = useState('Others');
   const [marketplaceSearchQuery, setMarketplaceSearchQuery] = useState('');
   const [selectedMarketplaceCategory, setSelectedMarketplaceCategory] = useState('all');
+
+  // Toast State
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info'; visible: boolean }>({
+    message: '',
+    type: 'success',
+    visible: false
+  });
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    setToast({ message, type, visible: true });
+    setTimeout(() => {
+      setToast(prev => ({ ...prev, visible: false }));
+    }, 4000);
+  };
 
   // Lost & Found States
   const [lostFoundItems, setLostFoundItems] = useState<FirestoreLostFoundItem[]>([]);
@@ -1137,10 +1153,10 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         const handleMarkAsSold = async (itemId: string) => {
           const success = await updateMarketplaceItemStatusAction(itemId, 'sold');
           if (success) {
-            alert('Item marked as SOLD.');
+            showToast('Item marked as SOLD.', 'success');
             loadMarketplaceItems();
           } else {
-            alert('Failed to update status.');
+            showToast('Failed to update status.', 'error');
           }
         };
 
@@ -1463,7 +1479,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           const handleCrNextStep = () => {
             if (crStep === 4) {
               if (!crItemTitle || !crItemLocation || !crContactDetails) {
-                alert('Please fill in all required fields.');
+                showToast('Please fill in all required fields.', 'error');
                 return;
               }
               const crNameStr = activeContact ? activeContact.name : 'CR';
@@ -1822,7 +1838,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         const handleReportSubmit = async (e: React.FormEvent) => {
           e.preventDefault();
           if (!newItemTitle || !newItemDesc || !newItemLocation || !newItemDate || !newItemContact) {
-            alert('Please fill in all required fields.');
+            showToast('Please fill in all required fields.', 'error');
             return;
           }
 
@@ -1847,8 +1863,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             setNewItemImage('');
             setIsReportLostFoundOpen(false);
             loadLostFoundItems();
+            showToast('Success! Item logged in bulletin.', 'success');
           } else {
-            alert('Failed to report item. Please try again.');
+            showToast('Failed to report item. Please try again.', 'error');
           }
         };
 
@@ -2166,7 +2183,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           if (success) {
             loadMessages(selectedRoomId);
           } else {
-            alert('Failed to send message.');
+            showToast('Failed to send message.', 'error');
           }
         };
 
@@ -2491,10 +2508,10 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             user.name
           );
           if (success) {
-            alert("Success! Staged mock lost item in Firestore 'lost_found' collection.");
+            showToast('Staged mock lost item in Firestore.', 'success');
             loadLostFoundItems();
           } else {
-            alert("Failed to inject mock item.");
+            showToast('Failed to inject mock item.', 'error');
           }
         };
 
@@ -2510,10 +2527,10 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             "pine"
           );
           if (success) {
-            alert("Success! Staged mock announcement in Firestore 'announcements' collection.");
+            showToast('Staged mock announcement in Firestore.', 'success');
             loadAnnouncements();
           } else {
-            alert("Failed to inject mock announcement.");
+            showToast('Failed to inject mock announcement.', 'error');
           }
         };
 
@@ -2577,7 +2594,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 <button 
                   onClick={async () => {
                     await runSeedingAction();
-                    alert("Success! Re-seeded missing default records in Firestore.");
+                    showToast('Firestore re-seeded successfully.', 'success');
                     loadAnnouncements();
                     loadLostFoundItems();
                   }}
@@ -2701,7 +2718,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
           <div style={styles.topbarRight}>
             <button 
-              onClick={() => alert('Notifications: All caught up!')}
+              onClick={() => showToast('Notifications: All caught up!', 'info')}
               style={styles.iconBtn}
             >
               <Bell size={18} color="var(--pine-deep)" />
@@ -2827,7 +2844,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             {/* Actions */}
             <div style={styles.idCardActions}>
               <button 
-                onClick={() => alert('Identity downloaded successfully to your devices.')}
+                onClick={() => showToast('Identity pass downloaded successfully.', 'success')}
                 className="btn-primary" 
                 style={{ flex: 1, padding: '10px' }}
               >
@@ -3024,7 +3041,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               <button 
                 onClick={async () => {
                   if (!newPostTitle || !newPostPub || !newPostDesc) {
-                    alert('Please fill out the Title, Publisher, and Description.');
+                    showToast('Please enter a Title, Publisher, and Description.', 'error');
                     return;
                   }
                   const success = await createAnnouncementAction(
@@ -3046,8 +3063,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     setNewPostLoc('');
                     setIsCreateAnnouncementOpen(false);
                     loadAnnouncements();
+                    showToast('Announcement published successfully.', 'success');
                   } else {
-                    alert('Failed to publish. Check your console.');
+                    showToast('Failed to publish announcement.', 'error');
                   }
                 }}
                 className="btn-primary" 
@@ -3327,7 +3345,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             <form onSubmit={async (e) => {
               e.preventDefault();
               if (!newListingTitle || !newListingSellingPrice || !newListingContact) {
-                alert('Please enter a Title, Selling Price, and Contact Number.');
+                showToast('Please enter a Title, Price, and Contact.', 'error');
                 return;
               }
 
@@ -3347,7 +3365,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               );
 
               if (success) {
-                alert('Success! Your listing has been published to the marketplace.');
                 setNewListingTitle('');
                 setNewListingDesc('');
                 setNewListingOriginalPrice('');
@@ -3357,8 +3374,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 setNewListingCategory('Others');
                 setIsAddListingOpen(false);
                 loadMarketplaceItems();
+                showToast('Success! Your listing has been published.', 'success');
               } else {
-                alert('Failed to publish listing.');
+                showToast('Failed to publish listing.', 'error');
               }
             }} style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '70vh', overflowY: 'auto', paddingRight: '4px', scrollbarWidth: 'thin' }}>
               
@@ -3551,6 +3569,40 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* Toast Notification popup */}
+      {toast.visible && (
+        <div 
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            backgroundColor: toast.type === 'success' 
+              ? 'var(--pine-primary)' 
+              : toast.type === 'error' 
+                ? '#e76f51' 
+                : 'var(--pine-deep)',
+            color: '#ffffff',
+            padding: '12px 20px',
+            borderRadius: '8px',
+            fontSize: '13px',
+            fontWeight: '700',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            zIndex: 99999
+          }}
+          className="glass-panel animate-fade-in"
+        >
+          {toast.type === 'success' ? (
+            <CheckCircle2 size={16} color="#ffffff" />
+          ) : (
+            <Info size={16} color="#ffffff" />
+          )}
+          <span>{toast.message}</span>
         </div>
       )}
     </div>
