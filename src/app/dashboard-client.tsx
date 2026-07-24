@@ -2659,13 +2659,15 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             );
           })}
 
-          <button 
-            onClick={() => setIsIdCardOpen(true)}
-            style={styles.navLink}
-          >
-            <Contact size={18} color="rgba(255, 255, 255, 0.7)" />
-            <span>Digital ID Card</span>
-          </button>
+          {user.role !== 'guest' && (
+            <button 
+              onClick={() => setIsIdCardOpen(true)}
+              style={styles.navLink}
+            >
+              <Contact size={18} color="rgba(255, 255, 255, 0.7)" />
+              <span>Digital ID Card</span>
+            </button>
+          )}
         </nav>
 
         {/* Sidebar Footer User Details */}
@@ -2698,15 +2700,17 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         <header style={styles.topbar} className="glass-panel">
           <div style={styles.topbarLeft}>
             {/* ID Pill */}
-            <button 
-              onClick={() => setIsIdCardOpen(true)}
-              style={styles.idPill}
-            >
-              <div style={styles.idPillIcon}>
-                <Contact size={14} color="#ffffff" />
-              </div>
-              <span style={styles.idPillText}>ID</span>
-            </button>
+            {user.role !== 'guest' && (
+              <button 
+                onClick={() => setIsIdCardOpen(true)}
+                style={styles.idPill}
+              >
+                <div style={styles.idPillIcon}>
+                  <Contact size={14} color="#ffffff" />
+                </div>
+                <span style={styles.idPillText}>ID</span>
+              </button>
+            )}
           </div>
           
           {/* Center Lotus Logo */}
@@ -2793,12 +2797,19 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 {/* Body details */}
                 <div style={styles.idCardContent}>
                   <div style={styles.idCardProfileRow}>
-                    <div style={styles.idCardAvatar}>
+                    <div style={{
+                      ...styles.idCardAvatar,
+                      borderColor: user.role === 'developer' ? '#f4a261' : 'rgba(255,255,255,0.4)',
+                      backgroundColor: user.role === 'developer' ? 'rgba(244, 162, 97, 0.15)' : 'rgba(255,255,255,0.08)'
+                    }}>
                       {user.name.charAt(0)}
                     </div>
                     <div style={styles.idCardMainDetails}>
                       <h4 style={styles.idCardName}>{user.name}</h4>
-                      <p style={styles.idCardRoleText}>
+                      <p style={{
+                        ...styles.idCardRoleText,
+                        color: user.role === 'developer' ? '#f4a261' : '#a7f3d0'
+                      }}>
                         {user.role === 'developer' 
                           ? 'App Developer 🛠️' 
                           : user.role === 'guest' 
@@ -2811,7 +2822,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   <div style={styles.idCardDetailsGrid}>
                     <div style={styles.idCardDetailItem}>
                       <span style={styles.idCardLabel}>Roll No:</span>
-                      <span style={styles.idCardVal}>{user.roll_number || 'GUEST-001'}</span>
+                      <span style={styles.idCardVal}>{user.roll_number || 'N/A'}</span>
                     </div>
                     <div style={styles.idCardDetailItem}>
                       <span style={styles.idCardLabel}>Department:</span>
@@ -2831,10 +2842,20 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
                   {/* Scannable Vector QR Code */}
                   <div style={styles.idCardQrWrapper}>
-                    <svg width="120" height="120" viewBox="0 0 29 29" style={{ shapeRendering: 'crispEdges' }}>
-                      <path fill="#ffffff" d="M0 0h29v29H0z"/>
-                      <path fill="var(--pine-deep)" d="M0 0h7v7H0zm22 0h7v7h-7zM0 22h7v7H0zm9 0h1v1H9zm1-1h1v1h-1zm1 2h1v1h-1zm-2 1h1v1H9zm1 1h1v1h-1zm1-2h1v1h-1zm1 3h1v1h-1zm-2 1h1v1H9zm4-8h1v1h-1zm1 1h1v1h-1zm-1-2h1v1h-1zm2 1h1v1h-1zm1 2h1v1h-1zm-2 1h1v1h-1zm1 1h1v1h-1zm1-2h1v1h-1zm1 3h1v1h-1zm-2 1h1v1h-1zm6-6h1v1h-1zm1 1h1v1h-1zm-1-2h1v1h-1zm2 1h1v1h-1zm1 2h1v1h-1zm-2 1h1v1h-1zm1 1h1v1h-1zm1-2h1v1h-1zm1 3h1v1h-1zm-2 1h1v1h-1zM2 2h3v3H2zm20 0h3v3h-3zM2 24h3v3H2zm8-16h1v1h-1zm1 1h1v1h-1zm-1-2h1v1h-1zm2 1h1v1h-1zm1 2h1v1h-1zm-2 1h1v1h-1zm1 1h1v1h-1zm1-2h1v1h-1zm1 3h1v1h-1zm-2 1h1v1h-1zm6-6h1v1h-1zm1 1h1v1h-1zm-1-2h1v1h-1zm2 1h1v1h-1zm1 2h1v1h-1zm-2 1h1v1h-1zm1 1h1v1h-1zm1-2h1v1h-1zm1 3h1v1h-1zm-2 1h1v1h-1zm-8 4h1v1h-1zm1 1h1v1h-1zm-1-2h1v1h-1zm2 1h1v1h-1zm1 2h1v1h-1zm-2 1h1v1h-1zm1 1h1v1h-1zm1-2h1v1h-1zm1 3h1v1h-1zm-2 1h1v1h-1zm6-6h1v1h-1zm1 1h1v1h-1zm-1-2h1v1h-1zm2 1h1v1h-1zm1 2h1v1h-1zm-2 1h1v1h-1zm1 1h1v1h-1zm1-2h1v1h-1zm1 3h1v1h-1zm-2 1h1v1h-1z"/>
-                    </svg>
+                    <div style={{
+                      padding: '12px',
+                      backgroundColor: '#ffffff',
+                      borderRadius: '12px',
+                      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <svg width="110" height="110" viewBox="0 0 29 29" style={{ shapeRendering: 'crispEdges' }}>
+                        <path fill="#ffffff" d="M0 0h29v29H0z"/>
+                        <path fill="#0e3d2f" d="M0 0h7v7H0zm22 0h7v7h-7zM0 22h7v7H0zm9 0h1v1H9zm1-1h1v1h-1zm1 2h1v1h-1zm-2 1h1v1H9zm1 1h1v1h-1zm1-2h1v1h-1zm1 3h1v1h-1zm-2 1h1v1H9zm4-8h1v1h-1zm1 1h1v1h-1zm-1-2h1v1h-1zm2 1h1v1h-1zm1 2h1v1h-1zm-2 1h1v1h-1zm1 1h1v1h-1zm1-2h1v1h-1zm1 3h1v1h-1zm-2 1h1v1h-1zm6-6h1v1h-1zm1 1h1v1h-1zm-1-2h1v1h-1zm2 1h1v1h-1zm1 2h1v1h-1zm-2 1h1v1h-1zm1 1h1v1h-1zm1-2h1v1h-1zm1 3h1v1h-1zm-2 1h1v1h-1zM2 2h3v3H2zm20 0h3v3h-3zM2 24h3v3H2zm8-16h1v1h-1zm1 1h1v1h-1zm-1-2h1v1h-1zm2 1h1v1h-1zm1 2h1v1h-1zm-2 1h1v1h-1zm1 1h1v1h-1zm1-2h1v1h-1zm1 3h1v1h-1zm-2 1h1v1h-1zm6-6h1v1h-1zm1 1h1v1h-1zm-1-2h1v1h-1zm2 1h1v1h-1zm1 2h1v1h-1zm-2 1h1v1h-1zm1 1h1v1h-1zm1-2h1v1h-1zm1 3h1v1h-1zm-2 1h1v1h-1zm-8 4h1v1h-1zm1 1h1v1h-1zm-1-2h1v1h-1zm2 1h1v1h-1zm1 2h1v1h-1zm-2 1h1v1h-1zm1 1h1v1h-1zm1-2h1v1h-1zm1 3h1v1h-1zm-2 1h1v1h-1zm6-6h1v1h-1zm1 1h1v1h-1zm-1-2h1v1h-1zm2 1h1v1h-1zm1 2h1v1h-1zm-2 1h1v1h-1zm1 1h1v1h-1zm1-2h1v1h-1zm1 3h1v1h-1zm-2 1h1v1h-1z"/>
+                      </svg>
+                    </div>
                     <span style={styles.qrScanText}>Scan for Campus Access</span>
                   </div>
                 </div>
@@ -4127,106 +4148,115 @@ const styles: Record<string, React.CSSProperties> = {
   },
   idCardBadge: {
     width: '100%',
-    borderRadius: 'var(--radius-md)',
+    borderRadius: '20px',
     overflow: 'hidden',
-    border: '1px solid var(--border-thick)',
-    boxShadow: '0 8px 24px rgba(18, 91, 68, 0.08)',
-    background: '#ffffff',
+    border: '1px solid rgba(255, 255, 255, 0.15)',
+    boxShadow: '0 20px 40px rgba(0, 0, 0, 0.25)',
+    background: 'linear-gradient(135deg, #0e3d2f 0%, #154c3c 60%, #1e6b54 100%)',
+    color: '#ffffff',
+    position: 'relative',
   },
   idCardHeaderBanner: {
-    background: 'linear-gradient(135deg, var(--pine-primary) 0%, var(--pine-deep) 100%)',
-    padding: '12px',
+    background: 'rgba(255, 255, 255, 0.06)',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
+    padding: '16px 20px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: '8px',
+    gap: '10px',
     color: '#ffffff',
   },
   idCardHeaderTitle: {
-    fontSize: '11px',
+    fontSize: '12px',
     fontWeight: '800',
-    letterSpacing: '1px',
+    letterSpacing: '2px',
+    color: '#ffffff',
+    textShadow: '0 2px 4px rgba(0,0,0,0.2)',
   },
   idCardContent: {
-    padding: '20px',
+    padding: '24px 20px',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    gap: '16px',
+    gap: '18px',
   },
   idCardProfileRow: {
     display: 'flex',
     alignItems: 'center',
     gap: '16px',
     width: '100%',
-    borderBottom: '1px solid var(--border-subtle)',
-    paddingBottom: '12px',
+    borderBottom: '1px dashed rgba(255, 255, 255, 0.15)',
+    paddingBottom: '16px',
   },
   idCardAvatar: {
-    width: '56px',
-    height: '56px',
-    borderRadius: 'var(--radius-md)',
-    backgroundColor: 'var(--pine-light)',
-    color: 'var(--pine-primary)',
+    width: '60px',
+    height: '60px',
+    borderRadius: '50%',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    color: '#ffffff',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: '24px',
-    fontWeight: '700',
-    border: '1px dashed var(--pine-primary)',
+    fontSize: '26px',
+    fontWeight: '800',
+    border: '2px solid rgba(255, 255, 255, 0.5)',
+    boxShadow: '0 4px 10px rgba(0,0,0,0.15)',
   },
   idCardMainDetails: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '2px',
+    gap: '3px',
   },
   idCardName: {
-    fontSize: '16px',
-    fontWeight: '700',
-    color: 'var(--pine-deep)',
+    fontSize: '18px',
+    fontWeight: '800',
+    color: '#ffffff',
+    margin: 0,
+    textShadow: '0 1px 2px rgba(0,0,0,0.15)',
   },
   idCardRoleText: {
     fontSize: '11px',
-    color: 'var(--text-muted)',
-    fontWeight: '600',
+    color: '#a7f3d0',
+    fontWeight: '700',
+    letterSpacing: '0.5px',
   },
   idCardDetailsGrid: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '8px',
+    gap: '10px',
     width: '100%',
   },
   idCardDetailItem: {
     display: 'flex',
     justifyContent: 'space-between',
-    fontSize: '12px',
+    fontSize: '13px',
     lineHeight: '1.4',
   },
   idCardLabel: {
-    color: 'var(--text-muted)',
+    color: 'rgba(255, 255, 255, 0.65)',
     fontWeight: '500',
   },
   idCardVal: {
-    color: 'var(--pine-deep)',
-    fontWeight: '600',
+    color: '#ffffff',
+    fontWeight: '700',
     textAlign: 'right',
   },
   idCardQrWrapper: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    gap: '8px',
-    marginTop: '8px',
-    borderTop: '1px dashed var(--border-subtle)',
-    paddingTop: '16px',
+    gap: '10px',
+    marginTop: '12px',
+    borderTop: '1px dashed rgba(255, 255, 255, 0.15)',
+    paddingTop: '20px',
     width: '100%',
   },
   qrScanText: {
-    fontSize: '10px',
-    color: 'var(--text-placeholder)',
+    fontSize: '9px',
+    color: 'rgba(255, 255, 255, 0.55)',
     textTransform: 'uppercase',
-    letterSpacing: '0.5px',
-    fontWeight: '600',
+    letterSpacing: '1px',
+    fontWeight: '700',
   },
   idCardActions: {
     display: 'flex',

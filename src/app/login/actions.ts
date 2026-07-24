@@ -36,6 +36,7 @@ export async function loginWithEmail(formData: FormData): Promise<LoginResult> {
 
     // Generate a unique ID based on email prefix
     const userId = email.split('@')[0];
+    const derivedRollNumber = email.endsWith('@nith.ac.in') ? userId.toUpperCase() : (rollNumber || 'N/A');
 
     // Check if user already exists in Firestore
     let user = await getFirestoreUser(userId);
@@ -46,7 +47,7 @@ export async function loginWithEmail(formData: FormData): Promise<LoginResult> {
         id: userId,
         email,
         name,
-        roll_number: rollNumber || undefined,
+        roll_number: derivedRollNumber,
         department: department || undefined,
         hostel: hostel || undefined,
         blood_group: bloodGroup || undefined,
@@ -63,7 +64,7 @@ export async function loginWithEmail(formData: FormData): Promise<LoginResult> {
       id: userId,
       email: user.email,
       name: user.name,
-      roll_number: user.roll_number,
+      roll_number: user.roll_number || derivedRollNumber,
       department: user.department,
       hostel: user.hostel,
       blood_group: user.blood_group,
