@@ -1,0 +1,268 @@
+/* Import Outfit and Inter fonts from Google Fonts for a premium look */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  /* Himalayan Mist Light Theme Variables */
+  --bg-app: #f4f8f6;            /* Light misty-mint gray canvas */
+  --bg-card: rgba(255, 255, 255, 0.85); /* Translucent crisp white glass */
+  --bg-card-solid: #ffffff;      /* Solid white for dropdowns/popovers */
+  --bg-input: #eff4f2;           /* Light mint-gray inputs */
+  --bg-hover: #e6f0eb;           /* Fresh soft green hover state */
+  
+  /* Primary Accent - Pine Green */
+  --pine-deep: #0e3d2f;          /* High contrast dark forest text */
+  --pine-primary: #125b44;       /* Primary button & brand color */
+  --pine-medium: #1b7e61;        /* Secondary action icons/tabs */
+  --pine-light: #e5f4ee;         /* Badges, backgrounds, highlights */
+  
+  /* Secondary Accent - Misty Aqua */
+  --aqua-primary: #1d9598;       /* Accent headings, tags, active states */
+  --aqua-light: #e7f7f8;         /* Teal highlights */
+  --aqua-deep: #136a6d;
+  
+  /* System colors */
+  --error: #cb3a3a;
+  --error-light: #fdf2f2;
+  --success: #1b8543;
+  --success-light: #edfbf2;
+  --warning: #cc8000;
+  --warning-light: #fef9ed;
+  
+  /* Text values */
+  --text-main: #182e27;          /* Crisp deep pine for standard text */
+  --text-muted: #536d64;         /* Soft muted sage-gray for secondary text */
+  --text-placeholder: #8ea59d;   /* Light gray placeholder text */
+  --text-light: #ffffff;         /* Absolute white text */
+
+  /* Borders and Glass */
+  --border-subtle: rgba(18, 91, 68, 0.08);
+  --border-focus: rgba(18, 91, 68, 0.25);
+  --border-thick: rgba(18, 91, 68, 0.15);
+  
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.45);
+  --glass-shadow: 0 10px 30px -10px rgba(18, 91, 68, 0.08), 
+                  0 1px 3px rgba(18, 91, 68, 0.04);
+  --glass-shadow-lg: 0 20px 40px -15px rgba(18, 91, 68, 0.12);
+  
+  /* Spacing and Radius */
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 30px;
+  --radius-round: 9999px;
+  
+  --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-bounce: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  
+  /* Fonts */
+  --font-display: 'Outfit', 'Inter', -apple-system, sans-serif;
+  --font-body: 'Inter', -apple-system, sans-serif;
+}
+
+/* Global Reset */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  background-color: var(--bg-app);
+  color: var(--text-main);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-app);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--text-placeholder);
+  border-radius: var(--radius-round);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Typography styles */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--pine-deep);
+  line-height: 1.2;
+}
+
+a {
+  color: var(--pine-primary);
+  text-decoration: none;
+  transition: var(--transition-smooth);
+}
+
+a:hover {
+  color: var(--aqua-primary);
+}
+
+/* Button & Form Elements */
+button, input, select, textarea {
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+}
+
+/* Glassmorphism helpers */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  border-radius: var(--radius-md);
+  transition: var(--transition-smooth);
+}
+
+.glass-panel-hover:hover {
+  box-shadow: var(--glass-shadow-lg);
+  transform: translateY(-2px);
+  border-color: var(--border-thick);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--pine-primary) 0%, var(--pine-medium) 100%);
+  color: var(--text-light);
+  border: none;
+  padding: 12px 24px;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-family: var(--font-display);
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(18, 91, 68, 0.15);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: var(--transition-bounce);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(18, 91, 68, 0.25);
+  opacity: 0.95;
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  background: var(--bg-hover);
+  color: var(--pine-primary);
+  border: 1px solid var(--border-thick);
+  padding: 12px 24px;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-family: var(--font-display);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: var(--transition-smooth);
+}
+
+.btn-secondary:hover {
+  background: var(--pine-light);
+  border-color: var(--pine-primary);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+.form-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-family: var(--font-display);
+}
+
+.form-input {
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  color: var(--text-main);
+  transition: var(--transition-smooth);
+  width: 100%;
+}
+
+.form-input::placeholder {
+  color: var(--text-placeholder);
+}
+
+.form-input:focus {
+  background: var(--bg-card-solid);
+  border-color: var(--pine-primary);
+  box-shadow: 0 0 0 3px rgba(18, 91, 68, 0.08);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease forwards;
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s infinite ease-in-out;
+}
+
+/* Sidebar vs Bottom Nav Responsive Layout */
+@media (max-width: 900px) {
+  /* Hide desktop sidebar on mobile */
+  aside {
+    display: none !important;
+  }
+  
+  /* Show bottom navigation bar on mobile */
+  .nith-bottom-nav {
+    display: flex !important;
+  }
+}
+
+@media (min-width: 901px) {
+  /* Hide mobile bottom navigation bar on desktop */
+  .nith-bottom-nav {
+    display: none !important;
+  }
+}
+
+/* Keyframe for banner shine animation */
+@keyframes shimmer {
+  0% { left: -150%; }
+  50% { left: 150%; }
+  100% { left: 150%; }
+}

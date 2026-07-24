@@ -1,0 +1,133 @@
+'use server';
+
+import { redirect } from 'next/navigation';
+import { setSession, clearSession, validateNithEmail } from '@/lib/auth';
+import { getFirestoreUser, createFirestoreUser, seedFirestore } from '@/lib/firestore';
+
+export interface LoginResult {
+  success: boolean;
+  error?: string;
+}
+
+export async function loginWithEmail(formData: FormData): Promise<LoginResult> {
+  const email = formData.get('email') as string;
+  const name = formData.get('name') as string;
+  const rollNumber = formData.get('rollNumber') as string;
+  const department = formData.get('department') as string;
+  const hostel = formData.get('hostel') as string;
+  const bloodGroup = formData.get('bloodGroup') as string;
+  const role = formData.get('role') as string || 'student';
+
+  if (!email || !name) {
+    return { success: false, error: 'Email and Name are required.' };
+  }
+
+  // Validate email domain restriction
+  if (!validateNithEmail(email)) {
+    return { 
+      success: false, 
+      error: 'Access Denied: Only @nith.ac.in Google accounts are allowed to access NITH Connect.' 
+    };
+  }
+
+  try {
+    // Seed Firestore collections in the background if they don't exist yet
+    await seedFirestore();
+
+    // Generate a unique ID based on email prefix
+    const userId = email.split('@')[0];
+
+    // Check if user already exists in Firestore
+    let user = await getFirestoreUser(userId);
+
+    if (!user) {
+      // Create new user record in Firestore
+      const newUser = {
+        id: userId,
+        email,
+        name,
+        roll_number: rollNumber || undefined,
+        department: department || undefined,
+        hostel: hostel || undefined,
+        blood_group: bloodGroup || undefined,
+        role
+      };
+      
+      await createFirestoreUser(newUser);
+      user = newUser;
+    }
+
+    // Set the cookie session
+    await setSession({
+      id: userId,
+      email: user.email,
+      name: user.name,
+      roll_number: user.roll_number,
+      department: user.department,
+      hostel: user.hostel,
+      blood_group: user.blood_group,
+      role: user.role
+    });
+
+  } catch (error: unknown) {
+    console.error('Login error:', error);
+    const message = error instanceof Error ? error.message : String(error);
+    return { success: false, error: 'Cloud error occurred during login: ' + message };
+  }
+
+  // Redirect to dashboard
+  redirect('/');
+  return { success: true };
+}
+
+export async function loginDeveloper(type: 'student' | 'guest'): Promise<LoginResult> {
+  const mockProfiles = {
+    student: {
+      id: 'dev_student',
+      email: 'aarav.sharma.cse22@nith.ac.in',
+      name: 'Aarav Sharma',
+      roll_number: '22MI502',
+      department: 'Computer Science & Engineering',
+      hostel: 'Kailash Hostel',
+      blood_group: 'B+',
+      role: 'student'
+    },
+    guest: {
+      id: 'dev_guest',
+      email: 'guest@nith.ac.in',
+      name: 'Campus Guest',
+      roll_number: 'GUEST-001',
+      department: 'Visitor',
+      hostel: 'NITH Guest House',
+      blood_group: 'N/A',
+      role: 'guest'
+    }
+  };
+
+  const profile = mockProfiles[type];
+
+  try {
+    // Seed Firestore in the background
+    await seedFirestore();
+
+    // Upsert developer profile in Firestore
+    const existing = await getFirestoreUser(profile.id);
+    if (!existing) {
+      await createFirestoreUser(profile);
+    }
+
+    await setSession(profile);
+  } catch (error: unknown) {
+    console.error('Dev login error:', error);
+    const message = error instanceof Error ? error.message : String(error);
+    return { success: false, error: 'Failed to initialize dev profile in Firestore: ' + message };
+  }
+
+  redirect('/');
+  return { success: true };
+}
+
+export async function logout(): Promise<void> {
+  await clearSession();
+  redirect('/login');
+}
