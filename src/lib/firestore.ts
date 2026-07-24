@@ -83,21 +83,20 @@ export async function getFirestoreMessMenu(hostelName: string, dayOfWeek: string
 // Seeding function to populate Firestore if empty
 export async function seedFirestore() {
   try {
-    // 1. Check if chatrooms collection is populated
-    const chatroomsSnap = await getDocs(collection(db, 'chatrooms'));
-    if (chatroomsSnap.empty) {
-      console.log('Seeding default chatrooms to Firestore...');
-      const chatrooms = [
-        { id: 'chat-gen', name: 'General Discussion', description: 'Talk about anything NITH campus life', category: 'General' },
-        { id: 'chat-acad', name: 'Academics & Tech', description: 'Discuss courses, coding and projects', category: 'Academics' },
-        { id: 'chat-place', name: 'Placements & Internships', description: 'Preparation strategies and interview updates', category: 'Placements' },
-        { id: 'chat-hostel', name: 'Hostel Life', description: 'Discuss mess food and hostel updates', category: 'Hostels' },
-        { id: 'chat-sports', name: 'Sports & Cultural', description: 'Festivals, sports events, and clubs', category: 'Clubs' }
-      ];
-      
-      for (const room of chatrooms) {
-        await setDoc(doc(db, 'chatrooms', room.id), room);
-      }
+    // 1. Ensure chatrooms are populated
+    const chatrooms = [
+      { id: 'chat-gen', name: 'General Discussion', description: 'Talk about anything NITH campus life', category: 'General' },
+      { id: 'chat-acad', name: 'Academics & Tech', description: 'Discuss courses, coding and projects', category: 'Academics' },
+      { id: 'chat-place', name: 'Placements & Internships', description: 'Preparation strategies and interview updates', category: 'Placements' },
+      { id: 'chat-hostel', name: 'Hostel Life', description: 'Discuss mess food and hostel updates', category: 'Hostels' },
+      { id: 'chat-sports', name: 'Sports & Cultural', description: 'Festivals, sports events, and clubs', category: 'Clubs' },
+      { id: 'chat-buysell', name: 'Buy & Sell Exchange', description: 'Buy/sell used items and cycles or ask queries', category: 'Services' },
+      { id: 'chat-freshers', name: 'Freshers Welcome', description: 'Help 1st-year students with NITH onboarding', category: 'Guidance' },
+      { id: 'chat-fun', name: 'Campus Fun & Memes', description: 'Lighthearted campus jokes, memes, and casual talks', category: 'Casual' }
+    ];
+    
+    for (const room of chatrooms) {
+      await setDoc(doc(db, 'chatrooms', room.id), room, { merge: true });
     }
 
     // 2. Check if mess_menus collection is populated
