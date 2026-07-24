@@ -10,7 +10,8 @@ import {
   limit,
   serverTimestamp,
   addDoc,
-  orderBy
+  orderBy,
+  updateDoc
 } from 'firebase/firestore';
 
 export interface FirestoreUser {
@@ -499,6 +500,87 @@ export async function createFirestoreMessage(message: Omit<FirestoreMessage, 'id
     return true;
   } catch (error) {
     console.error('Error creating message:', error);
+    return false;
+  }
+}
+
+export interface FirestoreMarketplaceItem {
+  id?: string;
+  title: string;
+  description: string;
+  original_price: number;
+  selling_price: number;
+  contact_number: string;
+  image?: string; // base64 string
+  user_id: string;
+  user_name: string;
+  created_at: string | null;
+  category?: string; // e.g. Books, Electronics, Cycle, Hostel Gear, Others
+  status: 'active' | 'sold';
+}
+
+export async function getFirestoreMarketplaceItems(): Promise<FirestoreMarketplaceItem[]> {
+  try {
+    const q = query(
+      collection(db, 'marketplace'),
+      orderBy('created_at', 'desc')
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => {
+      const data = doc.data();
+      const createdAt = data.created_at;
+      let serializableCreatedAt = null;
+      if (createdAt && typeof createdAt === 'object') {
+        const ts = createdAt as { toDate?: () => { toISOString: () => string }; seconds?: number };
+        if (typeof ts.toDate === 'function') {
+          serializableCreatedAt = ts.toDate().toISOString();
+        } else if (typeof ts.seconds === 'number') {
+          serializableCreatedAt = new Date(ts.seconds * 1000).toISOString();
+        }
+      } else if (createdAt) {
+        serializableCreatedAt = String(createdAt);
+      }
+      return {
+        id: doc.id,
+        title: data.title || '',
+        description: data.description || '',
+        original_price: Number(data.original_price || 0),
+        selling_price: Number(data.selling_price || 0),
+        contact_number: data.contact_number || '',
+        image: data.image || '',
+        user_id: data.user_id || '',
+        user_name: data.user_name || '',
+        category: data.category || 'Others',
+        status: data.status || 'active',
+        created_at: serializableCreatedAt
+      };
+    });
+  } catch (error) {
+    console.error('Error fetching marketplace items:', error);
+    return [];
+  }
+}
+
+export async function createFirestoreMarketplaceItem(item: Omit<FirestoreMarketplaceItem, 'id' | 'created_at'>): Promise<boolean> {
+  try {
+    await addDoc(collection(db, 'marketplace'), {
+      ...item,
+      created_at: serverTimestamp()
+    });
+    return true;
+  } catch (error) {
+    console.error('Error creating marketplace item:', error);
+    return false;
+  }
+}
+
+export async function updateMarketplaceItemStatus(id: string, status: 'active' | 'sold'): Promise<boolean> {
+  try {
+    const ref = doc(db, 'marketplace', id);
+    await updateDoc(ref, { status });
+    return true;
+  } catch (error) {
+    console.error('Error updating marketplace item status:', error);
     return false;
   }
 }

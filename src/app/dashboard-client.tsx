@@ -11,15 +11,21 @@ import {
   commentAnnouncement, 
   createAnnouncementAction 
 } from './actions/announcements';
+import { fetchLostFoundItems, createLostFoundItemAction, runSeedingAction } from './actions/lostfound';
+import { fetchChatrooms, fetchMessages, sendChatMessage } from './actions/chat';
+import { 
+  getMarketplaceItemsAction, 
+  createMarketplaceItemAction, 
+  updateMarketplaceItemStatusAction 
+} from './actions/marketplace';
 import { 
   type FirestoreAnnouncement, 
   type FirestoreComment, 
   type FirestoreLostFoundItem,
   type FirestoreChatroom,
-  type FirestoreMessage
+  type FirestoreMessage,
+  type FirestoreMarketplaceItem
 } from '@/lib/firestore';
-import { fetchLostFoundItems, createLostFoundItemAction, runSeedingAction } from './actions/lostfound';
-import { fetchChatrooms, fetchMessages, sendChatMessage } from './actions/chat';
 import { 
   Mountain, 
   Home, 
@@ -39,7 +45,8 @@ import {
   Calendar,
   MapPin,
   Plus,
-  ArrowRight
+  ArrowRight,
+  Upload
 } from 'lucide-react';
 
 interface ClassSlot {
@@ -194,6 +201,19 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const [newPostPub, setNewPostPub] = useState('');
   const [newPostTheme, setNewPostTheme] = useState('sunset'); // sunset, ocean, pine, lavender
 
+  // Marketplace States
+  const [marketplaceItems, setMarketplaceItems] = useState<FirestoreMarketplaceItem[]>([]);
+  const [isAddListingOpen, setIsAddListingOpen] = useState(false);
+  const [newListingTitle, setNewListingTitle] = useState('');
+  const [newListingDesc, setNewListingDesc] = useState('');
+  const [newListingOriginalPrice, setNewListingOriginalPrice] = useState('');
+  const [newListingSellingPrice, setNewListingSellingPrice] = useState('');
+  const [newListingContact, setNewListingContact] = useState('');
+  const [newListingImage, setNewListingImage] = useState('');
+  const [newListingCategory, setNewListingCategory] = useState('Others');
+  const [marketplaceSearchQuery, setMarketplaceSearchQuery] = useState('');
+  const [selectedMarketplaceCategory, setSelectedMarketplaceCategory] = useState('all');
+
   // Lost & Found States
   const [lostFoundItems, setLostFoundItems] = useState<FirestoreLostFoundItem[]>([]);
   const [selectedLostFoundFilter, setSelectedLostFoundFilter] = useState<'all' | 'lost' | 'found'>('all');
@@ -324,21 +344,32 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     }
   };
 
+  const loadMarketplaceItems = async () => {
+    try {
+      const data = await getMarketplaceItemsAction();
+      setMarketplaceItems(data);
+    } catch (err) {
+      console.error('Failed to load marketplace items:', err);
+    }
+  };
+
   useEffect(() => {
     let active = true;
     const loadData = async () => {
       try {
         await runSeedingAction();
-        const [announcementsData, lostFoundData] = await Promise.all([
+        const [announcementsData, lostFoundData, marketplaceData] = await Promise.all([
           fetchAnnouncements(),
-          fetchLostFoundItems()
+          fetchLostFoundItems(),
+          getMarketplaceItemsAction()
         ]);
         if (active) {
           setAnnouncements(announcementsData);
           setLostFoundItems(lostFoundData);
+          setMarketplaceItems(marketplaceData);
         }
       } catch (err) {
-        console.error('Failed to fetch announcements and items in effect:', err);
+        console.error('Failed to fetch data in effect:', err);
       }
     };
     loadData();
@@ -609,8 +640,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   style={styles.serviceCard} 
                   className="glass-panel glass-panel-hover"
                   onClick={() => {
-                    // Route to market page or show notification
-                    setActiveTab('explore');
+                    setActiveTab('marketplace');
                   }}
                 >
                   <div style={styles.serviceCardText}>
@@ -1091,6 +1121,311 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                       </div>
                     ))}
                 </div>
+              </div>
+            )}
+          </div>
+        );
+      }
+      case 'marketplace': {
+        const filteredItems = marketplaceItems.filter(item => {
+          const matchesSearch = item.title.toLowerCase().includes(marketplaceSearchQuery.toLowerCase()) ||
+                               item.description.toLowerCase().includes(marketplaceSearchQuery.toLowerCase());
+          const matchesCategory = selectedMarketplaceCategory === 'all' || item.category === selectedMarketplaceCategory;
+          return matchesSearch && matchesCategory;
+        });
+
+        const handleMarkAsSold = async (itemId: string) => {
+          const success = await updateMarketplaceItemStatusAction(itemId, 'sold');
+          if (success) {
+            alert('Item marked as SOLD.');
+            loadMarketplaceItems();
+          } else {
+            alert('Failed to update status.');
+          }
+        };
+
+        return (
+          <div style={styles.exploreTabContainer} className="animate-fade-in">
+            {/* Header section */}
+            <div style={styles.exploreHeaderSection}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: '12px' }}>
+                <div>
+                  <h2 style={styles.exploreTitle}>Campus <span style={{ color: 'var(--pine-primary)' }}>Marketplace</span> 🛒</h2>
+                  <p style={styles.exploreSubtitle}>Buy and sell items directly within the NITH student community</p>
+                </div>
+                <button 
+                  onClick={() => setIsAddListingOpen(true)}
+                  className="btn-primary"
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 16px', fontWeight: '700' }}
+                >
+                  <Plus size={16} />
+                  <span>List an Item</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Filters Bar */}
+            <div style={{
+              display: 'flex',
+              gap: '12px',
+              marginTop: '20px',
+              marginBottom: '20px',
+              flexWrap: 'wrap',
+              alignItems: 'center'
+            }}>
+              {/* Search */}
+              <div style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
+                <input 
+                  type="text" 
+                  placeholder="Search products..." 
+                  value={marketplaceSearchQuery}
+                  onChange={(e) => setMarketplaceSearchQuery(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 16px 10px 38px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-subtle)',
+                    backgroundColor: '#ffffff',
+                    color: 'var(--text-main)',
+                    fontSize: '13px'
+                  }}
+                />
+                <Search size={16} style={{ position: 'absolute', left: '14px', top: '12px', color: 'var(--text-muted)' }} />
+              </div>
+
+              {/* Category selector */}
+              <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: '4px' }}>
+                {['all', 'Books', 'Electronics', 'Cycle', 'Hostel Gear', 'Others'].map((cat) => {
+                  const isSelected = selectedMarketplaceCategory === cat;
+                  return (
+                    <button
+                      key={cat}
+                      onClick={() => setSelectedMarketplaceCategory(cat)}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: '20px',
+                        border: '1px solid var(--border-subtle)',
+                        backgroundColor: isSelected ? 'var(--pine-primary)' : 'transparent',
+                        color: isSelected ? '#ffffff' : 'var(--text-main)',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {cat === 'all' ? 'All Items' : cat}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Grid display */}
+            {filteredItems.length === 0 ? (
+              <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }} className="glass-panel">
+                <ShoppingBag size={48} style={{ opacity: 0.5, marginBottom: '12px' }} />
+                <p>No listings found in the marketplace.</p>
+                <p style={{ fontSize: '12px', marginTop: '4px' }}>Be the first to list a textbook, cycle, or electronic item!</p>
+              </div>
+            ) : (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+                gap: '20px',
+                marginTop: '10px'
+              }}>
+                {filteredItems.map((item) => {
+                  const discount = item.original_price > item.selling_price
+                    ? Math.round(((item.original_price - item.selling_price) / item.original_price) * 100)
+                    : 0;
+                  const isSold = item.status === 'sold';
+                  const isOwner = item.user_id === user.id;
+
+                  // Clean contact number for WhatsApp Link formatting
+                  const cleanPhone = item.contact_number.replace(/\D/g, '');
+                  const waPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+                  const waUrl = `https://wa.me/${waPhone}?text=Hi%20${encodeURIComponent(item.user_name)},%20I%20am%20interested%20in%20your%20listing%20"${encodeURIComponent(item.title)}"%20on%20NITH%20Connect.`;
+
+                  return (
+                    <div 
+                      key={item.id}
+                      style={{
+                        borderRadius: 'var(--radius-lg)',
+                        border: '1px solid var(--border-subtle)',
+                        backgroundColor: '#ffffff',
+                        overflow: 'hidden',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        position: 'relative',
+                        opacity: isSold ? 0.75 : 1,
+                        transition: 'transform 0.2s'
+                      }}
+                      className="glass-panel glass-panel-hover"
+                    >
+                      {/* Product Image */}
+                      <div style={{ height: '160px', width: '100%', position: 'relative', backgroundColor: 'rgba(0,0,0,0.03)', overflow: 'hidden' }}>
+                        {item.image ? (
+                          <img 
+                            src={item.image} 
+                            alt={item.title} 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                        ) : (
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', color: 'var(--text-muted)' }}>
+                            <ShoppingBag size={36} style={{ opacity: 0.4 }} />
+                          </div>
+                        )}
+
+                        {/* Category tag */}
+                        <span style={{
+                          position: 'absolute',
+                          top: '10px',
+                          left: '10px',
+                          backgroundColor: 'rgba(255,255,255,0.85)',
+                          color: 'var(--pine-deep)',
+                          fontSize: '10px',
+                          fontWeight: '800',
+                          padding: '3px 8px',
+                          borderRadius: '12px',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                        }}>
+                          {item.category}
+                        </span>
+
+                        {/* Discount Badge */}
+                        {discount > 0 && !isSold && (
+                          <span style={{
+                            position: 'absolute',
+                            top: '10px',
+                            right: '10px',
+                            backgroundColor: '#e76f51',
+                            color: '#ffffff',
+                            fontSize: '10px',
+                            fontWeight: '900',
+                            padding: '3px 8px',
+                            borderRadius: '4px',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                          }}>
+                            {discount}% OFF
+                          </span>
+                        )}
+
+                        {/* Sold overlay text */}
+                        {isSold && (
+                          <div style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            backgroundColor: 'rgba(0,0,0,0.4)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#ffffff',
+                            fontWeight: '900',
+                            fontSize: '16px',
+                            letterSpacing: '1px'
+                          }}>
+                            SOLD
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Product Content Details */}
+                      <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', flex: 1, gap: '6px' }}>
+                        <h4 style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-main)', margin: 0, lineHeight: '1.3' }}>
+                          {item.title}
+                        </h4>
+                        
+                        {/* Price Block */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+                          <span style={{ fontSize: '16px', fontWeight: '900', color: 'var(--pine-primary)' }}>
+                            ₹{item.selling_price}
+                          </span>
+                          {item.original_price > item.selling_price && (
+                            <span style={{ fontSize: '12px', color: 'var(--text-muted)', textDecoration: 'line-through' }}>
+                              ₹{item.original_price}
+                            </span>
+                          )}
+                        </div>
+
+                        <p style={{
+                          fontSize: '12px',
+                          color: 'var(--text-muted)',
+                          margin: '4px 0 0',
+                          lineHeight: '1.4',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 3,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          flex: 1
+                        }}>
+                          {item.description}
+                        </p>
+
+                        <div style={{
+                          borderTop: '1px solid var(--border-subtle)',
+                          paddingTop: '10px',
+                          marginTop: '6px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '8px'
+                        }}>
+                          <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                            Seller: <strong>{item.user_name}</strong>
+                          </span>
+
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            {/* WhatsApp Direct Chat Button */}
+                            {!isSold && (
+                              <a 
+                                href={waUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="btn-primary"
+                                style={{
+                                  flex: 1,
+                                  padding: '8px 10px',
+                                  fontSize: '12px',
+                                  backgroundColor: '#25D366',
+                                  borderColor: '#25D366',
+                                  color: '#ffffff',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '4px',
+                                  textDecoration: 'none',
+                                  fontWeight: 'bold',
+                                  borderRadius: '6px'
+                                }}
+                              >
+                                <MessageSquare size={14} />
+                                <span>WhatsApp Seller</span>
+                              </a>
+                            )}
+
+                            {/* Mark as sold option for seller owners */}
+                            {isOwner && !isSold && (
+                              <button
+                                onClick={() => handleMarkAsSold(item.id!)}
+                                className="btn-secondary"
+                                style={{
+                                  padding: '8px 10px',
+                                  fontSize: '11px',
+                                  flexShrink: 0
+                                }}
+                              >
+                                Mark Sold
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -2962,6 +3297,259 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 Close Mess Menu
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Marketplace Listing Modal */}
+      {isAddListingOpen && (
+        <div style={styles.modalOverlay} onClick={() => setIsAddListingOpen(false)}>
+          <div 
+            style={{ ...styles.idCardModal, maxWidth: '520px', width: '92%' }} 
+            className="glass-panel animate-fade-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div style={styles.modalHeader}>
+              <div>
+                <h3 style={styles.modalTitle}>List Item for Sale 🏷️</h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0' }}>Upload product photos, description, and WhatsApp details</p>
+              </div>
+              <button 
+                onClick={() => setIsAddListingOpen(false)}
+                style={styles.modalCloseBtn}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!newListingTitle || !newListingSellingPrice || !newListingContact) {
+                alert('Please enter a Title, Selling Price, and Contact Number.');
+                return;
+              }
+
+              const originalVal = Number(newListingOriginalPrice) || Number(newListingSellingPrice);
+              const sellingVal = Number(newListingSellingPrice);
+
+              const success = await createMarketplaceItemAction(
+                newListingTitle,
+                newListingDesc,
+                originalVal,
+                sellingVal,
+                newListingContact,
+                newListingImage || '',
+                user.id,
+                user.name,
+                newListingCategory
+              );
+
+              if (success) {
+                alert('Success! Your listing has been published to the marketplace.');
+                setNewListingTitle('');
+                setNewListingDesc('');
+                setNewListingOriginalPrice('');
+                setNewListingSellingPrice('');
+                setNewListingContact('');
+                setNewListingImage('');
+                setNewListingCategory('Others');
+                setIsAddListingOpen(false);
+                loadMarketplaceItems();
+              } else {
+                alert('Failed to publish listing.');
+              }
+            }} style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '70vh', overflowY: 'auto', paddingRight: '4px', scrollbarWidth: 'thin' }}>
+              
+              {/* Image upload */}
+              <div>
+                <label style={styles.formLabel}>Product Image</label>
+                <div style={{
+                  border: '2px dashed var(--border-subtle)',
+                  borderRadius: '8px',
+                  padding: '20px',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  backgroundColor: 'rgba(0,0,0,0.01)',
+                  position: 'relative'
+                }}>
+                  {newListingImage ? (
+                    <div style={{ position: 'relative', height: '140px', width: '100%' }}>
+                      <img 
+                        src={newListingImage} 
+                        alt="Product Preview" 
+                        style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '4px' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setNewListingImage('')}
+                        style={{
+                          position: 'absolute',
+                          top: '5px',
+                          right: '5px',
+                          backgroundColor: 'rgba(0,0,0,0.6)',
+                          color: '#ffffff',
+                          border: 'none',
+                          borderRadius: '50%',
+                          width: '24px',
+                          height: '24px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                      <Upload size={24} style={{ color: 'var(--text-muted)' }} />
+                      <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--pine-primary)' }}>Click to upload product photo</span>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>PNG, JPG up to 2MB (Converted to Base64)</span>
+                    </div>
+                  )}
+                  <input 
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setNewListingImage(reader.result as string);
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      opacity: 0,
+                      cursor: 'pointer'
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Title & Category Row */}
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ flex: 2 }}>
+                  <label style={styles.formLabel}>Item Title *</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Hercules Bicycle, Engineering Drafter"
+                    value={newListingTitle}
+                    onChange={(e) => setNewListingTitle(e.target.value)}
+                    style={styles.formInput}
+                    required
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={styles.formLabel}>Category</label>
+                  <select 
+                    value={newListingCategory}
+                    onChange={(e) => setNewListingCategory(e.target.value)}
+                    style={styles.formInput}
+                  >
+                    {['Books', 'Electronics', 'Cycle', 'Hostel Gear', 'Others'].map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label style={styles.formLabel}>Description</label>
+                <textarea 
+                  placeholder="Describe item condition, usage details, accessories included..."
+                  value={newListingDesc}
+                  onChange={(e) => setNewListingDesc(e.target.value)}
+                  style={{ ...styles.formInput, minHeight: '80px', resize: 'vertical' }}
+                />
+              </div>
+
+              {/* Price row */}
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={styles.formLabel}>Original Price (₹)</label>
+                  <input 
+                    type="number" 
+                    placeholder="e.g. 500"
+                    value={newListingOriginalPrice}
+                    onChange={(e) => setNewListingOriginalPrice(e.target.value)}
+                    style={styles.formInput}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={styles.formLabel}>Selling Price (₹) *</label>
+                  <input 
+                    type="number" 
+                    placeholder="e.g. 100"
+                    value={newListingSellingPrice}
+                    onChange={(e) => setNewListingSellingPrice(e.target.value)}
+                    style={styles.formInput}
+                    required
+                  />
+                </div>
+
+                {/* Live Discount calculation */}
+                {Number(newListingOriginalPrice) > Number(newListingSellingPrice) && Number(newListingOriginalPrice) > 0 && (
+                  <div style={{
+                    flex: 1,
+                    backgroundColor: 'rgba(231, 111, 81, 0.1)',
+                    border: '1px solid #e76f51',
+                    borderRadius: '8px',
+                    padding: '8px 10px',
+                    textAlign: 'center',
+                    marginTop: '18px'
+                  }}>
+                    <span style={{ fontSize: '10px', color: '#e76f51', fontWeight: 'bold', textTransform: 'uppercase' }}>Computed Discount</span>
+                    <h5 style={{ fontSize: '13px', color: '#e76f51', fontWeight: '900', margin: '2px 0 0' }}>
+                      {Math.round(((Number(newListingOriginalPrice) - Number(newListingSellingPrice)) / Number(newListingOriginalPrice)) * 100)}% OFF
+                    </h5>
+                  </div>
+                )}
+              </div>
+
+              {/* Contact number */}
+              <div>
+                <label style={styles.formLabel}>WhatsApp Contact Number *</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g. 9816012345 (no spaces/dashes)"
+                  value={newListingContact}
+                  onChange={(e) => setNewListingContact(e.target.value)}
+                  style={styles.formInput}
+                  required
+                />
+                <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Provide a valid 10-digit number for direct WhatsApp text routing.</span>
+              </div>
+
+              {/* Actions */}
+              <div style={{ ...styles.idCardActions, marginTop: '10px' }}>
+                <button 
+                  type="submit"
+                  className="btn-primary" 
+                  style={{ flex: 1, padding: '10px' }}
+                >
+                  Publish Listing
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => setIsAddListingOpen(false)}
+                  className="btn-secondary" 
+                  style={{ flex: 1, padding: '10px' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
