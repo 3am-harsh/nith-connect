@@ -5,27 +5,7 @@ NITH Connect is a responsive, feature-rich web application designed to simplify 
 
 ---
 
-## 🌟 Key Features
 
-### 📅 Interactive Mess Menu
-*   **Hostel Selection:** Supports multiple hostels (Kailash, Himadri, Shivalik, Dhauladhar, Mani Mahesh).
-*   **Meal Timetable:** Displays dynamic breakfast, lunch, snacks, and dinner lists with live time indicators.
-*   **Automatic Fetching:** Integrates with Firestore to sync food schedules.
-
-### 📢 Campus Feed & Announcements
-*   **Official Publisher Portals:** Clubs, societies, and representatives can publish events, fests, and circulars.
-*   **Aesthetic Banners:** Dynamic cards styled with curated color-gradient themes (Sunset Orange, Ocean Blue, Pine Green, and Lavender Violet).
-*   **Student Engagement:** Built-in real-time **Like** reactions and nested **Comment** sections.
-
-### 🔍 Lost & Found Portal
-*   **Interactive Bulletin:** List of lost or found items with status badges (Red/Green) and search keyword filtering.
-*   **Base64 Photo Uploads:** Supports uploading item images directly without external storage configuration.
-*   **WhatsApp CR Broadcast Wizard:** A dedicated subpage guide that resolves the Class Representative (CR) details for a student's Batch (1st–5th Year), Branch (CSE, ECE, EE, ME, etc.), and Gender (Boys/Girls CR). It automatically compiles a professional broadcast message with placeholders and forwards it straight to their WhatsApp.
-
-### 🪪 Digital Glassmorphic ID Card
-*   A premium, simulated student identification card displaying the student's name, roll number, department, hostel, and blood group.
-
----
 
 ## 🛠️ Tech Stack & Architecture
 
