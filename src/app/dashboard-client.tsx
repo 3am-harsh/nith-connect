@@ -2991,7 +2991,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                         <path fill="#0e3d2f" d="M0 0h7v7H0zm22 0h7v7h-7zM0 22h7v7H0zm9 0h1v1H9zm1-1h1v1h-1zm1 2h1v1h-1zm-2 1h1v1H9zm1 1h1v1h-1zm1-2h1v1h-1zm1 3h1v1h-1zm-2 1h1v1H9zm4-8h1v1h-1zm1 1h1v1h-1zm-1-2h1v1h-1zm2 1h1v1h-1zm1 2h1v1h-1zm-2 1h1v1h-1zm1 1h1v1h-1zm1-2h1v1h-1zm1 3h1v1h-1zm-2 1h1v1h-1zm6-6h1v1h-1zm1 1h1v1h-1zm-1-2h1v1h-1zm2 1h1v1h-1zm1 2h1v1h-1zm-2 1h1v1h-1zm1 1h1v1h-1zm1-2h1v1h-1zm1 3h1v1h-1zm-2 1h1v1h-1zM2 2h3v3H2zm20 0h3v3h-3zM2 24h3v3H2zm8-16h1v1h-1zm1 1h1v1h-1zm-1-2h1v1h-1zm2 1h1v1h-1zm1 2h1v1h-1zm-2 1h1v1h-1zm1 1h1v1h-1zm1-2h1v1h-1zm1 3h1v1h-1zm-2 1h1v1h-1zm6-6h1v1h-1zm1 1h1v1h-1zm-1-2h1v1h-1zm2 1h1v1h-1zm1 2h1v1h-1zm-2 1h1v1h-1zm1 1h1v1h-1zm1-2h1v1h-1zm1 3h1v1h-1zm-2 1h1v1h-1zm-8 4h1v1h-1zm1 1h1v1h-1zm-1-2h1v1h-1zm2 1h1v1h-1zm1 2h1v1h-1zm-2 1h1v1h-1zm1 1h1v1h-1zm1-2h1v1h-1zm1 3h1v1h-1zm-2 1h1v1h-1zm6-6h1v1h-1zm1 1h1v1h-1zm-1-2h1v1h-1zm2 1h1v1h-1zm1 2h1v1h-1zm-2 1h1v1h-1zm1 1h1v1h-1zm1-2h1v1h-1zm1 3h1v1h-1zm-2 1h1v1h-1z"/>
                       </svg>
                     </div>
-                    <span style={styles.qrScanText}>Scan for Campus Access</span>
                   </div>
                 </div>
               </div>
