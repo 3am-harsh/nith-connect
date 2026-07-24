@@ -1,36 +1,81 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NITH Connect 🌲🎒
+> **A Premium Campus Companion Web Application for NIT Hamirpur Students**
 
-## Getting Started
+NITH Connect is a responsive, feature-rich web application designed to simplify campus life at the **National Institute of Technology Hamirpur (NITH)**. It integrates core student services—such as weekly mess menus, campus announcements, live chatrooms, and a lost-and-found bulletin—into a single glassmorphic dashboard connected to a serverless backend.
 
-First, run the development server:
+---
 
+## 🌟 Key Features
+
+### 📅 Interactive Mess Menu
+*   **Hostel Selection:** Supports multiple hostels (Kailash, Himadri, Shivalik, Dhauladhar, Mani Mahesh).
+*   **Meal Timetable:** Displays dynamic breakfast, lunch, snacks, and dinner lists with live time indicators.
+*   **Automatic Fetching:** Integrates with Firestore to sync food schedules.
+
+### 📢 Campus Feed & Announcements
+*   **Official Publisher Portals:** Clubs, societies, and representatives can publish events, fests, and circulars.
+*   **Aesthetic Banners:** Dynamic cards styled with curated color-gradient themes (Sunset Orange, Ocean Blue, Pine Green, and Lavender Violet).
+*   **Student Engagement:** Built-in real-time **Like** reactions and nested **Comment** sections.
+
+### 🔍 Lost & Found Portal
+*   **Interactive Bulletin:** List of lost or found items with status badges (Red/Green) and search keyword filtering.
+*   **Base64 Photo Uploads:** Supports uploading item images directly without external storage configuration.
+*   **WhatsApp CR Broadcast Wizard:** A dedicated subpage guide that resolves the Class Representative (CR) details for a student's Batch (1st–5th Year), Branch (CSE, ECE, EE, ME, etc.), and Gender (Boys/Girls CR). It automatically compiles a professional broadcast message with placeholders and forwards it straight to their WhatsApp.
+
+### 🪪 Digital Glassmorphic ID Card
+*   A premium, simulated student identification card displaying the student's name, roll number, department, hostel, and blood group.
+
+---
+
+## 🛠️ Tech Stack & Architecture
+
+| Layer | Technology | Key Capabilities |
+| :--- | :--- | :--- |
+| **Frontend** | React 19, Next.js 15 (App Router) | Server-side rendering (SSR), Client components, React hooks, Server Actions. |
+| **Styling** | Vanilla CSS (Global variables) | Custom glassmorphism, responsive navigation bars (Desktop Sidebar & Mobile Bottom Nav), Pine Green & Misty Aqua theme. |
+| **Icons** | Lucide React | High-resolution SVG icons. |
+| **Backend & Auth**| Firebase Authentication | Google Cloud Sign-In and local session state. |
+| **Database** | Cloud Firestore | Serverless real-time document database storing users, announcements, mess menus, and lost & found items. |
+
+---
+
+## 🚀 Setup & Local Running
+
+Follow these steps to run the application locally on your machine:
+
+### 1. Prerequisites
+Ensure you have **Node.js** (v18.x or higher) and **git** installed.
+
+### 2. Clone the Repository
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/3am-harsh/nith-connect.git
+cd nith-connect
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 3. Install Dependencies
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 4. Setup Environment Variables
+Create a file named `.env.local` in the root folder and add your Firebase configuration credentials:
+```env
+NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_auth_domain
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_storage_bucket
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 5. Run the Local Server
+```bash
+npm run dev
+```
+Open **[http://localhost:3000](http://localhost:3000)** in your browser to view the application.
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🔒 Security & Optimization Note
+*   **Environmental Exclusions:** Secret credential configurations are isolated in `.env.local` and excluded from git tracking via `.gitignore`.
+*   **Database Seeding:** On the first launch, if the Firestore database is empty, the application automatically triggers self-healing seeding methods to populate mess timetables, tech club announcements, and default bulletin cards.
