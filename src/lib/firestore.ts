@@ -11,7 +11,8 @@ import {
   serverTimestamp,
   addDoc,
   orderBy,
-  updateDoc
+  updateDoc,
+  deleteDoc
 } from 'firebase/firestore';
 
 export interface FirestoreUser {
@@ -213,6 +214,7 @@ export async function seedFirestore() {
       for (const ann of announcements) {
         await addDoc(collection(db, 'announcements'), {
           ...ann,
+          approved: true,
           created_at: serverTimestamp()
         });
       }
@@ -291,6 +293,8 @@ export interface FirestoreAnnouncement {
   likes: string[]; // user ids
   comments: FirestoreComment[];
   created_at?: unknown;
+  approved?: boolean;
+  author_id?: string;
 }
 
 export async function getFirestoreAnnouncements(): Promise<FirestoreAnnouncement[]> {
@@ -314,6 +318,7 @@ export async function getFirestoreAnnouncements(): Promise<FirestoreAnnouncement
       return {
         id: doc.id,
         ...data,
+        approved: data.approved !== false, // Backward compatibility defaults to true
         created_at: serializableCreatedAt
       };
     }) as FirestoreAnnouncement[];
@@ -323,17 +328,42 @@ export async function getFirestoreAnnouncements(): Promise<FirestoreAnnouncement
   }
 }
 
-export async function createFirestoreAnnouncement(announcement: Omit<FirestoreAnnouncement, 'id' | 'likes' | 'comments'>): Promise<boolean> {
+export async function createFirestoreAnnouncement(
+  announcement: Omit<FirestoreAnnouncement, 'id' | 'likes' | 'comments'> & { approved?: boolean }
+): Promise<boolean> {
   try {
     await addDoc(collection(db, 'announcements'), {
       ...announcement,
       likes: [],
       comments: [],
+      approved: announcement.approved ?? false,
       created_at: serverTimestamp()
     });
     return true;
   } catch (error) {
     console.error('Error creating announcement:', error);
+    return false;
+  }
+}
+
+export async function updateAnnouncementApprovalStatus(id: string, approved: boolean): Promise<boolean> {
+  try {
+    const ref = doc(db, 'announcements', id);
+    await updateDoc(ref, { approved });
+    return true;
+  } catch (error) {
+    console.error('Error updating announcement approval status:', error);
+    return false;
+  }
+}
+
+export async function deleteFirestoreAnnouncement(id: string): Promise<boolean> {
+  try {
+    const ref = doc(db, 'announcements', id);
+    await deleteDoc(ref);
+    return true;
+  } catch (error) {
+    console.error('Error deleting announcement:', error);
     return false;
   }
 }

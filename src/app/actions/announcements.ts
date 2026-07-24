@@ -62,7 +62,9 @@ export async function createAnnouncementAction(
   eventTime: string,
   location: string,
   publisher: string,
-  gradientTheme: string
+  gradientTheme: string,
+  approved: boolean = false,
+  authorId?: string
 ) {
   try {
     return createFirestoreAnnouncement({
@@ -74,10 +76,32 @@ export async function createAnnouncementAction(
       location,
       status: 'Upcoming',
       publisher,
-      gradient_theme: gradientTheme
+      gradient_theme: gradientTheme,
+      approved,
+      author_id: authorId
     });
   } catch (error) {
     console.error('Failed to create announcement:', error);
+    return false;
+  }
+}
+
+export async function approveAnnouncementAction(announcementId: string): Promise<boolean> {
+  try {
+    const { updateAnnouncementApprovalStatus } = await import('@/lib/firestore');
+    return await updateAnnouncementApprovalStatus(announcementId, true);
+  } catch (error) {
+    console.error('Failed to approve announcement:', error);
+    return false;
+  }
+}
+
+export async function rejectAnnouncementAction(announcementId: string): Promise<boolean> {
+  try {
+    const { deleteFirestoreAnnouncement } = await import('@/lib/firestore');
+    return await deleteFirestoreAnnouncement(announcementId);
+  } catch (error) {
+    console.error('Failed to reject announcement:', error);
     return false;
   }
 }

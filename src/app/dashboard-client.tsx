@@ -9,7 +9,9 @@ import {
   fetchAnnouncements, 
   toggleLikeAnnouncement, 
   commentAnnouncement, 
-  createAnnouncementAction 
+  createAnnouncementAction,
+  approveAnnouncementAction,
+  rejectAnnouncementAction
 } from './actions/announcements';
 import { fetchLostFoundItems, createLostFoundItemAction, runSeedingAction } from './actions/lostfound';
 import { fetchChatrooms, fetchMessages, sendChatMessage } from './actions/chat';
@@ -718,11 +720,13 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           </div>
         );
       case 'feed': {
-        const filteredAnnouncements = announcements.filter(ann => 
-          ann.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          ann.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          ann.publisher?.toLowerCase().includes(searchQuery.toLowerCase())
-        );
+        const filteredAnnouncements = announcements.filter(ann => {
+          const isApproved = ann.approved !== false;
+          const matchesQuery = (ann.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                               ann.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                               ann.publisher?.toLowerCase().includes(searchQuery.toLowerCase()));
+          return isApproved && matchesQuery;
+        });
 
         const handleLike = async (id: string) => {
           const success = await toggleLikeAnnouncement(id, user.id);
@@ -2533,6 +2537,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             showToast('Failed to inject mock announcement.', 'error');
           }
         };
+        const pendingAnnouncements = announcements.filter(ann => ann.approved === false);
 
         return (
           <div style={styles.exploreTabContainer} className="animate-fade-in">
@@ -2603,6 +2608,126 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 >
                   Force Firestore Re-seed
                 </button>
+              </div>
+
+              {/* Pending Approvals Section */}
+              <div 
+                className="glass-panel" 
+                style={{ 
+                  gridColumn: '1 / -1', 
+                  padding: '24px', 
+                  backgroundColor: '#ffffff', 
+                  border: '1px solid var(--border-subtle)', 
+                  borderRadius: 'var(--radius-lg)',
+                  marginTop: '10px'
+                }}
+              >
+                <h3 style={{ fontSize: '16px', fontWeight: '800', color: 'var(--pine-deep)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>Pending Announcements Approvals</span>
+                  {pendingAnnouncements.length > 0 && (
+                    <span style={{
+                      backgroundColor: '#e76f51',
+                      color: '#ffffff',
+                      fontSize: '11px',
+                      fontWeight: '800',
+                      padding: '2px 8px',
+                      borderRadius: '10px'
+                    }}>
+                      {pendingAnnouncements.length}
+                    </span>
+                  )}
+                </h3>
+
+                {pendingAnnouncements.length === 0 ? (
+                  <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                    No pending announcements to approve. You&apos;re all caught up! ✨
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    {pendingAnnouncements.map((ann) => {
+                      return (
+                        <div 
+                          key={ann.id}
+                          style={{
+                            padding: '16px',
+                            borderRadius: '10px',
+                            border: '1px solid var(--border-subtle)',
+                            backgroundColor: 'rgba(0,0,0,0.01)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '10px'
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                            <div>
+                              <h4 style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-main)', margin: 0 }}>
+                                {ann.title}
+                              </h4>
+                              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                Publisher: <strong>{ann.publisher}</strong> | Target: {ann.target_audience}
+                              </span>
+                            </div>
+                            <span style={{
+                              fontSize: '10px',
+                              backgroundColor: 'rgba(231, 111, 81, 0.15)',
+                              color: '#e76f51',
+                              fontWeight: '800',
+                              padding: '2px 8px',
+                              borderRadius: '4px'
+                            }}>
+                              Awaiting Review
+                            </span>
+                          </div>
+
+                          <p style={{ fontSize: '13px', color: 'var(--text-main)', margin: 0, lineHeight: '1.4' }}>
+                            {ann.description}
+                          </p>
+
+                          <div style={{ display: 'flex', gap: '6px', fontSize: '11px', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
+                            <span><strong>Date:</strong> {ann.event_date}</span>
+                            <span>|</span>
+                            <span><strong>Time:</strong> {ann.event_time}</span>
+                            <span>|</span>
+                            <span><strong>Venue:</strong> {ann.location}</span>
+                          </div>
+
+                          <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+                            <button
+                              onClick={async () => {
+                                const success = await approveAnnouncementAction(ann.id!);
+                                if (success) {
+                                  showToast('Announcement approved successfully!', 'success');
+                                  loadAnnouncements();
+                                } else {
+                                  showToast('Failed to approve announcement.', 'error');
+                                }
+                              }}
+                              className="btn-primary"
+                              style={{ padding: '8px 16px', fontSize: '12px' }}
+                            >
+                              Approve & Publish
+                            </button>
+                            <button
+                              onClick={async () => {
+                                const success = await rejectAnnouncementAction(ann.id!);
+                                if (success) {
+                                  showToast('Announcement rejected & deleted.', 'info');
+                                  loadAnnouncements();
+                                } else {
+                                  showToast('Failed to delete announcement.', 'error');
+                                }
+                              }}
+                              className="btn-secondary"
+                              style={{ padding: '8px 16px', fontSize: '12px', color: '#e76f51', borderColor: 'rgba(231, 111, 81, 0.2)' }}
+                            >
+                              Reject & Delete
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -3065,6 +3190,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     showToast('Please enter a Title, Publisher, and Description.', 'error');
                     return;
                   }
+                  const isDeveloper = user.role === 'developer';
                   const success = await createAnnouncementAction(
                     newPostTitle,
                     newPostDesc,
@@ -3073,7 +3199,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     newPostTime || 'TBD',
                     newPostLoc || 'TBD',
                     newPostPub,
-                    newPostTheme
+                    newPostTheme,
+                    isDeveloper,
+                    user.id
                   );
                   if (success) {
                     setNewPostTitle('');
@@ -3084,7 +3212,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     setNewPostLoc('');
                     setIsCreateAnnouncementOpen(false);
                     loadAnnouncements();
-                    showToast('Announcement published successfully.', 'success');
+                    showToast(isDeveloper 
+                      ? 'Announcement published successfully.' 
+                      : 'Submitted! Sent to developer for approval.', 'success');
                   } else {
                     showToast('Failed to publish announcement.', 'error');
                   }
