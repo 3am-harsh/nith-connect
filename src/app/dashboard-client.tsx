@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import React, { useState, useEffect, useTransition } from 'react';
 import { UserSession } from '@/lib/auth';
@@ -10,8 +11,15 @@ import {
   commentAnnouncement, 
   createAnnouncementAction 
 } from './actions/announcements';
-import { type FirestoreAnnouncement, type FirestoreComment, type FirestoreLostFoundItem } from '@/lib/firestore';
+import { 
+  type FirestoreAnnouncement, 
+  type FirestoreComment, 
+  type FirestoreLostFoundItem,
+  type FirestoreChatroom,
+  type FirestoreMessage
+} from '@/lib/firestore';
 import { fetchLostFoundItems, createLostFoundItemAction, runSeedingAction } from './actions/lostfound';
+import { fetchChatrooms, fetchMessages, sendChatMessage } from './actions/chat';
 import { 
   Mountain, 
   Home, 
@@ -95,6 +103,60 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const [crItemDesc, setCrItemDesc] = useState<string>('');
   const [crContactDetails, setCrContactDetails] = useState<string>('');
   const [crCompiledMessage, setCrCompiledMessage] = useState<string>('');
+
+  // Chat / Communities Tab States
+  const [chatRoomsList, setChatRoomsList] = useState<FirestoreChatroom[]>([]);
+  const [selectedRoomId, setSelectedRoomId] = useState<string>('chat-gen');
+  const [chatMessages, setChatMessages] = useState<FirestoreMessage[]>([]);
+  const [newMsgText, setNewMsgText] = useState<string>('');
+
+  // Chat end scroll reference
+  const chatEndRef = React.useRef<HTMLDivElement>(null);
+
+  // Fetch chatrooms helper
+  const loadChatrooms = async () => {
+    try {
+      const rooms = await fetchChatrooms();
+      setChatRoomsList(rooms);
+    } catch (err) {
+      console.error('Failed to load chatrooms:', err);
+    }
+  };
+
+  // Fetch messages helper
+  const loadMessages = async (roomId: string) => {
+    try {
+      const msgs = await fetchMessages(roomId);
+      setChatMessages(msgs);
+    } catch (err) {
+      console.error('Failed to load messages:', err);
+    }
+  };
+
+  // Auto-scroll to bottom of chat
+  const scrollToBottom = () => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    if (activeTab === 'chat') {
+      scrollToBottom();
+    }
+  }, [chatMessages, activeTab]);
+
+  // Polling for new messages
+  useEffect(() => {
+    if (activeTab !== 'chat') return;
+
+    loadChatrooms();
+    loadMessages(selectedRoomId);
+
+    const interval = setInterval(() => {
+      loadMessages(selectedRoomId);
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [activeTab, selectedRoomId]);
 
   // Fetch lost & found items helper
   const loadLostFoundItems = async () => {
@@ -1499,6 +1561,296 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 </div>
               </div>
             )}
+          </div>
+        );
+      }
+      case 'chat': {
+        const handleSendMessage = async (e: React.FormEvent) => {
+          e.preventDefault();
+          if (!newMsgText.trim()) return;
+          const textToSend = newMsgText;
+          setNewMsgText('');
+          const success = await sendChatMessage(selectedRoomId, user.id, user.name, textToSend);
+          if (success) {
+            loadMessages(selectedRoomId);
+          } else {
+            alert('Failed to send message.');
+          }
+        };
+
+        const activeRoom = chatRoomsList.find(r => r.id === selectedRoomId);
+
+        const categories: Record<string, FirestoreChatroom[]> = {};
+        chatRoomsList.forEach(room => {
+          const cat = room.category || 'Other';
+          if (!categories[cat]) categories[cat] = [];
+          categories[cat].push(room);
+        });
+
+        const getAvatarColor = (name: string) => {
+          let hash = 0;
+          for (let i = 0; i < name.length; i++) {
+            hash = name.charCodeAt(i) + ((hash << 5) - hash);
+          }
+          const colors = [
+            '#e76f51', '#f4a261', '#2a9d8f', '#e9c46a', 
+            '#9b5de5', '#f15bb5', '#00bbf9', '#00f5d4',
+            '#3a86c8', '#a0c4ff', '#ffadad', '#ffd6a5'
+          ];
+          return colors[Math.abs(hash % colors.length)];
+        };
+
+        return (
+          <div style={{
+            display: 'flex',
+            height: 'calc(100vh - 120px)',
+            gap: '16px',
+            overflow: 'hidden'
+          }} className="animate-fade-in">
+            {/* Left Column: Channels Selector */}
+            <div style={{
+              width: '260px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+              backgroundColor: 'var(--bg-card)',
+              borderRadius: 'var(--radius-lg)',
+              border: '1px solid var(--border-subtle)',
+              padding: '16px',
+              overflowY: 'auto'
+            }} className="glass-panel">
+              <h3 style={{ fontSize: '14px', fontWeight: '800', color: 'var(--pine-deep)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                NITH Channels
+              </h3>
+              
+              {chatRoomsList.length === 0 ? (
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Loading channels...</p>
+              ) : (
+                Object.keys(categories).map(catName => (
+                  <div key={catName} style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '8px' }}>
+                    <span style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '1px', paddingLeft: '4px', marginBottom: '4px' }}>
+                      {catName}
+                    </span>
+                    {categories[catName].map(room => {
+                      const isSelected = room.id === selectedRoomId;
+                      return (
+                        <button
+                          key={room.id}
+                          onClick={() => {
+                            setSelectedRoomId(room.id);
+                            loadMessages(room.id);
+                          }}
+                          style={{
+                            width: '100%',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'flex-start',
+                            padding: '8px 12px',
+                            borderRadius: '6px',
+                            border: 'none',
+                            backgroundColor: isSelected ? 'rgba(42, 157, 143, 0.12)' : 'transparent',
+                            borderLeft: isSelected ? '3px solid var(--pine-primary)' : '3px solid transparent',
+                            textAlign: 'left',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                          }}
+                          className="glass-panel-hover"
+                        >
+                          <span style={{
+                            fontSize: '13px',
+                            fontWeight: isSelected ? '700' : '500',
+                            color: isSelected ? 'var(--pine-deep)' : 'var(--text-main)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}>
+                            # {room.name}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Right Column: Chat window */}
+            <div style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              backgroundColor: 'var(--bg-card)',
+              borderRadius: 'var(--radius-lg)',
+              border: '1px solid var(--border-subtle)',
+              overflow: 'hidden'
+            }} className="glass-panel">
+              {/* Chat Window Header */}
+              <div style={{
+                padding: '14px 20px',
+                borderBottom: '1px solid var(--border-subtle)',
+                backgroundColor: 'rgba(255, 255, 255, 0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}>
+                <div>
+                  <h3 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--pine-deep)', margin: 0 }}>
+                    # {activeRoom?.name || 'Loading Channel...'}
+                  </h3>
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0' }}>
+                    {activeRoom?.description || ''}
+                  </p>
+                </div>
+              </div>
+
+              {/* Message List Area */}
+              <div style={{
+                flex: 1,
+                padding: '20px',
+                overflowY: 'auto',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px'
+              }}>
+                {chatMessages.length === 0 ? (
+                  <div style={{
+                    margin: 'auto',
+                    textAlign: 'center',
+                    color: 'var(--text-muted)',
+                    padding: '20px'
+                  }}>
+                    <MessageSquare size={36} style={{ marginBottom: '8px', opacity: 0.5 }} />
+                    <p style={{ fontSize: '13px' }}>Welcome to #{(activeRoom?.name || '').toLowerCase()}!</p>
+                    <p style={{ fontSize: '11px', marginTop: '4px' }}>Be the first one to send a message.</p>
+                  </div>
+                ) : (
+                  chatMessages.map(msg => {
+                    const isOwnMessage = msg.user_id === user.id;
+                    const avatarColor = getAvatarColor(msg.user_name);
+                    const formattedTime = msg.created_at
+                      ? new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                      : '';
+
+                    return (
+                      <div
+                        key={msg.id}
+                        style={{
+                          display: 'flex',
+                          gap: '12px',
+                          alignItems: 'flex-start',
+                          alignSelf: isOwnMessage ? 'flex-end' : 'flex-start',
+                          maxWidth: '75%',
+                          flexDirection: isOwnMessage ? 'row-reverse' : 'row'
+                        }}
+                      >
+                        {/* Avatar */}
+                        <div style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '50%',
+                          backgroundColor: avatarColor,
+                          color: '#ffffff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '13px',
+                          fontWeight: '700',
+                          flexShrink: 0,
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                        }}>
+                          {msg.user_name.charAt(0).toUpperCase()}
+                        </div>
+
+                        {/* Content Block */}
+                        <div style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: isOwnMessage ? 'flex-end' : 'flex-start'
+                        }}>
+                          <div style={{
+                            display: 'flex',
+                            gap: '6px',
+                            alignItems: 'center',
+                            marginBottom: '4px'
+                          }}>
+                            <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--pine-deep)' }}>
+                              {msg.user_name}
+                            </span>
+                            <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                              {formattedTime}
+                            </span>
+                          </div>
+
+                          <div style={{
+                            padding: '10px 14px',
+                            borderRadius: '12px',
+                            borderTopLeftRadius: isOwnMessage ? '12px' : '12px',
+                            borderTopRightRadius: isOwnMessage ? '12px' : '12px',
+                            backgroundColor: isOwnMessage ? 'var(--pine-primary)' : '#ffffff',
+                            color: isOwnMessage ? '#ffffff' : 'var(--text-main)',
+                            border: isOwnMessage ? 'none' : '1px solid var(--border-subtle)',
+                            fontSize: '13px',
+                            lineHeight: '1.4',
+                            boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+                            wordBreak: 'break-word',
+                            whiteSpace: 'pre-wrap'
+                          }}>
+                            {msg.text}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+                <div ref={chatEndRef} />
+              </div>
+
+              {/* Chat Input Bar */}
+              <form
+                onSubmit={handleSendMessage}
+                style={{
+                  padding: '14px 20px',
+                  borderTop: '1px solid var(--border-subtle)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.4)',
+                  display: 'flex',
+                  gap: '10px',
+                  alignItems: 'center'
+                }}
+              >
+                <input
+                  type="text"
+                  placeholder={`Send message to #${(activeRoom?.name || '').toLowerCase()}`}
+                  value={newMsgText}
+                  onChange={(e) => setNewMsgText(e.target.value)}
+                  style={{
+                    flex: 1,
+                    padding: '10px 16px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-subtle)',
+                    backgroundColor: 'var(--bg-input)',
+                    color: 'var(--text-main)',
+                    fontSize: '13px'
+                  }}
+                />
+                <button
+                  type="submit"
+                  disabled={!newMsgText.trim()}
+                  className="btn-primary"
+                  style={{
+                    padding: '10px 16px',
+                    backgroundColor: newMsgText.trim() ? 'var(--pine-primary)' : 'var(--border-subtle)',
+                    borderColor: 'transparent',
+                    opacity: newMsgText.trim() ? 1 : 0.6,
+                    cursor: newMsgText.trim() ? 'pointer' : 'default',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <span>Send</span>
+                </button>
+              </form>
+            </div>
           </div>
         );
       }

@@ -417,3 +417,88 @@ export async function createFirestoreLostFoundItem(item: Omit<FirestoreLostFound
     return false;
   }
 }
+
+export interface FirestoreChatroom {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+}
+
+export interface FirestoreMessage {
+  id?: string;
+  chatroom_id: string;
+  user_id: string;
+  user_name: string;
+  text: string;
+  created_at: string | null;
+}
+
+export async function getFirestoreChatrooms(): Promise<FirestoreChatroom[]> {
+  try {
+    const q = query(collection(db, 'chatrooms'));
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as FirestoreChatroom[];
+  } catch (error) {
+    console.error('Error fetching chatrooms:', error);
+    return [];
+  }
+}
+
+export async function getFirestoreMessages(chatroomId: string): Promise<FirestoreMessage[]> {
+  try {
+    const q = query(
+      collection(db, 'messages'),
+      where('chatroom_id', '==', chatroomId)
+    );
+    const snap = await getDocs(q);
+    const msgs = snap.docs.map(doc => {
+      const data = doc.data();
+      const createdAt = data.created_at;
+      let serializableCreatedAt = null;
+      if (createdAt && typeof createdAt === 'object') {
+        const ts = createdAt as { toDate?: () => { toISOString: () => string }; seconds?: number };
+        if (typeof ts.toDate === 'function') {
+          serializableCreatedAt = ts.toDate().toISOString();
+        } else if (typeof ts.seconds === 'number') {
+          serializableCreatedAt = new Date(ts.seconds * 1000).toISOString();
+        }
+      } else if (createdAt) {
+        serializableCreatedAt = String(createdAt);
+      }
+      return {
+        id: doc.id,
+        ...data,
+        created_at: serializableCreatedAt
+      };
+    }) as FirestoreMessage[];
+
+    // Sort client-side to avoid requiring composite indexes in Firestore
+    msgs.sort((a, b) => {
+      const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return timeA - timeB;
+    });
+
+    return msgs;
+  } catch (error) {
+    console.error('Error fetching messages:', error);
+    return [];
+  }
+}
+
+export async function createFirestoreMessage(message: Omit<FirestoreMessage, 'id' | 'created_at'>): Promise<boolean> {
+  try {
+    await addDoc(collection(db, 'messages'), {
+      ...message,
+      created_at: serverTimestamp()
+    });
+    return true;
+  } catch (error) {
+    console.error('Error creating message:', error);
+    return false;
+  }
+}
