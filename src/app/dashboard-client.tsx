@@ -309,6 +309,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const [isSubmittingClub, setIsSubmittingClub] = useState(false);
 
   // Academic Files states
+  const [isDevModeActive, setIsDevModeActive] = useState(false);
   const [academicFiles, setAcademicFiles] = useState<AcademicFile[]>([]);
   const [activeAcademicTab, setActiveAcademicTab] = useState<AcademicTab>('syllabus');
   const [acadFilterYear, setAcadFilterYear] = useState('1st Year');
@@ -585,16 +586,19 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     });
   };
 
-  const menuItems = [
-    { id: 'home', label: 'Home', icon: Home, color: 'var(--pine-primary)' },
-    { id: 'feed', label: 'Feed', icon: Rss, color: '#3d5a80' },
-    { id: 'explore', label: 'Explore', icon: BookOpen, color: '#f4a261' },
-    { id: 'chat', label: 'Communities', icon: MessageSquare, color: '#9b5de5' },
-  ];
-
-  if (user.role === 'developer') {
-    menuItems.push({ id: 'dev_tools', label: 'Dev Mode 🛠️', icon: Sparkles, color: '#e76f51' });
-  }
+  const menuItems = isDevModeActive
+    ? [
+        { id: 'dev_tools', label: 'Console 🛠️', icon: Sparkles, color: '#e76f51' },
+        { id: 'dev_timetables', label: 'Timetables 📅', icon: Calendar, color: '#f4a261' },
+        { id: 'dev_clubs', label: 'Clubs 🏆', icon: Contact, color: '#9b5de5' },
+        { id: 'dev_files', label: 'Files 📚', icon: GraduationCap, color: '#3d5a80' },
+      ]
+    : [
+        { id: 'home', label: 'Home', icon: Home, color: 'var(--pine-primary)' },
+        { id: 'feed', label: 'Feed', icon: Rss, color: '#3d5a80' },
+        { id: 'explore', label: 'Explore', icon: BookOpen, color: '#f4a261' },
+        { id: 'chat', label: 'Communities', icon: MessageSquare, color: '#9b5de5' },
+      ];
 
   const getMealTime = (meal: string) => {
     switch (meal) {
@@ -3041,7 +3045,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           }
         };
         const pendingAnnouncements = announcements.filter(ann => ann.approved === false);
-        const pendingTimetables = timetableSubmissions.filter(t => t.status === 'pending');
 
         return (
           <div style={styles.exploreTabContainer} className="animate-fade-in">
@@ -3179,7 +3182,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                               padding: '2px 8px',
                               borderRadius: '4px'
                             }}>
-                              Awaiting Review
+                              New Announcement
                             </span>
                           </div>
 
@@ -3195,12 +3198,12 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                             <span><strong>Venue:</strong> {ann.location}</span>
                           </div>
 
-                          <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+                          <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
                             <button
                               onClick={async () => {
                                 const success = await approveAnnouncementAction(ann.id!);
                                 if (success) {
-                                  showToast('Announcement approved successfully!', 'success');
+                                  showToast('Announcement approved & published.', 'success');
                                   loadAnnouncements();
                                 } else {
                                   showToast('Failed to approve announcement.', 'error');
@@ -3215,7 +3218,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                               onClick={async () => {
                                 const success = await rejectAnnouncementAction(ann.id!);
                                 if (success) {
-                                  showToast('Announcement rejected & deleted.', 'info');
+                                  showToast('Announcement submission deleted.', 'info');
                                   loadAnnouncements();
                                 } else {
                                   showToast('Failed to delete announcement.', 'error');
@@ -3224,7 +3227,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                               className="btn-secondary"
                               style={{ padding: '8px 16px', fontSize: '12px', color: '#e76f51', borderColor: 'rgba(231, 111, 81, 0.2)' }}
                             >
-                              Reject & Delete
+                              Delete Submission
                             </button>
                           </div>
                         </div>
@@ -3234,295 +3237,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 )}
               </div>
 
-              {/* ── Academic Files Manager ── */}
-              <div
-                className="glass-panel"
-                style={{
-                  gridColumn: '1 / -1',
-                  padding: '24px',
-                  backgroundColor: '#ffffff',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: 'var(--radius-lg)',
-                  marginTop: '16px'
-                }}
-              >
-                <h3 style={{ fontSize: '16px', fontWeight: '800', color: 'var(--pine-deep)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <GraduationCap size={18} color="#3d5a80" /> Academic Files Manager
-                </h3>
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '20px' }}>
-                  Upload PDFs/ZIPs via Google Drive links. Paste the share link — the app auto-converts it to a direct download.
-                </p>
-
-                {/* Upload Form */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '16px' }}>
-                  {/* Tab */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <label style={styles.formLabel}>Category Tab</label>
-                    <select value={newFileTab} onChange={e => setNewFileTab(e.target.value as AcademicTab)} style={{ ...styles.formInput, padding: '8px 10px' }}>
-                      <option value="syllabus">📋 Syllabus</option>
-                      <option value="calendar">📅 Academic Calendar</option>
-                      <option value="notes">📝 Notes</option>
-                      <option value="practical">🔬 Practical Files</option>
-                      <option value="pyq">📄 PYQs</option>
-                    </select>
-                  </div>
-                  {/* Year */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <label style={styles.formLabel}>Year</label>
-                    <select value={newFileYear} onChange={e => { setNewFileYear(e.target.value); setNewFileBranch(e.target.value === '1st Year' ? 'All' : 'Computer Science & Engineering'); }} style={{ ...styles.formInput, padding: '8px 10px' }}>
-                      <option value="1st Year">1st Year</option>
-                      <option value="2nd Year">2nd Year</option>
-                      <option value="3rd Year">3rd Year</option>
-                      <option value="4th Year">4th Year</option>
-                    </select>
-                  </div>
-                  {/* Branch — hidden for 1st year */}
-                  {newFileYear !== '1st Year' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <label style={styles.formLabel}>Branch</label>
-                      <select value={newFileBranch} onChange={e => setNewFileBranch(e.target.value)} style={{ ...styles.formInput, padding: '8px 10px' }}>
-                        <option value="Computer Science & Engineering">CSE</option>
-                        <option value="Electronics & Communication Engineering">ECE</option>
-                        <option value="Electrical Engineering">Electrical</option>
-                        <option value="Mechanical Engineering">Mechanical</option>
-                        <option value="Civil Engineering">Civil</option>
-                        <option value="Chemical Engineering">Chemical</option>
-                        <option value="Material Science & Engineering">Materials</option>
-                      </select>
-                    </div>
-                  )}
-                  {/* Title */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <label style={styles.formLabel}>File Title</label>
-                    <input type="text" placeholder="e.g. Unit 1 Notes" value={newFileTitle} onChange={e => setNewFileTitle(e.target.value)} style={{ ...styles.formInput, padding: '8px 10px' }} />
-                  </div>
-                  {/* Subject */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <label style={styles.formLabel}>Subject</label>
-                    <input type="text" placeholder="e.g. Data Structures" value={newFileSubject} onChange={e => setNewFileSubject(e.target.value)} style={{ ...styles.formInput, padding: '8px 10px' }} />
-                  </div>
-                </div>
-
-                {/* Description */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '12px' }}>
-                  <label style={styles.formLabel}>Description (optional)</label>
-                  <input type="text" placeholder="Short description of the file" value={newFileDesc} onChange={e => setNewFileDesc(e.target.value)} style={{ ...styles.formInput, padding: '8px 10px' }} />
-                </div>
-
-                {/* Drive Link */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '16px' }}>
-                  <label style={styles.formLabel}>Google Drive Share Link</label>
-                  <input
-                    type="url"
-                    placeholder="https://drive.google.com/file/d/.../view?usp=sharing"
-                    value={newFileDriveLink}
-                    onChange={e => setNewFileDriveLink(e.target.value)}
-                    style={{ ...styles.formInput, padding: '8px 10px' }}
-                  />
-                  <p style={{ fontSize: '10px', color: 'var(--text-muted)', margin: '4px 0 0' }}>
-                    Paste the &quot;Anyone with link&quot; share URL — the app auto-converts it to a direct download link for users.
-                  </p>
-                </div>
-
-                <button
-                  className="btn-primary"
-                  disabled={isSubmittingAcadFile || !newFileTitle.trim() || !newFileDriveLink.trim() || !newFileSubject.trim()}
-                  onClick={async () => {
-                    setIsSubmittingAcadFile(true);
-                    const ok = await addAcademicFileAction({
-                      tab: newFileTab,
-                      title: newFileTitle.trim(),
-                      subject: newFileSubject.trim(),
-                      description: newFileDesc.trim(),
-                      year: newFileYear,
-                      branch: newFileYear === '1st Year' ? 'All' : newFileBranch,
-                      drive_link: newFileDriveLink.trim(),
-                      uploaded_by: user.name,
-                      uploaded_by_email: user.email,
-                    });
-                    if (ok) {
-                      showToast('File uploaded successfully!', 'success');
-                      setNewFileTitle(''); setNewFileSubject(''); setNewFileDesc(''); setNewFileDriveLink('');
-                      await loadAcademicFiles();
-                    } else {
-                      showToast('Upload failed. Check the link and try again.', 'error');
-                    }
-                    setIsSubmittingAcadFile(false);
-                  }}
-                  style={{ padding: '10px 24px', fontSize: '13px', fontWeight: '800', marginBottom: '24px' }}
-                >
-                  {isSubmittingAcadFile ? 'Uploading...' : '+ Upload File'}
-                </button>
-
-                {/* Existing files list */}
-                <h4 style={{ fontSize: '13px', fontWeight: '800', color: 'var(--pine-deep)', marginBottom: '10px', borderTop: '1px solid var(--border-subtle)', paddingTop: '16px' }}>
-                  All Uploaded Files ({academicFiles.length})
-                </h4>
-                {academicFiles.length === 0 ? (
-                  <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>No files uploaded yet.</p>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {academicFiles.map(f => (
-                      <div key={f.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--border-subtle)', backgroundColor: 'var(--bg-hover)', gap: '10px' }}>
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <p style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-main)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.title}</p>
-                          <p style={{ fontSize: '10px', color: 'var(--text-muted)', margin: '2px 0 0' }}>
-                            {f.tab.toUpperCase()} · {f.year}{f.year !== '1st Year' ? ` · ${f.branch}` : ''} · {f.subject}
-                          </p>
-                        </div>
-                        <button
-                          onClick={async () => {
-                            const ok = await deleteAcademicFileAction(f.id);
-                            if (ok) { showToast('File deleted.', 'success'); await loadAcademicFiles(); }
-                            else showToast('Delete failed.', 'error');
-                          }}
-                          style={{ flexShrink: 0, background: 'rgba(231,111,81,0.12)', border: 'none', borderRadius: '8px', padding: '6px 12px', fontSize: '11px', fontWeight: '800', color: '#e76f51', cursor: 'pointer' }}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Pending Timetables Section */}
-              <div 
-                className="glass-panel" 
-                style={{ 
-                  gridColumn: '1 / -1', 
-                  padding: '24px', 
-                  backgroundColor: '#ffffff', 
-                  border: '1px solid var(--border-subtle)', 
-                  borderRadius: 'var(--radius-lg)',
-                  marginTop: '16px'
-                }}
-              >
-                <h3 style={{ fontSize: '16px', fontWeight: '800', color: 'var(--pine-deep)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span>Pending Timetables Approvals</span>
-                  {pendingTimetables.length > 0 && (
-                    <span style={{
-                      backgroundColor: '#e76f51',
-                      color: '#ffffff',
-                      fontSize: '11px',
-                      fontWeight: '800',
-                      padding: '2px 8px',
-                      borderRadius: '10px'
-                    }}>
-                      {pendingTimetables.length}
-                    </span>
-                  )}
-                </h3>
-
-                {pendingTimetables.length === 0 ? (
-                  <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
-                    No pending timetables to review. You&apos;re all caught up! ✨
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {pendingTimetables.map((sub) => {
-                      return (
-                        <div 
-                          key={sub.id}
-                          style={{
-                            padding: '16px',
-                            borderRadius: '10px',
-                            border: '1px solid var(--border-subtle)',
-                            backgroundColor: 'rgba(0,0,0,0.01)',
-                            display: 'flex',
-                            gap: '16px',
-                            alignItems: 'flex-start',
-                            flexWrap: 'wrap'
-                          }}
-                        >
-                          {/* Timetable Thumbnail Preview */}
-                          <div 
-                            style={{
-                              width: '120px',
-                              height: '120px',
-                              borderRadius: '8px',
-                              overflow: 'hidden',
-                              border: '1px solid var(--border-subtle)',
-                              backgroundColor: '#ffffff',
-                              flexShrink: 0
-                            }}
-                          >
-                            <img 
-                              src={sub.file_data} 
-                              alt="Timetable Preview" 
-                              style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }}
-                              onClick={() => {
-                                const win = window.open();
-                                if (win) {
-                                  win.document.write(`<img src="${sub.file_data}" style="max-width:100%; height:auto;" />`);
-                                }
-                              }}
-                              title="Click to view full size"
-                            />
-                          </div>
-
-                          {/* Submission Details */}
-                          <div style={{ flex: 1, minWidth: '200px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
-                              <div>
-                                <h4 style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-main)', margin: 0 }}>
-                                  {sub.year} — {sub.year === '1st Year' ? `Section ${sub.section}` : `${sub.branch} (Section ${sub.section})`}
-                                </h4>
-                                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                                  Submitted by: <strong>{sub.uploaded_by}</strong> ({sub.uploaded_by_email})
-                                </span>
-                              </div>
-                              <span style={{
-                                fontSize: '10px',
-                                backgroundColor: 'rgba(231, 111, 81, 0.15)',
-                                color: '#e76f51',
-                                fontWeight: '800',
-                                padding: '2px 8px',
-                                borderRadius: '4px'
-                              }}>
-                                New Timetable Submission
-                              </span>
-                            </div>
-
-                            <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
-                              <button
-                                onClick={async () => {
-                                  const success = await approveTimetableAction(sub.id!, sub.year, sub.section || '', sub.branch || '', sub.file_data);
-                                  if (success) {
-                                    showToast(`Timetable approved!`, 'success');
-                                    loadTimetablesData();
-                                  } else {
-                                    showToast('Failed to approve timetable.', 'error');
-                                  }
-                                }}
-                                className="btn-primary"
-                                style={{ padding: '8px 16px', fontSize: '12px' }}
-                              >
-                                Approve & Publish
-                              </button>
-                              <button
-                                onClick={async () => {
-                                  const success = await rejectTimetableAction(sub.id!);
-                                  if (success) {
-                                    showToast('Timetable submission rejected.', 'info');
-                                    loadTimetablesData();
-                                  } else {
-                                    showToast('Failed to reject timetable.', 'error');
-                                  }
-                                }}
-                                className="btn-secondary"
-                                style={{ padding: '8px 16px', fontSize: '12px', color: '#e76f51', borderColor: 'rgba(231, 111, 81, 0.2)' }}
-                              >
-                                Reject & Delete
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
               {/* Feedback Suggestions Section */}
               <div 
                 className="glass-panel" 
@@ -3647,16 +3361,174 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   </div>
                 )}
               </div>
-              {/* Club Approvals Moderation Section */}
+            </div>
+          </div>
+        );
+      }
+
+      case 'dev_timetables': {
+        const pendingTimetables = timetableSubmissions.filter(t => t.status === 'pending');
+        return (
+          <div style={styles.exploreTabContainer} className="animate-fade-in">
+            <div style={styles.exploreHeaderSection}>
+              <h2 style={styles.exploreTitle}>Timetables <span style={{ color: '#f4a261' }}>Approvals</span> 📅</h2>
+              <p style={styles.exploreSubtitle}>Review, publish or reject timetable submissions from students</p>
+            </div>
+
+            <div style={{ marginTop: '20px' }}>
               <div 
                 className="glass-panel" 
                 style={{ 
-                  gridColumn: '1 / -1', 
                   padding: '24px', 
                   backgroundColor: '#ffffff', 
                   border: '1px solid var(--border-subtle)', 
-                  borderRadius: 'var(--radius-lg)',
-                  marginTop: '16px'
+                  borderRadius: 'var(--radius-lg)'
+                }}
+              >
+                <h3 style={{ fontSize: '16px', fontWeight: '800', color: 'var(--pine-deep)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>Pending Timetables Approvals</span>
+                  {pendingTimetables.length > 0 && (
+                    <span style={{
+                      backgroundColor: '#e76f51',
+                      color: '#ffffff',
+                      fontSize: '11px',
+                      fontWeight: '800',
+                      padding: '2px 8px',
+                      borderRadius: '10px'
+                    }}>
+                      {pendingTimetables.length}
+                    </span>
+                  )}
+                </h3>
+
+                {pendingTimetables.length === 0 ? (
+                  <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                    No pending timetables to approve. You&apos;re all caught up! ✨
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {pendingTimetables.map((sub) => {
+                      return (
+                        <div 
+                          key={sub.id}
+                          style={{
+                            padding: '16px',
+                            borderRadius: '10px',
+                            border: '1px solid var(--border-subtle)',
+                            backgroundColor: 'rgba(0,0,0,0.01)',
+                            display: 'flex',
+                            gap: '16px',
+                            alignItems: 'flex-start',
+                            flexWrap: 'wrap'
+                          }}
+                        >
+                          <div 
+                            style={{
+                              width: '120px',
+                              height: '120px',
+                              borderRadius: '8px',
+                              overflow: 'hidden',
+                              border: '1px solid var(--border-subtle)',
+                              backgroundColor: '#ffffff',
+                              flexShrink: 0
+                            }}
+                          >
+                            <img 
+                              src={sub.file_data} 
+                              alt="Timetable Preview" 
+                              style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }}
+                              onClick={() => {
+                                const win = window.open();
+                                if (win) {
+                                  win.document.write(`<img src="${sub.file_data}" style="max-width:100%; height:auto;" />`);
+                                }
+                              }}
+                              title="Click to view full size"
+                            />
+                          </div>
+
+                          <div style={{ flex: 1, minWidth: '200px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                              <div>
+                                <h4 style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-main)', margin: 0 }}>
+                                  {sub.year} — {sub.year === '1st Year' ? `Section ${sub.section}` : `${sub.branch} (Section ${sub.section})`}
+                                </h4>
+                                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                  Submitted by: <strong>{sub.uploaded_by}</strong> ({sub.uploaded_by_email})
+                                </span>
+                              </div>
+                              <span style={{
+                                fontSize: '10px',
+                                backgroundColor: 'rgba(231, 111, 81, 0.15)',
+                                color: '#e76f51',
+                                fontWeight: '800',
+                                padding: '2px 8px',
+                                borderRadius: '4px'
+                              }}>
+                                New Timetable Submission
+                              </span>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
+                              <button
+                                onClick={async () => {
+                                  const success = await approveTimetableAction(sub.id!, sub.year, sub.section || '', sub.branch || '', sub.file_data);
+                                  if (success) {
+                                    showToast(`Timetable approved!`, 'success');
+                                    loadTimetablesData();
+                                  } else {
+                                    showToast('Failed to approve timetable.', 'error');
+                                  }
+                                }}
+                                className="btn-primary"
+                                style={{ padding: '8px 16px', fontSize: '12px' }}
+                              >
+                                Approve & Publish
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  const success = await rejectTimetableAction(sub.id!);
+                                  if (success) {
+                                    showToast('Timetable submission rejected.', 'info');
+                                    loadTimetablesData();
+                                  } else {
+                                    showToast('Failed to reject timetable.', 'error');
+                                  }
+                                }}
+                                className="btn-secondary"
+                                style={{ padding: '8px 16px', fontSize: '12px', color: '#e76f51', borderColor: 'rgba(231, 111, 81, 0.2)' }}
+                              >
+                                Reject & Delete
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      case 'dev_clubs': {
+        return (
+          <div style={styles.exploreTabContainer} className="animate-fade-in">
+            <div style={styles.exploreHeaderSection}>
+              <h2 style={styles.exploreTitle}>Clubs <span style={{ color: '#9b5de5' }}>Moderation</span> 🏆</h2>
+              <p style={styles.exploreSubtitle}>Review and approve campus club & society registration submissions</p>
+            </div>
+
+            <div style={{ marginTop: '20px' }}>
+              <div 
+                className="glass-panel" 
+                style={{ 
+                  padding: '24px', 
+                  backgroundColor: '#ffffff', 
+                  border: '1px solid var(--border-subtle)', 
+                  borderRadius: 'var(--radius-lg)'
                 }}
               >
                 <h3 style={{ fontSize: '16px', fontWeight: '800', color: 'var(--pine-deep)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -3774,6 +3646,160 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                         </div>
                       );
                     })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      case 'dev_files': {
+        return (
+          <div style={styles.exploreTabContainer} className="animate-fade-in">
+            <div style={styles.exploreHeaderSection}>
+              <h2 style={styles.exploreTitle}>Academic Files <span style={{ color: '#3d5a80' }}>Manager</span> 📚</h2>
+              <p style={styles.exploreSubtitle}>Upload syllabus, calendar, notes, practicals, and PYQs to student resources</p>
+            </div>
+
+            <div style={{ marginTop: '20px' }}>
+              <div
+                className="glass-panel"
+                style={{
+                  padding: '24px',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--radius-lg)'
+                }}
+              >
+                <h3 style={{ fontSize: '16px', fontWeight: '800', color: 'var(--pine-deep)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <GraduationCap size={18} color="#3d5a80" /> Academic Files Manager
+                </h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '20px' }}>
+                  Upload PDFs/ZIPs via Google Drive links. Paste the share link — the app auto-converts it to a direct download.
+                </p>
+
+                {/* Upload Form */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={styles.formLabel}>Category Tab</label>
+                    <select value={newFileTab} onChange={e => setNewFileTab(e.target.value as AcademicTab)} style={{ ...styles.formInput, padding: '8px 10px' }}>
+                      <option value="syllabus">📋 Syllabus</option>
+                      <option value="calendar">📅 Academic Calendar</option>
+                      <option value="notes">📝 Notes</option>
+                      <option value="practical">🔬 Practical Files</option>
+                      <option value="pyq">📄 PYQs</option>
+                    </select>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={styles.formLabel}>Year</label>
+                    <select value={newFileYear} onChange={e => { setNewFileYear(e.target.value); setNewFileBranch(e.target.value === '1st Year' ? 'All' : 'Computer Science & Engineering'); }} style={{ ...styles.formInput, padding: '8px 10px' }}>
+                      <option value="1st Year">1st Year</option>
+                      <option value="2nd Year">2nd Year</option>
+                      <option value="3rd Year">3rd Year</option>
+                      <option value="4th Year">4th Year</option>
+                    </select>
+                  </div>
+                  {newFileYear !== '1st Year' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <label style={styles.formLabel}>Branch</label>
+                      <select value={newFileBranch} onChange={e => setNewFileBranch(e.target.value)} style={{ ...styles.formInput, padding: '8px 10px' }}>
+                        <option value="Computer Science & Engineering">CSE</option>
+                        <option value="Electronics & Communication Engineering">ECE</option>
+                        <option value="Electrical Engineering">Electrical</option>
+                        <option value="Mechanical Engineering">Mechanical</option>
+                        <option value="Civil Engineering">Civil</option>
+                        <option value="Chemical Engineering">Chemical</option>
+                        <option value="Material Science & Engineering">Materials</option>
+                      </select>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={styles.formLabel}>File Title</label>
+                    <input type="text" placeholder="e.g. Unit 1 Notes" value={newFileTitle} onChange={e => setNewFileTitle(e.target.value)} style={{ ...styles.formInput, padding: '8px 10px' }} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={styles.formLabel}>Subject</label>
+                    <input type="text" placeholder="e.g. Data Structures" value={newFileSubject} onChange={e => setNewFileSubject(e.target.value)} style={{ ...styles.formInput, padding: '8px 10px' }} />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '12px' }}>
+                  <label style={styles.formLabel}>Description (optional)</label>
+                  <input type="text" placeholder="Short description of the file" value={newFileDesc} onChange={e => setNewFileDesc(e.target.value)} style={{ ...styles.formInput, padding: '8px 10px' }} />
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '16px' }}>
+                  <label style={styles.formLabel}>Google Drive Share Link</label>
+                  <input
+                    type="url"
+                    placeholder="https://drive.google.com/file/d/.../view?usp=sharing"
+                    value={newFileDriveLink}
+                    onChange={e => setNewFileDriveLink(e.target.value)}
+                    style={{ ...styles.formInput, padding: '8px 10px' }}
+                  />
+                  <p style={{ fontSize: '10px', color: 'var(--text-muted)', margin: '4px 0 0' }}>
+                    Paste the &quot;Anyone with link&quot; share URL — the app auto-converts it to a direct download link for users.
+                  </p>
+                </div>
+
+                <button
+                  className="btn-primary"
+                  disabled={isSubmittingAcadFile || !newFileTitle.trim() || !newFileDriveLink.trim() || !newFileSubject.trim()}
+                  onClick={async () => {
+                    setIsSubmittingAcadFile(true);
+                    const ok = await addAcademicFileAction({
+                      tab: newFileTab,
+                      title: newFileTitle.trim(),
+                      subject: newFileSubject.trim(),
+                      description: newFileDesc.trim(),
+                      year: newFileYear,
+                      branch: newFileYear === '1st Year' ? 'All' : newFileBranch,
+                      drive_link: newFileDriveLink.trim(),
+                      uploaded_by: user.name,
+                      uploaded_by_email: user.email,
+                    });
+                    if (ok) {
+                      showToast('File uploaded successfully!', 'success');
+                      setNewFileTitle(''); setNewFileSubject(''); setNewFileDesc(''); setNewFileDriveLink('');
+                      await loadAcademicFiles();
+                    } else {
+                      showToast('Upload failed. Check the link and try again.', 'error');
+                    }
+                    setIsSubmittingAcadFile(false);
+                  }}
+                  style={{ padding: '10px 24px', fontSize: '13px', fontWeight: '800', marginBottom: '24px' }}
+                >
+                  {isSubmittingAcadFile ? 'Uploading...' : '+ Upload File'}
+                </button>
+
+                <h4 style={{ fontSize: '13px', fontWeight: '800', color: 'var(--pine-deep)', marginBottom: '10px', borderTop: '1px solid var(--border-subtle)', paddingTop: '16px' }}>
+                  All Uploaded Files ({academicFiles.length})
+                </h4>
+                {academicFiles.length === 0 ? (
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>No files uploaded yet.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {academicFiles.map(f => (
+                      <div key={f.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--border-subtle)', backgroundColor: 'var(--bg-hover)', gap: '10px' }}>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <p style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-main)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.title}</p>
+                          <p style={{ fontSize: '10px', color: 'var(--text-muted)', margin: '2px 0 0' }}>
+                            {f.tab.toUpperCase()} · {f.year}{f.year !== '1st Year' ? ` · ${f.branch}` : ''} · {f.subject}
+                          </p>
+                        </div>
+                        <button
+                          onClick={async () => {
+                            const ok = await deleteAcademicFileAction(f.id);
+                            if (ok) { showToast('File deleted.', 'success'); await loadAcademicFiles(); }
+                            else showToast('Delete failed.', 'error');
+                          }}
+                          style={{ flexShrink: 0, background: 'rgba(231,111,81,0.12)', border: 'none', borderRadius: '8px', padding: '6px 12px', fontSize: '11px', fontWeight: '800', color: '#e76f51', cursor: 'pointer' }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -3963,8 +3989,17 @@ export default function DashboardClient({ user }: DashboardClientProps) {
       <aside style={styles.sidebar}>
         <div style={styles.sidebarHeader}>
           <div style={styles.sidebarLogo}>
-            <Mountain size={24} color="var(--text-light)" />
-            <h1 style={styles.sidebarTitle}>NITH Connect</h1>
+            {isDevModeActive ? (
+              <>
+                <Sparkles size={24} color="#e76f51" />
+                <h1 style={{ ...styles.sidebarTitle, color: '#e76f51' }}>Dev Console</h1>
+              </>
+            ) : (
+              <>
+                <Mountain size={24} color="var(--text-light)" />
+                <h1 style={styles.sidebarTitle}>NITH Connect</h1>
+              </>
+            )}
           </div>
         </div>
 
@@ -4008,7 +4043,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             <div style={styles.userDetails}>
               <div style={styles.userName}>{user.name}</div>
               <div style={styles.userRole}>
-                {user.role === 'guest' ? 'Campus Guest' : 'Student'}
+                {isDevModeActive ? 'Developer Mode' : (user.role === 'guest' ? 'Campus Guest' : 'Student')}
               </div>
             </div>
           </div>
@@ -4480,6 +4515,35 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             </div>
 
           <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {user.role === 'developer' && (
+              <button
+                onClick={() => {
+                  setIsProfileOpen(false);
+                  const nextDevMode = !isDevModeActive;
+                  setIsDevModeActive(nextDevMode);
+                  setActiveTab(nextDevMode ? 'dev_tools' : 'home');
+                  showToast(nextDevMode ? 'Entered Developer Mode 🛠️' : 'Returned to Student Mode 🎓', 'success');
+                }}
+                className="btn-primary"
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  backgroundColor: isDevModeActive ? '#2a9d8f' : '#e76f51',
+                  background: isDevModeActive ? 'linear-gradient(135deg, #2a9d8f 0%, #125b44 100%)' : 'linear-gradient(135deg, #e76f51 0%, #d95d39 100%)',
+                  borderColor: 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  fontWeight: '700',
+                  boxShadow: 'none',
+                  color: '#ffffff'
+                }}
+              >
+                <Sparkles size={16} />
+                <span>{isDevModeActive ? 'Exit Developer Mode' : 'Enter Developer Mode'}</span>
+              </button>
+            )}
             <button 
               onClick={() => setIsProfileOpen(false)}
               className="btn-primary"
