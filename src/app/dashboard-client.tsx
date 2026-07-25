@@ -4129,6 +4129,27 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             >
               Close Profile
             </button>
+            <button 
+              onClick={() => {
+                setIsProfileOpen(false);
+                handleLogout();
+              }}
+              className="btn-secondary"
+              style={{ 
+                width: '100%', 
+                padding: '12px', 
+                color: '#e76f51', 
+                borderColor: 'rgba(231, 111, 81, 0.2)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                gap: '8px',
+                fontWeight: '700'
+              }}
+            >
+              <LogOut size={16} />
+              <span>Log Out</span>
+            </button>
           </div>
         </div>
       </div>
