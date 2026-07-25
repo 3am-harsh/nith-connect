@@ -106,7 +106,8 @@ import {
   Clock,
   Globe,
   Phone,
-  ShieldAlert
+  ShieldAlert,
+  Lock
 } from 'lucide-react';
 
 interface ClassSlot {
