@@ -28,6 +28,7 @@ import {
   addBlockedWordAction,
   removeBlockedWordAction
 } from './actions/chat';
+import { fetchUserProfile, updateUserProfile } from './actions/profile';
 import { 
   getMarketplaceItemsAction, 
   createMarketplaceItemAction, 
@@ -71,7 +72,8 @@ import {
   type Club,
   type ClubSubmission,
   type AcademicFile,
-  type AcademicTab
+  type AcademicTab,
+  type FirestoreUser
 } from '@/lib/firestore';
 import { 
   Mountain, 
@@ -235,6 +237,19 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
   // Profile Drawer state
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  // Student Profile Card / Modal states
+  const [selectedProfileUser, setSelectedProfileUser] = useState<FirestoreUser | null>(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  
+  // Current user's full editable profile state
+  const [currentUserProfile, setCurrentUserProfile] = useState<FirestoreUser | null>(null);
+  const [editablePhone, setEditablePhone] = useState('');
+  const [editableWhatsapp, setEditableWhatsapp] = useState('');
+  const [editableInstagram, setEditableInstagram] = useState('');
+  const [editableBio, setEditableBio] = useState('');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   // Quick Links modal state
   const [isQuickLinksOpen, setIsQuickLinksOpen] = useState(false);
@@ -558,6 +573,34 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     }
   };
 
+  const handleOpenUserProfile = async (userId: string) => {
+    setIsLoadingProfile(true);
+    setIsProfileModalOpen(true);
+    try {
+      const p = await fetchUserProfile(userId);
+      setSelectedProfileUser(p);
+    } catch (err) {
+      console.error('Failed to load profile:', err);
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  };
+
+  const loadCurrentUserProfile = async () => {
+    try {
+      const p = await fetchUserProfile(user.id);
+      setCurrentUserProfile(p);
+      if (p) {
+        setEditablePhone(p.phone_number || '');
+        setEditableWhatsapp(p.whatsapp_link || '');
+        setEditableInstagram(p.instagram_link || '');
+        setEditableBio(p.bio || '');
+      }
+    } catch (err) {
+      console.error('Failed to load current user profile:', err);
+    }
+  };
+
   useEffect(() => {
     let active = true;
     const loadData = async () => {
@@ -580,6 +623,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           loadAcademicFiles();
           loadReportedMessages();
           loadBlockedWords();
+          loadCurrentUserProfile();
           if (user.role === 'developer') {
             const subs = await fetchTimetableSubmissions();
             setTimetableSubmissions(subs);
@@ -1864,7 +1908,13 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                           gap: '8px'
                         }}>
                           <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                            Seller: <strong>{item.user_name}</strong>
+                            Seller: <span 
+                              onClick={() => handleOpenUserProfile(item.user_id)}
+                              style={{ cursor: 'pointer', textDecoration: 'underline decoration-dotted', fontWeight: '700', color: 'var(--text-main)' }}
+                              title={`View ${item.user_name}'s profile`}
+                            >
+                              {item.user_name}
+                            </span>
                           </span>
 
                           <div style={{ display: 'flex', gap: '6px' }}>
@@ -2535,7 +2585,17 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                             <span><strong>Date:</strong> {item.date}</span>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', padding: '6px 8px', borderRadius: '4px', backgroundColor: 'var(--bg-input)', fontSize: '11.5px', color: 'var(--pine-deep)' }}>
-                            <span><strong>Contact:</strong> {item.contact} ({item.user_name})</span>
+                            <span>
+                              <strong>Contact:</strong> {item.contact} (
+                              <span 
+                                onClick={() => handleOpenUserProfile(item.user_id)}
+                                style={{ cursor: 'pointer', textDecoration: 'underline decoration-dotted', fontWeight: '700' }}
+                                title={`View ${item.user_name}'s profile`}
+                              >
+                                {item.user_name}
+                              </span>
+                              )
+                            </span>
                           </div>
                         </div>
 
@@ -2943,20 +3003,25 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                         }}
                       >
                         {/* Avatar */}
-                        <div style={{
-                          width: '32px',
-                          height: '32px',
-                          borderRadius: '50%',
-                          backgroundColor: avatarColor,
-                          color: '#ffffff',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '13px',
-                          fontWeight: '700',
-                          flexShrink: 0,
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-                        }}>
+                        <div 
+                          onClick={() => handleOpenUserProfile(msg.user_id)}
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '50%',
+                            backgroundColor: avatarColor,
+                            color: '#ffffff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '13px',
+                            fontWeight: '700',
+                            flexShrink: 0,
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                            cursor: 'pointer'
+                          }}
+                          title={`View ${msg.user_name}'s profile`}
+                        >
                           {msg.user_name.charAt(0).toUpperCase()}
                         </div>
 
@@ -2972,7 +3037,11 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                             alignItems: 'center',
                             marginBottom: '4px'
                           }}>
-                            <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--pine-deep)' }}>
+                            <span 
+                              onClick={() => handleOpenUserProfile(msg.user_id)}
+                              style={{ fontSize: '12px', fontWeight: '700', color: 'var(--pine-deep)', cursor: 'pointer', textDecoration: 'underline decoration-dotted' }}
+                              title={`View ${msg.user_name}'s profile`}
+                            >
                               {msg.user_name}
                             </span>
                             <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
@@ -4873,7 +4942,112 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               </button>
             </div>
 
-          <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '16px', borderTop: '1px solid var(--border-subtle)', paddingTop: '16px' }}>
+              <span style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-placeholder)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Contact & Bio Settings</span>
+              
+              <div>
+                <label style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Short Bio</label>
+                <textarea
+                  placeholder="Tell others about yourself..."
+                  value={editableBio}
+                  onChange={(e) => setEditableBio(e.target.value)}
+                  style={{
+                    width: '100%',
+                    minHeight: '60px',
+                    padding: '8px 10px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border-subtle)',
+                    fontSize: '12px',
+                    color: 'var(--text-main)',
+                    resize: 'vertical',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Phone Number</label>
+                <input
+                  type="tel"
+                  placeholder="10-digit number"
+                  value={editablePhone}
+                  onChange={(e) => setEditablePhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  style={{
+                    width: '100%',
+                    padding: '8px 10px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border-subtle)',
+                    fontSize: '12px',
+                    color: 'var(--text-main)',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>WhatsApp Number or Link</label>
+                <input
+                  type="text"
+                  placeholder="e.g. wa.me/91XXXXXXXXXX"
+                  value={editableWhatsapp}
+                  onChange={(e) => setEditableWhatsapp(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 10px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border-subtle)',
+                    fontSize: '12px',
+                    color: 'var(--text-main)',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Instagram Username</label>
+                <input
+                  type="text"
+                  placeholder="e.g. @yourusername"
+                  value={editableInstagram}
+                  onChange={(e) => setEditableInstagram(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 10px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border-subtle)',
+                    fontSize: '12px',
+                    color: 'var(--text-main)',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              <button
+                disabled={isSavingProfile}
+                onClick={async () => {
+                  setIsSavingProfile(true);
+                  const success = await updateUserProfile(user.id, {
+                    phone_number: editablePhone,
+                    whatsapp_link: editableWhatsapp,
+                    instagram_link: editableInstagram,
+                    bio: editableBio
+                  });
+                  setIsSavingProfile(false);
+                  if (success) {
+                    showToast('Contact details updated successfully!', 'success');
+                    await loadCurrentUserProfile();
+                  } else {
+                    showToast('Failed to update contact details.', 'error');
+                  }
+                }}
+                className="btn-primary"
+                style={{ width: '100%', padding: '10px', fontSize: '12px', fontWeight: '800', marginTop: '6px' }}
+              >
+                {isSavingProfile ? 'Saving Details...' : 'Save Contact Details'}
+              </button>
+            </div>
+
+          <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', paddingTop: '16px' }}>
             {user.role === 'developer' && (
               <button
                 onClick={() => {
@@ -4988,6 +5162,197 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             >
               Close
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Student Profile Modal */}
+      {isProfileModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(14, 61, 47, 0.4)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '20px'
+        }} onClick={() => setIsProfileModalOpen(false)}>
+          <div style={{
+            width: '100%',
+            maxWidth: '420px',
+            backgroundColor: '#ffffff',
+            borderRadius: '16px',
+            border: '1px solid var(--border-subtle)',
+            boxShadow: '0 12px 32px rgba(0,0,0,0.15)',
+            padding: '24px',
+            position: 'relative',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }} onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setIsProfileModalOpen(false)}
+              style={{
+                position: 'absolute',
+                top: '16px',
+                right: '16px',
+                background: 'rgba(0,0,0,0.03)',
+                border: 'none',
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--text-muted)'
+              }}
+            >
+              <X size={16} />
+            </button>
+
+            {isLoadingProfile ? (
+              <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                Loading profile details...
+              </div>
+            ) : selectedProfileUser ? (
+              <>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', textAlign: 'center', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '16px' }}>
+                  <div style={{
+                    width: '70px',
+                    height: '70px',
+                    borderRadius: '50%',
+                    backgroundColor: 'var(--pine-light)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '28px',
+                    fontWeight: '800',
+                    color: 'var(--pine-deep)',
+                    border: `3px solid ${selectedProfileUser.role === 'developer' ? '#f4a261' : 'var(--pine-primary)'}`
+                  }}>
+                    {selectedProfileUser.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '16px', fontWeight: '800', color: 'var(--text-main)', margin: 0 }}>
+                      {selectedProfileUser.name}
+                    </h3>
+                    <span style={{
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      color: selectedProfileUser.role === 'developer' ? '#e76f51' : 'var(--pine-primary)',
+                      backgroundColor: selectedProfileUser.role === 'developer' ? 'rgba(231, 111, 81, 0.1)' : 'rgba(42, 157, 143, 0.1)',
+                      padding: '2px 8px',
+                      borderRadius: '12px',
+                      marginTop: '4px',
+                      display: 'inline-block'
+                    }}>
+                      {selectedProfileUser.role === 'developer' ? 'App Developer 🛠️' : 'Student Scholar'}
+                    </span>
+                  </div>
+                </div>
+
+                {selectedProfileUser.bio && (
+                  <div style={{
+                    backgroundColor: 'var(--bg-hover)',
+                    borderLeft: '4px solid var(--pine-primary)',
+                    padding: '10px 14px',
+                    borderRadius: '6px',
+                    fontSize: '12.5px',
+                    fontStyle: 'italic',
+                    color: 'var(--text-main)',
+                    lineHeight: '1.4'
+                  }}>
+                    &ldquo;{selectedProfileUser.bio}&rdquo;
+                  </div>
+                )}
+
+                <div>
+                  <span style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-placeholder)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '8px' }}>
+                    Academic Info
+                  </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '6px' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Department:</span>
+                      <span style={{ fontWeight: '700', color: 'var(--text-main)' }}>{selectedProfileUser.department || 'Visitor'}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '6px' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Roll Number:</span>
+                      <span style={{ fontWeight: '700', color: 'var(--text-main)' }}>{selectedProfileUser.roll_number || 'N/A'}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '6px' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Hostel Residence:</span>
+                      <span style={{ fontWeight: '700', color: 'var(--text-main)' }}>{selectedProfileUser.hostel || 'Visitor'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <span style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-placeholder)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '8px' }}>
+                    Contact Details
+                  </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', alignItems: 'center' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Email:</span>
+                      <a href={`mailto:${selectedProfileUser.email}`} style={{ fontWeight: '700', color: 'var(--pine-primary)', textDecoration: 'none' }}>
+                        {selectedProfileUser.email}
+                      </a>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', alignItems: 'center' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Phone Number:</span>
+                      {selectedProfileUser.phone_number ? (
+                        <a href={`tel:${selectedProfileUser.phone_number}`} style={{ fontWeight: '700', color: 'var(--pine-primary)', textDecoration: 'none' }}>
+                          {selectedProfileUser.phone_number}
+                        </a>
+                      ) : (
+                        <span style={{ color: 'var(--text-placeholder)' }}>Not provided</span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', alignItems: 'center' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>WhatsApp:</span>
+                      {selectedProfileUser.whatsapp_link ? (
+                        <a 
+                          href={selectedProfileUser.whatsapp_link.startsWith('http') ? selectedProfileUser.whatsapp_link : `https://wa.me/${selectedProfileUser.whatsapp_link.replace(/\D/g, '')}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          style={{ fontWeight: '700', color: '#128c7e', textDecoration: 'none' }}
+                        >
+                          Chat on WhatsApp
+                        </a>
+                      ) : (
+                        <span style={{ color: 'var(--text-placeholder)' }}>Not provided</span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', alignItems: 'center' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Instagram:</span>
+                      {selectedProfileUser.instagram_link ? (
+                        <a 
+                          href={`https://instagram.com/${selectedProfileUser.instagram_link.replace('@', '')}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          style={{ fontWeight: '700', color: '#e1306c', textDecoration: 'none' }}
+                        >
+                          {selectedProfileUser.instagram_link.startsWith('@') ? selectedProfileUser.instagram_link : `@${selectedProfileUser.instagram_link}`}
+                        </a>
+                      ) : (
+                        <span style={{ color: 'var(--text-placeholder)' }}>Not provided</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                User profile not found.
+              </div>
+            )}
           </div>
         </div>
       )}

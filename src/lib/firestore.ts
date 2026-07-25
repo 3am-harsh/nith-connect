@@ -27,6 +27,10 @@ export interface FirestoreUser {
   created_at?: unknown;
   banned_until?: string | null;
   ban_reason?: string | null;
+  phone_number?: string;
+  whatsapp_link?: string;
+  instagram_link?: string;
+  bio?: string;
 }
 
 export interface FirestoreMessMenu {
@@ -1348,6 +1352,17 @@ export async function removeBlockedWord(word: string): Promise<boolean> {
     return true;
   } catch (error) {
     console.error('Error removing blocked word:', error);
+    return false;
+  }
+}
+
+export async function updateFirestoreUser(userId: string, data: Partial<FirestoreUser>): Promise<boolean> {
+  try {
+    const docRef = doc(db, 'users', userId);
+    await updateDoc(docRef, data);
+    return true;
+  } catch (error) {
+    console.error('Error updating user in Firestore:', error);
     return false;
   }
 }
