@@ -48,7 +48,20 @@ export async function getFirestoreUser(userId: string): Promise<FirestoreUser | 
     const docRef = doc(db, 'users', userId);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-      return docSnap.data() as FirestoreUser;
+      const data = docSnap.data();
+      let serializableCreatedAt = null;
+      if (data.created_at) {
+        const ts = data.created_at as { toDate?: () => { toISOString: () => string }; seconds?: number };
+        if (ts.toDate) {
+          serializableCreatedAt = ts.toDate().toISOString();
+        } else if (ts.seconds) {
+          serializableCreatedAt = new Date(ts.seconds * 1000).toISOString();
+        }
+      }
+      return {
+        ...data,
+        created_at: serializableCreatedAt
+      } as FirestoreUser;
     }
   } catch (error) {
     console.error('Error fetching user from Firestore:', error);
