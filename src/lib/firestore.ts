@@ -1032,3 +1032,70 @@ export async function rejectClubSubmission(submissionId: string): Promise<boolea
     return false;
   }
 }
+
+// ─── Academic Files ───────────────────────────────────────────────────────────
+
+export type AcademicTab = 'syllabus' | 'calendar' | 'notes' | 'practical' | 'pyq';
+
+export interface AcademicFile {
+  id: string;
+  tab: AcademicTab;
+  title: string;
+  description: string;
+  subject: string;
+  year: string;         // '1st Year' | '2nd Year' | '3rd Year' | '4th Year'
+  branch: string;       // 'All' for 1st year, full branch name for others
+  drive_link: string;   // Google Drive direct download URL
+  uploaded_by: string;
+  uploaded_by_email: string;
+  uploaded_at: unknown;
+}
+
+export async function addAcademicFile(data: Omit<AcademicFile, 'id' | 'uploaded_at'>): Promise<boolean> {
+  try {
+    await addDoc(collection(db, 'academic_files'), {
+      ...data,
+      uploaded_at: serverTimestamp(),
+    });
+    return true;
+  } catch (error) {
+    console.error('Error adding academic file:', error);
+    return false;
+  }
+}
+
+export async function fetchAcademicFiles(tab: AcademicTab): Promise<AcademicFile[]> {
+  try {
+    const q = query(
+      collection(db, 'academic_files'),
+      where('tab', '==', tab),
+      orderBy('uploaded_at', 'desc')
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() } as AcademicFile));
+  } catch (error) {
+    console.error('Error fetching academic files:', error);
+    return [];
+  }
+}
+
+export async function fetchAllAcademicFiles(): Promise<AcademicFile[]> {
+  try {
+    const q = query(collection(db, 'academic_files'), orderBy('uploaded_at', 'desc'));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() } as AcademicFile));
+  } catch (error) {
+    console.error('Error fetching all academic files:', error);
+    return [];
+  }
+}
+
+export async function deleteAcademicFile(fileId: string): Promise<boolean> {
+  try {
+    await deleteDoc(doc(db, 'academic_files', fileId));
+    return true;
+  } catch (error) {
+    console.error('Error deleting academic file:', error);
+    return false;
+  }
+}

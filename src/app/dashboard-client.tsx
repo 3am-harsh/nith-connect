@@ -40,6 +40,11 @@ import {
   approveClubSubmissionAction,
   rejectClubSubmissionAction
 } from './actions/clubs';
+import {
+  addAcademicFileAction,
+  fetchAllAcademicFilesAction,
+  deleteAcademicFileAction
+} from './actions/academics';
 import { 
   type FirestoreAnnouncement, 
   type FirestoreComment, 
@@ -51,7 +56,9 @@ import {
   type ApprovedTimetable,
   type FeedbackSubmission,
   type Club,
-  type ClubSubmission
+  type ClubSubmission,
+  type AcademicFile,
+  type AcademicTab
 } from '@/lib/firestore';
 import { 
   Mountain, 
@@ -300,6 +307,21 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const [newClubDomains, setNewClubDomains] = useState('');
   const [isSubmittingClub, setIsSubmittingClub] = useState(false);
 
+  // Academic Files states
+  const [academicFiles, setAcademicFiles] = useState<AcademicFile[]>([]);
+  const [activeAcademicTab, setActiveAcademicTab] = useState<AcademicTab>('syllabus');
+  const [acadFilterYear, setAcadFilterYear] = useState('1st Year');
+  const [acadFilterBranch, setAcadFilterBranch] = useState('Computer Science & Engineering');
+  // Dev upload form state
+  const [newFileTab, setNewFileTab] = useState<AcademicTab>('syllabus');
+  const [newFileTitle, setNewFileTitle] = useState('');
+  const [newFileSubject, setNewFileSubject] = useState('');
+  const [newFileDesc, setNewFileDesc] = useState('');
+  const [newFileYear, setNewFileYear] = useState('1st Year');
+  const [newFileBranch, setNewFileBranch] = useState('All');
+  const [newFileDriveLink, setNewFileDriveLink] = useState('');
+  const [isSubmittingAcadFile, setIsSubmittingAcadFile] = useState(false);
+
   // Lost & Found States
   const [lostFoundItems, setLostFoundItems] = useState<FirestoreLostFoundItem[]>([]);
   const [selectedLostFoundFilter, setSelectedLostFoundFilter] = useState<'all' | 'lost' | 'found'>('all');
@@ -485,6 +507,15 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     }
   };
 
+  const loadAcademicFiles = async () => {
+    try {
+      const files = await fetchAllAcademicFilesAction();
+      setAcademicFiles(files);
+    } catch (err) {
+      console.error('Failed to load academic files:', err);
+    }
+  };
+
   useEffect(() => {
     let active = true;
     const loadData = async () => {
@@ -504,6 +535,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           loadUserAchievements();
           loadFeedbackData();
           loadClubsData();
+          loadAcademicFiles();
           if (user.role === 'developer') {
             const subs = await fetchTimetableSubmissions();
             setTimetableSubmissions(subs);
@@ -518,6 +550,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
       active = false;
     };
   }, []);
+
 
 
 
@@ -3120,6 +3153,158 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 )}
               </div>
 
+              {/* ── Academic Files Manager ── */}
+              <div
+                className="glass-panel"
+                style={{
+                  gridColumn: '1 / -1',
+                  padding: '24px',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--radius-lg)',
+                  marginTop: '16px'
+                }}
+              >
+                <h3 style={{ fontSize: '16px', fontWeight: '800', color: 'var(--pine-deep)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <GraduationCap size={18} color="#3d5a80" /> Academic Files Manager
+                </h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '20px' }}>
+                  Upload PDFs/ZIPs via Google Drive links. Paste the share link — the app auto-converts it to a direct download.
+                </p>
+
+                {/* Upload Form */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+                  {/* Tab */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={styles.formLabel}>Category Tab</label>
+                    <select value={newFileTab} onChange={e => setNewFileTab(e.target.value as AcademicTab)} style={{ ...styles.formInput, padding: '8px 10px' }}>
+                      <option value="syllabus">📋 Syllabus</option>
+                      <option value="calendar">📅 Academic Calendar</option>
+                      <option value="notes">📝 Notes</option>
+                      <option value="practical">🔬 Practical Files</option>
+                      <option value="pyq">📄 PYQs</option>
+                    </select>
+                  </div>
+                  {/* Year */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={styles.formLabel}>Year</label>
+                    <select value={newFileYear} onChange={e => { setNewFileYear(e.target.value); setNewFileBranch(e.target.value === '1st Year' ? 'All' : 'Computer Science & Engineering'); }} style={{ ...styles.formInput, padding: '8px 10px' }}>
+                      <option value="1st Year">1st Year</option>
+                      <option value="2nd Year">2nd Year</option>
+                      <option value="3rd Year">3rd Year</option>
+                      <option value="4th Year">4th Year</option>
+                    </select>
+                  </div>
+                  {/* Branch — hidden for 1st year */}
+                  {newFileYear !== '1st Year' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <label style={styles.formLabel}>Branch</label>
+                      <select value={newFileBranch} onChange={e => setNewFileBranch(e.target.value)} style={{ ...styles.formInput, padding: '8px 10px' }}>
+                        <option value="Computer Science & Engineering">CSE</option>
+                        <option value="Electronics & Communication Engineering">ECE</option>
+                        <option value="Electrical Engineering">Electrical</option>
+                        <option value="Mechanical Engineering">Mechanical</option>
+                        <option value="Civil Engineering">Civil</option>
+                        <option value="Chemical Engineering">Chemical</option>
+                        <option value="Material Science & Engineering">Materials</option>
+                      </select>
+                    </div>
+                  )}
+                  {/* Title */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={styles.formLabel}>File Title</label>
+                    <input type="text" placeholder="e.g. Unit 1 Notes" value={newFileTitle} onChange={e => setNewFileTitle(e.target.value)} style={{ ...styles.formInput, padding: '8px 10px' }} />
+                  </div>
+                  {/* Subject */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={styles.formLabel}>Subject</label>
+                    <input type="text" placeholder="e.g. Data Structures" value={newFileSubject} onChange={e => setNewFileSubject(e.target.value)} style={{ ...styles.formInput, padding: '8px 10px' }} />
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '12px' }}>
+                  <label style={styles.formLabel}>Description (optional)</label>
+                  <input type="text" placeholder="Short description of the file" value={newFileDesc} onChange={e => setNewFileDesc(e.target.value)} style={{ ...styles.formInput, padding: '8px 10px' }} />
+                </div>
+
+                {/* Drive Link */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '16px' }}>
+                  <label style={styles.formLabel}>Google Drive Share Link</label>
+                  <input
+                    type="url"
+                    placeholder="https://drive.google.com/file/d/.../view?usp=sharing"
+                    value={newFileDriveLink}
+                    onChange={e => setNewFileDriveLink(e.target.value)}
+                    style={{ ...styles.formInput, padding: '8px 10px' }}
+                  />
+                  <p style={{ fontSize: '10px', color: 'var(--text-muted)', margin: '4px 0 0' }}>
+                    Paste the "Anyone with link" share URL — the app auto-converts it to a direct download link for users.
+                  </p>
+                </div>
+
+                <button
+                  className="btn-primary"
+                  disabled={isSubmittingAcadFile || !newFileTitle.trim() || !newFileDriveLink.trim() || !newFileSubject.trim()}
+                  onClick={async () => {
+                    setIsSubmittingAcadFile(true);
+                    const ok = await addAcademicFileAction({
+                      tab: newFileTab,
+                      title: newFileTitle.trim(),
+                      subject: newFileSubject.trim(),
+                      description: newFileDesc.trim(),
+                      year: newFileYear,
+                      branch: newFileYear === '1st Year' ? 'All' : newFileBranch,
+                      drive_link: newFileDriveLink.trim(),
+                      uploaded_by: user.name,
+                      uploaded_by_email: user.email,
+                    });
+                    if (ok) {
+                      showToast('File uploaded successfully!', 'success');
+                      setNewFileTitle(''); setNewFileSubject(''); setNewFileDesc(''); setNewFileDriveLink('');
+                      await loadAcademicFiles();
+                    } else {
+                      showToast('Upload failed. Check the link and try again.', 'error');
+                    }
+                    setIsSubmittingAcadFile(false);
+                  }}
+                  style={{ padding: '10px 24px', fontSize: '13px', fontWeight: '800', marginBottom: '24px' }}
+                >
+                  {isSubmittingAcadFile ? 'Uploading...' : '+ Upload File'}
+                </button>
+
+                {/* Existing files list */}
+                <h4 style={{ fontSize: '13px', fontWeight: '800', color: 'var(--pine-deep)', marginBottom: '10px', borderTop: '1px solid var(--border-subtle)', paddingTop: '16px' }}>
+                  All Uploaded Files ({academicFiles.length})
+                </h4>
+                {academicFiles.length === 0 ? (
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>No files uploaded yet.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {academicFiles.map(f => (
+                      <div key={f.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--border-subtle)', backgroundColor: 'var(--bg-hover)', gap: '10px' }}>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <p style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-main)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.title}</p>
+                          <p style={{ fontSize: '10px', color: 'var(--text-muted)', margin: '2px 0 0' }}>
+                            {f.tab.toUpperCase()} · {f.year}{f.year !== '1st Year' ? ` · ${f.branch}` : ''} · {f.subject}
+                          </p>
+                        </div>
+                        <button
+                          onClick={async () => {
+                            const ok = await deleteAcademicFileAction(f.id);
+                            if (ok) { showToast('File deleted.', 'success'); await loadAcademicFiles(); }
+                            else showToast('Delete failed.', 'error');
+                          }}
+                          style={{ flexShrink: 0, background: 'rgba(231,111,81,0.12)', border: 'none', borderRadius: '8px', padding: '6px 12px', fontSize: '11px', fontWeight: '800', color: '#e76f51', cursor: 'pointer' }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Pending Timetables Section */}
               <div 
                 className="glass-panel" 
@@ -3515,15 +3700,47 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           </div>
         );
       }
-      case 'academics':
+      case 'academics': {
+        const ACAD_TABS: { id: AcademicTab; label: string; emoji: string }[] = [
+          { id: 'syllabus',   label: 'Syllabus',          emoji: '📋' },
+          { id: 'calendar',  label: 'Academic Calendar',  emoji: '📅' },
+          { id: 'notes',     label: 'Notes',              emoji: '📝' },
+          { id: 'practical', label: 'Practical Files',    emoji: '🔬' },
+          { id: 'pyq',       label: 'PYQs',               emoji: '📄' },
+        ];
+
+        const YEARS = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
+        const BRANCHES = [
+          'Computer Science & Engineering',
+          'Electronics & Communication Engineering',
+          'Electrical Engineering',
+          'Mechanical Engineering',
+          'Civil Engineering',
+          'Chemical Engineering',
+          'Material Science & Engineering',
+        ];
+
+        const filteredAcadFiles = academicFiles.filter(f => {
+          if (f.tab !== activeAcademicTab) return false;
+          if (f.year !== acadFilterYear) return false;
+          if (acadFilterYear === '1st Year') return true;
+          return f.branch === acadFilterBranch;
+        });
+
+        const toDriveDownload = (link: string) => {
+          const match = link.match(/\/d\/([a-zA-Z0-9_-]+)/);
+          if (match) return `https://drive.google.com/uc?export=download&id=${match[1]}`;
+          return link;
+        };
+
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingBottom: '24px' }} className="animate-fade-in">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '24px' }} className="animate-fade-in">
 
             {/* Header */}
             <div style={{
               background: 'linear-gradient(135deg, #3d5a80 0%, #5e60ce 100%)',
               borderRadius: 'var(--radius-md)',
-              padding: '28px 24px',
+              padding: '24px',
               color: '#fff',
               position: 'relative',
               overflow: 'hidden',
@@ -3532,17 +3749,113 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               <div style={{ position: 'absolute', top: 0, left: '-50%', width: '100%', height: '100%', background: 'linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0) 100%)', transform: 'skewX(-25deg)', animation: 'shimmer 4s infinite linear' }} />
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px', position: 'relative', zIndex: 2 }}>
                 <div style={{ background: 'rgba(255,255,255,0.18)', borderRadius: '14px', padding: '12px', display: 'flex' }}>
-                  <GraduationCap size={32} color="#fff" />
+                  <GraduationCap size={28} color="#fff" />
                 </div>
                 <div>
-                  <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#fff', margin: 0 }}>Academics</h2>
-                  <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.82)', margin: '4px 0 0', fontWeight: '500' }}>Your academic hub at NIT Hamirpur</p>
+                  <h2 style={{ fontSize: '20px', fontWeight: '800', color: '#fff', margin: 0 }}>Academics</h2>
+                  <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.82)', margin: '3px 0 0', fontWeight: '500' }}>Your academic hub at NIT Hamirpur</p>
                 </div>
               </div>
             </div>
 
+            {/* Sub-tabs pill row — horizontal scroll */}
+            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
+              {ACAD_TABS.map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => setActiveAcademicTab(t.id)}
+                  style={{
+                    flexShrink: 0,
+                    padding: '8px 16px',
+                    borderRadius: '20px',
+                    border: activeAcademicTab === t.id ? 'none' : '1px solid var(--border-subtle)',
+                    background: activeAcademicTab === t.id ? 'linear-gradient(135deg, #3d5a80, #5e60ce)' : 'var(--bg-hover)',
+                    color: activeAcademicTab === t.id ? '#fff' : 'var(--text-muted)',
+                    fontSize: '12px',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {t.emoji} {t.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Filters: Year + Branch */}
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', flex: 1, minWidth: '120px' }}>
+                <label style={{ fontSize: '9px', fontWeight: '800', color: 'var(--text-placeholder)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Year</label>
+                <select
+                  value={acadFilterYear}
+                  onChange={e => setAcadFilterYear(e.target.value)}
+                  style={{ padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border-subtle)', backgroundColor: '#fff', fontSize: '12px', fontWeight: '700', color: 'var(--text-main)', cursor: 'pointer' }}
+                >
+                  {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </div>
+              {acadFilterYear !== '1st Year' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', flex: 2, minWidth: '160px' }}>
+                  <label style={{ fontSize: '9px', fontWeight: '800', color: 'var(--text-placeholder)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Branch</label>
+                  <select
+                    value={acadFilterBranch}
+                    onChange={e => setAcadFilterBranch(e.target.value)}
+                    style={{ padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border-subtle)', backgroundColor: '#fff', fontSize: '12px', fontWeight: '700', color: 'var(--text-main)', cursor: 'pointer' }}
+                  >
+                    {BRANCHES.map(b => <option key={b} value={b}>{b}</option>)}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            {/* File Cards */}
+            {filteredAcadFiles.length === 0 ? (
+              <div className="glass-panel" style={{ padding: '40px 24px', textAlign: 'center', borderRadius: 'var(--radius-md)' }}>
+                <FileText size={40} color="var(--text-placeholder)" style={{ marginBottom: '12px', opacity: 0.5 }} />
+                <p style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-muted)', margin: 0 }}>No files yet</p>
+                <p style={{ fontSize: '12px', color: 'var(--text-placeholder)', marginTop: '6px' }}>
+                  {ACAD_TABS.find(t => t.id === activeAcademicTab)?.label} files for{' '}
+                  {acadFilterYear}{acadFilterYear !== '1st Year' ? ` · ${acadFilterBranch}` : ''} will appear here.
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {filteredAcadFiles.map(file => (
+                  <div key={file.id} className="glass-panel" style={{ padding: '16px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                      <div style={{ background: 'linear-gradient(135deg, #3d5a80, #5e60ce)', borderRadius: '10px', padding: '10px', display: 'flex', flexShrink: 0 }}>
+                        <FileText size={20} color="#fff" />
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <p style={{ fontSize: '13px', fontWeight: '800', color: 'var(--text-main)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.title}</p>
+                        <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '2px 0 0' }}>{file.subject}</p>
+                        {file.description && <p style={{ fontSize: '11px', color: 'var(--text-placeholder)', margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.description}</p>}
+                        <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '10px', fontWeight: '700', backgroundColor: '#3d5a8018', color: '#3d5a80', padding: '2px 7px', borderRadius: '6px' }}>{file.year}</span>
+                          {file.year !== '1st Year' && <span style={{ fontSize: '10px', fontWeight: '700', backgroundColor: '#5e60ce18', color: '#5e60ce', padding: '2px 7px', borderRadius: '6px' }}>{file.branch}</span>}
+                        </div>
+                      </div>
+                    </div>
+                    <a
+                      href={toDriveDownload(file.drive_link)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ textDecoration: 'none', flexShrink: 0 }}
+                    >
+                      <button className="btn-primary" style={{ padding: '8px 14px', fontSize: '11px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <Download size={13} /> Download
+                      </button>
+                    </a>
+                  </div>
+                ))}
+              </div>
+            )}
+
           </div>
         );
+      }
+
       default:
         return (
           <div style={styles.placeholderTab} className="glass-panel animate-fade-in">
