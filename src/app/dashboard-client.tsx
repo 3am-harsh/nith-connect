@@ -1183,18 +1183,18 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   </div>
                 </div>
 
-                {/* Quick Links */}
+                {/* Campus Directory */}
                 <div 
                   style={styles.serviceCard} 
                   className="glass-panel glass-panel-hover"
                   onClick={() => setIsQuickLinksOpen(true)}
                 >
                   <div style={styles.serviceCardText}>
-                    <h4 style={styles.serviceCardTitle}>Quick Links</h4>
-                    <p style={styles.serviceCardDesc}>Useful campus portals</p>
+                    <h4 style={styles.serviceCardTitle}>Campus Directory</h4>
+                    <p style={styles.serviceCardDesc}>Helplines & auto numbers</p>
                   </div>
                   <div style={styles.serviceCardIllustration}>
-                    <ExternalLink size={42} color="var(--pine-primary)" />
+                    <Phone size={42} color="var(--pine-primary)" />
                   </div>
                 </div>
               </div>
@@ -5130,13 +5130,13 @@ export default function DashboardClient({ user }: DashboardClientProps) {
       {isQuickLinksOpen && (
         <div style={styles.modalOverlay} onClick={() => setIsQuickLinksOpen(false)}>
           <div 
-            style={styles.idCardModal} 
+            style={{ ...styles.idCardModal, maxWidth: '440px' }} 
             className="glass-panel animate-fade-in"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
             <div style={styles.modalHeader}>
-              <h3 style={styles.modalTitle}>Campus Quick Links</h3>
+              <h3 style={styles.modalTitle}>Campus Directory & Helplines</h3>
               <button 
                 onClick={() => setIsQuickLinksOpen(false)}
                 style={styles.modalCloseBtn}
@@ -5145,31 +5145,105 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               </button>
             </div>
 
-            {/* Links List */}
-            <div style={styles.quickLinksModalContent}>
-              <p style={{ ...styles.placeholderText, marginBottom: 16, textAlign: 'center' }}>
-                Direct access to NITH academic and administrative portals.
+            {/* Contacts List */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '55vh', overflowY: 'auto', paddingRight: '4px', marginTop: '12px' }}>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px', textAlign: 'center', lineHeight: '1.4' }}>
+                Instant dial links for essential campus helplines, auto-rickshaws, and emergency services.
               </p>
               
-              <a href="https://nith.ac.in" target="_blank" rel="noopener noreferrer" style={styles.quickLinkModalItem}>
-                <span style={styles.quickLinkModalLabel}>NITH Official Website</span>
-                <ExternalLink size={14} color="var(--pine-primary)" />
-              </a>
+              {/* Category: Emergency */}
+              <div>
+                <span style={{ fontSize: '10px', fontWeight: '800', color: '#e76f51', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '8px' }}>
+                  🚨 Emergency & Security
+                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg-input)', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-main)' }}>Campus Security Guard</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Main Gate Helpdesk</div>
+                    </div>
+                    <a href="tel:+911972254011" style={{ fontSize: '11.5px', fontWeight: '800', color: 'var(--pine-primary)', textDecoration: 'none', backgroundColor: '#ffffff', padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
+                      Call Guard
+                    </a>
+                  </div>
+                  
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg-input)', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-main)' }}>NITH Health Centre</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Ambulance Services</div>
+                    </div>
+                    <a href="tel:+911972254900" style={{ fontSize: '11.5px', fontWeight: '800', color: '#e76f51', textDecoration: 'none', backgroundColor: '#ffffff', padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
+                      Call Ambulance
+                    </a>
+                  </div>
+                </div>
+              </div>
 
-              <a href="https://results.nith.ac.in" target="_blank" rel="noopener noreferrer" style={styles.quickLinkModalItem}>
-                <span style={styles.quickLinkModalLabel}>Student Results Portal</span>
-                <ExternalLink size={14} color="var(--pine-primary)" />
-              </a>
+              {/* Category: Auto Rickshaws */}
+              <div>
+                <span style={{ fontSize: '10px', fontWeight: '800', color: 'var(--pine-primary)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '8px' }}>
+                  🛺 Campus Auto Rickshaws
+                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg-input)', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-main)' }}>Karan Singh (Auto)</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Available: 7 AM - 9 PM</div>
+                    </div>
+                    <a href="tel:+919816045123" style={{ fontSize: '11.5px', fontWeight: '800', color: 'var(--pine-primary)', textDecoration: 'none', backgroundColor: '#ffffff', padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
+                      Call Auto
+                    </a>
+                  </div>
 
-              <a href="http://academic.nith.ac.in" target="_blank" rel="noopener noreferrer" style={styles.quickLinkModalItem}>
-                <span style={styles.quickLinkModalLabel}>Academic Student Portal</span>
-                <ExternalLink size={14} color="var(--pine-primary)" />
-              </a>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg-input)', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-main)' }}>Ramesh Kumar (Auto)</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Available: 8 AM - 10 PM</div>
+                    </div>
+                    <a href="tel:+919418123456" style={{ fontSize: '11.5px', fontWeight: '800', color: 'var(--pine-primary)', textDecoration: 'none', backgroundColor: '#ffffff', padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
+                      Call Auto
+                    </a>
+                  </div>
 
-              <a href="https://nith.ac.in/library" target="_blank" rel="noopener noreferrer" style={styles.quickLinkModalItem}>
-                <span style={styles.quickLinkModalLabel}>Central Library Portal</span>
-                <ExternalLink size={14} color="var(--pine-primary)" />
-              </a>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg-input)', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-main)' }}>Surjeet Auto Service</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Available: 24/7 (Emergency)</div>
+                    </div>
+                    <a href="tel:+918219012345" style={{ fontSize: '11.5px', fontWeight: '800', color: 'var(--pine-primary)', textDecoration: 'none', backgroundColor: '#ffffff', padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
+                      Call Auto
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* Category: Support Desks */}
+              <div>
+                <span style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-placeholder)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '8px' }}>
+                  🏢 Academic & Bank Contacts
+                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg-input)', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-main)' }}>SBI NITH Branch</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Queries & Banking desks</div>
+                    </div>
+                    <a href="tel:+911972254350" style={{ fontSize: '11.5px', fontWeight: '800', color: 'var(--pine-primary)', textDecoration: 'none', backgroundColor: '#ffffff', padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
+                      Call SBI
+                    </a>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg-input)', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-main)' }}>Academic Branch Desk</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Student Section Office</div>
+                    </div>
+                    <a href="tel:+911972254077" style={{ fontSize: '11.5px', fontWeight: '800', color: 'var(--pine-primary)', textDecoration: 'none', backgroundColor: '#ffffff', padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
+                      Call Office
+                    </a>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <button 
