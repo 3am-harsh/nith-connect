@@ -1,0 +1,18 @@
+{
+  "name": "NITH Connect",
+  "short_name": "NITH Connect",
+  "description": "The digital student companion for NIT Hamirpur.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#2a9d8f",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon",
+      "purpose": "any maskable"
+    }
+  ]
+}
