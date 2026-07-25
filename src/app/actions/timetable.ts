@@ -15,12 +15,14 @@ export async function submitTimetableAction(
   fileData: string,
   fileName: string,
   userName: string,
-  userEmail: string
+  userEmail: string,
+  branch?: string
 ) {
   try {
     return await createTimetableSubmission({
       year,
       section,
+      branch,
       file_data: fileData,
       file_name: fileName,
       uploaded_by: userName,
@@ -54,10 +56,11 @@ export async function approveTimetableAction(
   submissionId: string,
   year: string,
   section: string,
+  branch: string,
   fileData: string
 ) {
   try {
-    return await approveTimetableSubmission(submissionId, year, section, fileData);
+    return await approveTimetableSubmission(submissionId, year, section, branch, fileData);
   } catch (error) {
     console.error('Failed to approve timetable:', error);
     return false;

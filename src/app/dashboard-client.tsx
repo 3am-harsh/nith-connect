@@ -241,14 +241,16 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     }, 4000);
   };
 
-  // Timetable Year/Section selection and submission states
+  // Timetable Year/Section/Branch selection and submission states
   const [selectedYear, setSelectedYear] = useState('1st Year');
   const [selectedSection, setSelectedSection] = useState('A');
+  const [selectedBranch, setSelectedBranch] = useState('Computer Science & Engineering');
   const [approvedTimetables, setApprovedTimetables] = useState<ApprovedTimetable[]>([]);
   const [timetableSubmissions, setTimetableSubmissions] = useState<TimetableSubmission[]>([]);
   const [isUploadTimetableOpen, setIsUploadTimetableOpen] = useState(false);
   const [uploadTimetableYear, setUploadTimetableYear] = useState('1st Year');
   const [uploadTimetableSec, setUploadTimetableSec] = useState('A');
+  const [uploadTimetableBranch, setUploadTimetableBranch] = useState('Computer Science & Engineering');
   const [uploadTimetableFile, setUploadTimetableFile] = useState('');
   const [uploadTimetableFileName, setUploadTimetableFileName] = useState('');
   const [isSubmittingTimetable, setIsSubmittingTimetable] = useState(false);
@@ -510,9 +512,13 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               }} 
               className="glass-panel glass-panel-hover"
               onClick={() => {
-                const hasCustom = approvedTimetables.some(
-                  t => t.year === selectedYear && t.section === selectedSection
-                );
+                const hasCustom = approvedTimetables.some(t => {
+                  if (selectedYear === '1st Year') {
+                    return t.year === selectedYear && t.section === selectedSection;
+                  } else {
+                    return t.year === selectedYear && t.branch === selectedBranch;
+                  }
+                });
                 if (hasCustom) {
                   setTimetableModalViewMode('image');
                 } else {
@@ -533,9 +539,13 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    const hasCustom = approvedTimetables.some(
-                      t => t.year === selectedYear && t.section === selectedSection
-                    );
+                    const hasCustom = approvedTimetables.some(t => {
+                      if (selectedYear === '1st Year') {
+                        return t.year === selectedYear && t.section === selectedSection;
+                      } else {
+                        return t.year === selectedYear && t.branch === selectedBranch;
+                      }
+                    });
                     if (hasCustom) {
                       setTimetableModalViewMode('image');
                     } else {
@@ -595,34 +605,68 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   </select>
                 </div>
 
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                  <label style={{ fontSize: '9px', fontWeight: '800', color: 'var(--text-placeholder)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Section</label>
-                  <select
-                    value={selectedSection}
-                    onChange={(e) => setSelectedSection(e.target.value)}
-                    style={{
-                      padding: '6px 10px',
-                      borderRadius: '8px',
-                      border: '1px solid var(--border-subtle)',
-                      backgroundColor: '#ffffff',
-                      color: 'var(--text-main)',
-                      fontSize: '12px',
-                      fontWeight: '700',
-                      outline: 'none',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'].map(sec => (
-                      <option key={sec} value={sec}>Section {sec}</option>
-                    ))}
-                  </select>
-                </div>
+                {selectedYear === '1st Year' ? (
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                    <label style={{ fontSize: '9px', fontWeight: '800', color: 'var(--text-placeholder)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Section</label>
+                    <select
+                      value={selectedSection}
+                      onChange={(e) => setSelectedSection(e.target.value)}
+                      style={{
+                        padding: '6px 10px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-subtle)',
+                        backgroundColor: '#ffffff',
+                        color: 'var(--text-main)',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        outline: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'].map(sec => (
+                        <option key={sec} value={sec}>Section {sec}</option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                    <label style={{ fontSize: '9px', fontWeight: '800', color: 'var(--text-placeholder)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Branch</label>
+                    <select
+                      value={selectedBranch}
+                      onChange={(e) => setSelectedBranch(e.target.value)}
+                      style={{
+                        padding: '6px 10px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-subtle)',
+                        backgroundColor: '#ffffff',
+                        color: 'var(--text-main)',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        outline: 'none',
+                        cursor: 'pointer',
+                        maxWidth: '120px'
+                      }}
+                    >
+                      <option value="Computer Science & Engineering">Computer Science</option>
+                      <option value="Electronics & Communication Engineering">ECE</option>
+                      <option value="Electrical Engineering">Electrical</option>
+                      <option value="Mechanical Engineering">Mechanical</option>
+                      <option value="Civil Engineering">Civil</option>
+                      <option value="Chemical Engineering">Chemical</option>
+                      <option value="Material Science & Engineering">Materials</option>
+                    </select>
+                  </div>
+                )}
               </div>
 
               {(() => {
-                const customTimetable = approvedTimetables.find(
-                  t => t.year === selectedYear && t.section === selectedSection
-                );
+                const customTimetable = approvedTimetables.find(t => {
+                  if (selectedYear === '1st Year') {
+                    return t.year === selectedYear && t.section === selectedSection;
+                  } else {
+                    return t.year === selectedYear && t.branch === selectedBranch;
+                  }
+                });
 
                 if (customTimetable) {
                   return (
@@ -654,7 +698,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   );
                 }
 
-                const isMockPrefilled = selectedYear === '2nd Year' && selectedSection === 'A';
+                const isMockPrefilled = selectedYear === '1st Year' && selectedSection === 'A';
                 
                 if (isMockPrefilled) {
                   const timeSlots = ['9-10', '10-11', '11-12', '12-1', '1-2', '2-3', '3-4', '4-5', '5-6'];
@@ -785,6 +829,10 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   );
                 }
 
+                const selectionLabel = selectedYear === '1st Year' 
+                  ? `Section ${selectedSection}` 
+                  : selectedBranch;
+
                 return (
                   <div 
                     onClick={(e) => e.stopPropagation()}
@@ -809,14 +857,15 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                         Timetable Not Available
                       </h4>
                       <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '4px 0 0', lineHeight: '1.4' }}>
-                        Timetable for {selectedYear} - Section {selectedSection} has not been uploaded yet.
+                        Timetable for {selectedYear} - {selectionLabel} has not been uploaded yet.
                       </p>
                     </div>
                     {user.role !== 'guest' && (
                       <button
                         onClick={() => {
                           setUploadTimetableYear(selectedYear);
-                          setUploadTimetableSec(selectedSection);
+                          setUploadTimetableSec(selectedYear === '1st Year' ? selectedSection : '');
+                          setUploadTimetableBranch(selectedYear !== '1st Year' ? selectedBranch : '');
                           setUploadTimetableFile('');
                           setUploadTimetableFileName('');
                           setIsUploadTimetableOpen(true);
@@ -3020,7 +3069,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
                               <div>
                                 <h4 style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-main)', margin: 0 }}>
-                                  {sub.year} — Section {sub.section}
+                                  {sub.year} — {sub.year === '1st Year' ? `Section ${sub.section}` : sub.branch}
                                 </h4>
                                 <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                                   Submitted by: <strong>{sub.uploaded_by}</strong> ({sub.uploaded_by_email})
@@ -3041,7 +3090,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                             <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
                               <button
                                 onClick={async () => {
-                                  const success = await approveTimetableAction(sub.id!, sub.year, sub.section, sub.file_data);
+                                  const success = await approveTimetableAction(sub.id!, sub.year, sub.section || '', sub.branch || '', sub.file_data);
                                   if (success) {
                                     showToast(`Timetable approved!`, 'success');
                                     loadTimetablesData();
@@ -3606,9 +3655,13 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             </div>
 
             {(() => {
-              const customTimetable = approvedTimetables.find(
-                t => t.year === selectedYear && t.section === selectedSection
-              );
+              const customTimetable = approvedTimetables.find(t => {
+                if (selectedYear === '1st Year') {
+                  return t.year === selectedYear && t.section === selectedSection;
+                } else {
+                  return t.year === selectedYear && t.branch === selectedBranch;
+                }
+              });
 
               if (customTimetable && timetableModalViewMode === 'image') {
                 return (
@@ -3839,15 +3892,27 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     style={{ ...styles.formInput, backgroundColor: 'rgba(0,0,0,0.03)', color: 'var(--text-muted)', padding: '8px 12px' }} 
                   />
                 </div>
-                <div style={{ flex: 1 }}>
-                  <label style={styles.formLabel}>Selected Section</label>
-                  <input 
-                    type="text" 
-                    value={`Section ${uploadTimetableSec}`} 
-                    disabled 
-                    style={{ ...styles.formInput, backgroundColor: 'rgba(0,0,0,0.03)', color: 'var(--text-muted)', padding: '8px 12px' }} 
-                  />
-                </div>
+                {uploadTimetableYear === '1st Year' ? (
+                  <div style={{ flex: 1 }}>
+                    <label style={styles.formLabel}>Selected Section</label>
+                    <input 
+                      type="text" 
+                      value={`Section ${uploadTimetableSec}`} 
+                      disabled 
+                      style={{ ...styles.formInput, backgroundColor: 'rgba(0,0,0,0.03)', color: 'var(--text-muted)', padding: '8px 12px' }} 
+                    />
+                  </div>
+                ) : (
+                  <div style={{ flex: 1 }}>
+                    <label style={styles.formLabel}>Selected Branch</label>
+                    <input 
+                      type="text" 
+                      value={uploadTimetableBranch} 
+                      disabled 
+                      style={{ ...styles.formInput, backgroundColor: 'rgba(0,0,0,0.03)', color: 'var(--text-muted)', padding: '8px 12px' }} 
+                    />
+                  </div>
+                )}
               </div>
 
               <div>
@@ -3922,7 +3987,8 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     uploadTimetableFile,
                     uploadTimetableFileName,
                     user.name,
-                    user.email
+                    user.email,
+                    uploadTimetableBranch
                   );
                   setIsSubmittingTimetable(false);
                   if (success) {

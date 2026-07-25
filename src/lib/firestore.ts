@@ -618,7 +618,8 @@ export async function updateMarketplaceItemStatus(id: string, status: 'active' |
 export interface TimetableSubmission {
   id?: string;
   year: string;
-  section: string;
+  section?: string;
+  branch?: string;
   file_data: string;
   file_name: string;
   uploaded_by: string;
@@ -630,7 +631,8 @@ export interface TimetableSubmission {
 export interface ApprovedTimetable {
   id?: string;
   year: string;
-  section: string;
+  section?: string;
+  branch?: string;
   file_data: string;
   created_at?: string | null;
 }
@@ -671,6 +673,7 @@ export async function getTimetableSubmissions(): Promise<TimetableSubmission[]> 
         id: doc.id,
         year: data.year || '',
         section: data.section || '',
+        branch: data.branch || '',
         file_data: data.file_data || '',
         file_name: data.file_name || '',
         uploaded_by: data.uploaded_by || '',
@@ -695,6 +698,7 @@ export async function getApprovedTimetables(): Promise<ApprovedTimetable[]> {
         id: doc.id,
         year: data.year || '',
         section: data.section || '',
+        branch: data.branch || '',
         file_data: data.file_data || ''
       };
     });
@@ -704,16 +708,27 @@ export async function getApprovedTimetables(): Promise<ApprovedTimetable[]> {
   }
 }
 
-export async function approveTimetableSubmission(submissionId: string, year: string, section: string, fileData: string): Promise<boolean> {
+export async function approveTimetableSubmission(
+  submissionId: string, 
+  year: string, 
+  section: string, 
+  branch: string, 
+  fileData: string
+): Promise<boolean> {
   try {
     const subRef = doc(db, 'timetable_submissions', submissionId);
     await updateDoc(subRef, { status: 'approved' });
 
-    const customId = `${year.replace(/\s+/g, '_')}_Section_${section}`;
+    const customIdKey = branch 
+      ? `Branch_${branch.replace(/\s+/g, '_')}`
+      : `Section_${section}`;
+    const customId = `${year.replace(/\s+/g, '_')}_${customIdKey}`;
+
     const timetableRef = doc(db, 'approved_timetables', customId);
     await setDoc(timetableRef, {
       year,
-      section,
+      section: section || '',
+      branch: branch || '',
       file_data: fileData,
       created_at: serverTimestamp()
     }, { merge: true });
