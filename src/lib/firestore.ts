@@ -1077,7 +1077,26 @@ export async function fetchAcademicFiles(tab: AcademicTab): Promise<AcademicFile
       orderBy('uploaded_at', 'desc')
     );
     const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...d.data() } as AcademicFile));
+    return snap.docs.map(doc => {
+      const data = doc.data();
+      const uploadedAt = data.uploaded_at;
+      let serializableUploadedAt = null;
+      if (uploadedAt && typeof uploadedAt === 'object') {
+        const ts = uploadedAt as { toDate?: () => { toISOString: () => string }; seconds?: number };
+        if (typeof ts.toDate === 'function') {
+          serializableUploadedAt = ts.toDate().toISOString();
+        } else if (typeof ts.seconds === 'number') {
+          serializableUploadedAt = new Date(ts.seconds * 1000).toISOString();
+        }
+      } else if (uploadedAt) {
+        serializableUploadedAt = String(uploadedAt);
+      }
+      return {
+        id: doc.id,
+        ...data,
+        uploaded_at: serializableUploadedAt
+      } as AcademicFile;
+    });
   } catch (error) {
     console.error('Error fetching academic files:', error);
     return [];
@@ -1088,7 +1107,26 @@ export async function fetchAllAcademicFiles(): Promise<AcademicFile[]> {
   try {
     const q = query(collection(db, 'academic_files'), orderBy('uploaded_at', 'desc'));
     const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...d.data() } as AcademicFile));
+    return snap.docs.map(doc => {
+      const data = doc.data();
+      const uploadedAt = data.uploaded_at;
+      let serializableUploadedAt = null;
+      if (uploadedAt && typeof uploadedAt === 'object') {
+        const ts = uploadedAt as { toDate?: () => { toISOString: () => string }; seconds?: number };
+        if (typeof ts.toDate === 'function') {
+          serializableUploadedAt = ts.toDate().toISOString();
+        } else if (typeof ts.seconds === 'number') {
+          serializableUploadedAt = new Date(ts.seconds * 1000).toISOString();
+        }
+      } else if (uploadedAt) {
+        serializableUploadedAt = String(uploadedAt);
+      }
+      return {
+        id: doc.id,
+        ...data,
+        uploaded_at: serializableUploadedAt
+      } as AcademicFile;
+    });
   } catch (error) {
     console.error('Error fetching all academic files:', error);
     return [];
@@ -1138,10 +1176,26 @@ export async function getReportedFirestoreMessages(): Promise<FirestoreMessage[]
       where('reports_count', '>=', 3)
     );
     const snap = await getDocs(q);
-    return snap.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as FirestoreMessage[];
+    return snap.docs.map(doc => {
+      const data = doc.data();
+      const createdAt = data.created_at;
+      let serializableCreatedAt = null;
+      if (createdAt && typeof createdAt === 'object') {
+        const ts = createdAt as { toDate?: () => { toISOString: () => string }; seconds?: number };
+        if (typeof ts.toDate === 'function') {
+          serializableCreatedAt = ts.toDate().toISOString();
+        } else if (typeof ts.seconds === 'number') {
+          serializableCreatedAt = new Date(ts.seconds * 1000).toISOString();
+        }
+      } else if (createdAt) {
+        serializableCreatedAt = String(createdAt);
+      }
+      return {
+        id: doc.id,
+        ...data,
+        created_at: serializableCreatedAt
+      } as FirestoreMessage;
+    });
   } catch (error) {
     console.error('Error fetching reported messages:', error);
     return [];
