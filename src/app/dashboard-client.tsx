@@ -89,7 +89,8 @@ import {
   Link2,
   Calculator,
   Clock,
-  Globe
+  Globe,
+  Phone
 } from 'lucide-react';
 
 interface ClassSlot {
@@ -2425,59 +2426,132 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-                {filteredItems.map((item) => (
-                  <div key={item.id} style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)', backgroundColor: '#ffffff', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }} className="glass-panel-hover">
-                    {/* Item Image or Placeholder */}
-                    <div style={{ height: '160px', width: '100%', position: 'relative', overflow: 'hidden', backgroundColor: 'var(--bg-input)' }}>
-                      {item.image ? (
-                        <img src={item.image} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%', color: 'var(--text-muted)' }}>
-                          <Search size={32} style={{ opacity: 0.5 }} />
-                          <span style={{ fontSize: '12px', marginTop: '6px' }}>No Photo Attached</span>
-                        </div>
-                      )}
-                      {/* Status Badge */}
-                      <span
-                        style={{
-                          position: 'absolute',
-                          top: '12px',
-                          left: '12px',
-                          padding: '4px 10px',
-                          borderRadius: '20px',
-                          fontSize: '11px',
-                          fontWeight: '700',
-                          textTransform: 'uppercase',
-                          color: '#ffffff',
-                          backgroundColor: item.type === 'lost' ? '#ef4444' : '#10b981',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                        }}
-                      >
-                        {item.type}
-                      </span>
-                    </div>
+                {filteredItems.map((item) => {
+                  const phoneNum = item.contact || '';
+                  const cleanPhone = phoneNum.replace(/\D/g, '');
+                  const isPhoneValid = cleanPhone.length >= 10;
+                  const waPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+                  const reporterName = item.user_name || 'Reporter';
+                  const itemTitle = item.title || 'Item';
+                  const waUrl = `https://wa.me/${waPhone}?text=Hi%20${encodeURIComponent(reporterName)},%20I%20contacted%20you%20regarding%20the%20${item.type === 'lost' ? 'lost' : 'found'}%20item%20"${encodeURIComponent(itemTitle)}"%20on%20NITH%20Connect.`;
+                  const callUrl = `tel:${phoneNum}`;
 
-                    {/* Card Content */}
-                    <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', flex: 1 }}>
-                      <h4 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--pine-deep)', marginBottom: '8px' }}>{item.title}</h4>
-                      <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.4', marginBottom: '16px', flex: 1 }}>{item.description}</p>
-                      
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px solid var(--border-subtle)', paddingTop: '12px', fontSize: '12px', color: 'var(--text-muted)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <MapPin size={12} color="var(--aqua-primary)" />
-                          <span><strong>Location:</strong> {item.location}</span>
+                  return (
+                    <div key={item.id} style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)', backgroundColor: '#ffffff', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }} className="glass-panel-hover">
+                      {/* Item Image or Placeholder */}
+                      <div style={{ height: '160px', width: '100%', position: 'relative', overflow: 'hidden', backgroundColor: 'var(--bg-input)' }}>
+                        {item.image ? (
+                          <img src={item.image} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%', color: 'var(--text-muted)' }}>
+                            <Search size={32} style={{ opacity: 0.5 }} />
+                            <span style={{ fontSize: '12px', marginTop: '6px' }}>No Photo Attached</span>
+                          </div>
+                        )}
+                        {/* Status Badge */}
+                        <span
+                          style={{
+                            position: 'absolute',
+                            top: '12px',
+                            left: '12px',
+                            padding: '4px 10px',
+                            borderRadius: '20px',
+                            fontSize: '11px',
+                            fontWeight: '700',
+                            textTransform: 'uppercase',
+                            color: '#ffffff',
+                            backgroundColor: item.type === 'lost' ? '#ef4444' : '#10b981',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                          }}
+                        >
+                          {item.type}
+                        </span>
+                      </div>
+
+                      {/* Card Content */}
+                      <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                        <h4 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--pine-deep)', marginBottom: '8px' }}>{item.title}</h4>
+                        <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.4', marginBottom: '16px', flex: 1 }}>{item.description}</p>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px solid var(--border-subtle)', paddingTop: '12px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <MapPin size={12} color="var(--aqua-primary)" />
+                            <span><strong>Location:</strong> {item.location}</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Calendar size={12} color="var(--aqua-primary)" />
+                            <span><strong>Date:</strong> {item.date}</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', padding: '6px 8px', borderRadius: '4px', backgroundColor: 'var(--bg-input)', fontSize: '11.5px', color: 'var(--pine-deep)' }}>
+                            <span><strong>Contact:</strong> {item.contact} ({item.user_name})</span>
+                          </div>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <Calendar size={12} color="var(--aqua-primary)" />
-                          <span><strong>Date:</strong> {item.date}</span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', padding: '6px 8px', borderRadius: '4px', backgroundColor: 'var(--bg-input)', fontSize: '11.5px', color: 'var(--pine-deep)' }}>
-                          <span><strong>Contact:</strong> {item.contact} ({item.user_name})</span>
-                        </div>
+
+                        {/* Contact Action Buttons */}
+                        {isPhoneValid && (
+                          <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                            <a
+                              href={waUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{ flex: 1, textDecoration: 'none' }}
+                            >
+                              <button
+                                style={{
+                                  width: '100%',
+                                  padding: '8px 12px',
+                                  borderRadius: '8px',
+                                  border: '1px solid #25d366',
+                                  backgroundColor: 'rgba(37, 211, 102, 0.08)',
+                                  color: '#128c7e',
+                                  fontSize: '11px',
+                                  fontWeight: '800',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '6px',
+                                  transition: 'all 0.2s ease',
+                                }}
+                                className="glass-panel-hover"
+                              >
+                                <MessageSquare size={13} color="#128c7e" />
+                                WhatsApp
+                              </button>
+                            </a>
+                            <a
+                              href={callUrl}
+                              style={{ flex: 1, textDecoration: 'none' }}
+                            >
+                              <button
+                                style={{
+                                  width: '100%',
+                                  padding: '8px 12px',
+                                  borderRadius: '8px',
+                                  border: '1px solid var(--pine-primary)',
+                                  backgroundColor: 'rgba(18, 91, 68, 0.08)',
+                                  color: 'var(--pine-primary)',
+                                  fontSize: '11px',
+                                  fontWeight: '800',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '6px',
+                                  transition: 'all 0.2s ease',
+                                }}
+                                className="glass-panel-hover"
+                              >
+                                <Phone size={13} color="var(--pine-primary)" />
+                                Call
+                              </button>
+                            </a>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
@@ -3239,7 +3313,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     style={{ ...styles.formInput, padding: '8px 10px' }}
                   />
                   <p style={{ fontSize: '10px', color: 'var(--text-muted)', margin: '4px 0 0' }}>
-                    Paste the "Anyone with link" share URL — the app auto-converts it to a direct download link for users.
+                    Paste the &quot;Anyone with link&quot; share URL — the app auto-converts it to a direct download link for users.
                   </p>
                 </div>
 
