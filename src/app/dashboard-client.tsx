@@ -76,7 +76,13 @@ import {
   ArrowRight,
   Upload,
   CheckCircle2,
-  Info
+  Info,
+  GraduationCap,
+  FileText,
+  Link2,
+  Calculator,
+  Clock,
+  Globe
 } from 'lucide-react';
 
 interface ClassSlot {
@@ -986,7 +992,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 overflow: 'hidden',
                 boxShadow: '0 6px 20px rgba(61, 90, 128, 0.2)',
               }}
-              onClick={() => setActiveTab('explore')}
+              onClick={() => setActiveTab('academics')}
               className="glass-panel-hover"
             >
               <div style={styles.qrBannerGlow} />
@@ -3509,6 +3515,178 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           </div>
         );
       }
+      case 'academics':
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingBottom: '24px' }} className="animate-fade-in">
+
+            {/* Header */}
+            <div style={{
+              background: 'linear-gradient(135deg, #3d5a80 0%, #5e60ce 100%)',
+              borderRadius: 'var(--radius-md)',
+              padding: '28px 24px',
+              color: '#fff',
+              position: 'relative',
+              overflow: 'hidden',
+              boxShadow: '0 8px 28px rgba(61,90,128,0.25)',
+            }}>
+              <div style={{ position: 'absolute', top: 0, left: '-50%', width: '100%', height: '100%', background: 'linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0) 100%)', transform: 'skewX(-25deg)', animation: 'shimmer 4s infinite linear' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', position: 'relative', zIndex: 2 }}>
+                <div style={{ background: 'rgba(255,255,255,0.18)', borderRadius: '14px', padding: '12px', display: 'flex' }}>
+                  <GraduationCap size={32} color="#fff" />
+                </div>
+                <div>
+                  <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#fff', margin: 0 }}>Academics</h2>
+                  <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.82)', margin: '4px 0 0', fontWeight: '500' }}>Your academic hub at NIT Hamirpur</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Timetable Quick Access */}
+            <div className="glass-panel" style={{ padding: '20px', borderRadius: 'var(--radius-md)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                <Clock size={18} color="var(--pine-primary)" />
+                <h3 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--pine-deep)', margin: 0 }}>My Timetable</h3>
+              </div>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '14px', lineHeight: '1.5' }}>
+                Your class schedule is set up on the Home page. View it there or tap below.
+              </p>
+              <button
+                onClick={() => setActiveTab('home')}
+                className="btn-primary"
+                style={{ padding: '10px 20px', fontSize: '13px', fontWeight: '700', width: '100%' }}
+              >
+                <Clock size={15} style={{ marginRight: '6px' }} /> View My Timetable
+              </button>
+            </div>
+
+            {/* CGPA Calculator */}
+            <div className="glass-panel glass-panel-hover" style={{ padding: '20px', borderRadius: 'var(--radius-md)', cursor: 'pointer' }}
+              onClick={() => window.open('/calculator', '_blank')}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ background: 'linear-gradient(135deg, #f4a261, #e76f51)', borderRadius: '12px', padding: '10px', display: 'flex' }}>
+                    <Calculator size={22} color="#fff" />
+                  </div>
+                  <div>
+                    <h4 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--text-main)', margin: 0 }}>CGPA Calculator</h4>
+                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '3px 0 0' }}>Calculate your semester & cumulative GPA</p>
+                  </div>
+                </div>
+                <ArrowRight size={18} color="var(--pine-primary)" />
+              </div>
+            </div>
+
+            {/* Academic Portals */}
+            <div className="glass-panel" style={{ padding: '20px', borderRadius: 'var(--radius-md)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                <Link2 size={18} color="var(--pine-primary)" />
+                <h3 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--pine-deep)', margin: 0 }}>Official Portals</h3>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {[
+                  { label: 'NITH ERP Portal', desc: 'Grades, attendance & registration', url: 'https://erp.nith.ac.in', color: '#125b44' },
+                  { label: 'NITH Official Website', desc: 'Notices, circulars & announcements', url: 'https://www.nith.ac.in', color: '#3d5a80' },
+                  { label: 'Central Library', desc: 'E-books, journals & catalogue', url: 'https://library.nith.ac.in', color: '#9b5de5' },
+                  { label: 'Syllabus & Curriculum', desc: 'B.Tech / M.Tech course structure', url: 'https://www.nith.ac.in/academics/', color: '#f4a261' },
+                ].map((portal) => (
+                  <a
+                    key={portal.label}
+                    href={portal.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ textDecoration: 'none' }}
+                  >
+                    <div style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '12px 14px', borderRadius: '10px',
+                      border: '1px solid var(--border-subtle)',
+                      backgroundColor: 'var(--bg-hover)',
+                      cursor: 'pointer',
+                      transition: 'var(--transition-smooth)',
+                    }}
+                      className="glass-panel-hover"
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: portal.color, flexShrink: 0 }} />
+                        <div>
+                          <p style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-main)', margin: 0 }}>{portal.label}</p>
+                          <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '2px 0 0' }}>{portal.desc}</p>
+                        </div>
+                      </div>
+                      <ExternalLink size={14} color="var(--text-muted)" />
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            {/* Academic Calendar Highlights */}
+            <div className="glass-panel" style={{ padding: '20px', borderRadius: 'var(--radius-md)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                <Calendar size={18} color="var(--pine-primary)" />
+                <h3 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--pine-deep)', margin: 0 }}>Academic Calendar</h3>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {[
+                  { event: 'Mid Semester Exams', date: 'Sep 15 – Sep 22', status: 'upcoming', color: '#e76f51' },
+                  { event: 'Techspardha (Tech Fest)', date: 'Oct 5 – Oct 7', status: 'upcoming', color: '#9b5de5' },
+                  { event: 'End Semester Exams', date: 'Nov 18 – Nov 30', status: 'upcoming', color: '#3d5a80' },
+                  { event: 'Winter Vacation', date: 'Dec 1 – Dec 31', status: 'upcoming', color: '#125b44' },
+                ].map((ev) => (
+                  <div key={ev.event} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '12px 14px', borderRadius: '10px',
+                    border: `1px solid ${ev.color}30`,
+                    backgroundColor: `${ev.color}08`,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ width: '4px', height: '36px', backgroundColor: ev.color, borderRadius: '4px', flexShrink: 0 }} />
+                      <div>
+                        <p style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-main)', margin: 0 }}>{ev.event}</p>
+                        <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '3px 0 0' }}>{ev.date}</p>
+                      </div>
+                    </div>
+                    <span style={{ fontSize: '10px', fontWeight: '800', color: ev.color, backgroundColor: `${ev.color}18`, padding: '3px 8px', borderRadius: '6px', textTransform: 'uppercase' }}>Upcoming</span>
+                  </div>
+                ))}
+              </div>
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '12px', textAlign: 'center' }}>
+                Dates are indicative. Always verify on the official NITH website.
+              </p>
+            </div>
+
+            {/* Useful Resources */}
+            <div className="glass-panel" style={{ padding: '20px', borderRadius: 'var(--radius-md)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                <FileText size={18} color="var(--pine-primary)" />
+                <h3 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--pine-deep)', margin: 0 }}>Quick Resources</h3>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                {[
+                  { label: 'Previous Papers', icon: FileText, color: '#3d5a80', url: 'https://www.nith.ac.in/academics/' },
+                  { label: 'NPTEL Courses', icon: Globe, color: '#125b44', url: 'https://nptel.ac.in' },
+                  { label: 'NITH Notices', icon: Bell, color: '#e76f51', url: 'https://www.nith.ac.in/notices/' },
+                  { label: 'Fee Portal', icon: ExternalLink, color: '#9b5de5', url: 'https://erp.nith.ac.in' },
+                ].map((res) => (
+                  <a key={res.label} href={res.url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+                    <div style={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                      gap: '8px', padding: '16px 10px',
+                      borderRadius: '12px', border: '1px solid var(--border-subtle)',
+                      backgroundColor: `${res.color}08`, cursor: 'pointer', textAlign: 'center',
+                      minHeight: '80px',
+                    }} className="glass-panel-hover">
+                      <res.icon size={22} color={res.color} />
+                      <p style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-main)', margin: 0, lineHeight: '1.3' }}>{res.label}</p>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </div>
+
+          </div>
+        );
       default:
         return (
           <div style={styles.placeholderTab} className="glass-panel animate-fade-in">
