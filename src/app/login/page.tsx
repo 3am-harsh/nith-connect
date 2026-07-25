@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState, useTransition } from 'react';
-import { loginWithEmail, loginDeveloper } from './actions';
+import { loginWithEmail, loginDeveloper, checkUserRegisteredAction, loginWithFirebaseUserAction } from './actions';
 import { Mountain, LogIn, ShieldAlert, Sparkles, User, Mail, GraduationCap, Building, Home, Activity } from 'lucide-react';
+import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 export default function LoginPage() {
   const [isPending, startTransition] = useTransition();
@@ -53,6 +55,52 @@ export default function LoginPage() {
     });
   };
 
+  const handleGoogleSignIn = () => {
+    setErrorMessage(null);
+    startTransition(async () => {
+      try {
+        const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({
+          hd: 'nith.ac.in',
+          prompt: 'select_account'
+        });
+        
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+        const userEmail = user.email || '';
+        
+        if (!userEmail) {
+          setErrorMessage('Could not fetch email from Google account.');
+          return;
+        }
+
+        const isValidDomain = userEmail.endsWith('@nith.ac.in') || userEmail.toLowerCase() === 'djfgh7033@gmail.com';
+        if (!isValidDomain) {
+          await auth.signOut();
+          setErrorMessage('Access Denied: Only @nith.ac.in Google accounts are allowed.');
+          return;
+        }
+
+        const existingProfile = await checkUserRegisteredAction(userEmail);
+        
+        if (existingProfile) {
+          const loginRes = await loginWithFirebaseUserAction(userEmail);
+          if (!loginRes.success) {
+            setErrorMessage(loginRes.error || 'Failed to establish session.');
+          }
+        } else {
+          setEmail(userEmail);
+          setName(user.displayName || '');
+          setShowGoogleMock(true);
+        }
+      } catch (err: unknown) {
+        console.error('Google Auth error:', err);
+        const errMsg = err instanceof Error ? err.message : String(err);
+        setErrorMessage(errMsg || 'Google Auth Popup closed or failed.');
+      }
+    });
+  };
+
   return (
     <main style={styles.container}>
       {/* Background patterns */}
@@ -91,7 +139,7 @@ export default function LoginPage() {
 
               {/* Standard Google Login Button */}
               <button 
-                onClick={() => setShowGoogleMock(true)}
+                onClick={handleGoogleSignIn}
                 style={styles.googleBtn}
                 disabled={isPending}
               >

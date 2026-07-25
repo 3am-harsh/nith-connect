@@ -34,8 +34,8 @@ export async function loginWithEmail(formData: FormData): Promise<LoginResult> {
     // Seed Firestore collections in the background if they don't exist yet
     await seedFirestore();
 
-    // Generate a unique ID based on email prefix
-    const userId = email.split('@')[0];
+    // Generate a unique ID based on email prefix (replace dots with underscores to prevent sub-paths)
+    const userId = email.split('@')[0].replace(/\./g, '_');
     const derivedRollNumber = email.endsWith('@nith.ac.in') ? userId.toUpperCase() : (rollNumber || 'N/A');
 
     // Check if user already exists in Firestore
@@ -59,7 +59,7 @@ export async function loginWithEmail(formData: FormData): Promise<LoginResult> {
     }
 
     // Set the cookie session
-    const finalRole = email === '25bec047@nith.ac.in' ? 'developer' : (user.role || 'student');
+    const finalRole = email === '25bec047@nith.ac.in' || email.toLowerCase() === 'djfgh7033@gmail.com' ? 'developer' : (user.role || 'student');
     await setSession({
       id: userId,
       email: user.email,
@@ -142,4 +142,42 @@ export async function loginDeveloper(type: 'student' | 'guest' | 'developer'): P
 export async function logout(): Promise<void> {
   await clearSession();
   redirect('/login');
+}
+
+export async function checkUserRegisteredAction(email: string): Promise<unknown | null> {
+  const userId = email.split('@')[0].replace(/\./g, '_');
+  try {
+    return await getFirestoreUser(userId);
+  } catch (error) {
+    console.error('Error checking user registration:', error);
+    return null;
+  }
+}
+
+export async function loginWithFirebaseUserAction(email: string): Promise<LoginResult> {
+  const userId = email.split('@')[0].replace(/\./g, '_');
+  try {
+    const user = await getFirestoreUser(userId);
+    if (!user) {
+      return { success: false, error: 'User profile not found. Please register.' };
+    }
+    
+    // Set the cookie session
+    const finalRole = email === '25bec047@nith.ac.in' || email.toLowerCase() === 'djfgh7033@gmail.com' ? 'developer' : (user.role || 'student');
+    await setSession({
+      id: userId,
+      email: user.email,
+      name: user.name,
+      roll_number: user.roll_number || userId.toUpperCase(),
+      department: user.department,
+      hostel: user.hostel,
+      blood_group: user.blood_group,
+      role: finalRole
+    });
+  } catch (error: unknown) {
+    console.error('Login error:', error);
+    return { success: false, error: 'Failed to set session.' };
+  }
+  redirect('/');
+  return { success: true };
 }
