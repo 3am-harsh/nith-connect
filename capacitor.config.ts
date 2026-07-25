@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'NITH Connect',
   webDir: 'public',
   server: {
-    url: 'http://10.20.196.30:3000',
+    url: 'https://nith-connect-oi66.vercel.app',
     cleartext: true
   }
 };
