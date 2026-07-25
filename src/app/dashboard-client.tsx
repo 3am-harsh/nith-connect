@@ -14,7 +14,17 @@ import {
   rejectAnnouncementAction
 } from './actions/announcements';
 import { fetchLostFoundItems, createLostFoundItemAction, runSeedingAction } from './actions/lostfound';
-import { fetchChatrooms, fetchMessages, sendChatMessage } from './actions/chat';
+import { 
+  fetchChatrooms, 
+  fetchMessages, 
+  sendChatMessage,
+  reportMessageAction,
+  fetchReportedMessagesAction,
+  dismissReportsAction,
+  deleteMessageAction,
+  banUserAction,
+  unbanUserAction
+} from './actions/chat';
 import { 
   getMarketplaceItemsAction, 
   createMarketplaceItemAction, 
@@ -90,7 +100,8 @@ import {
   Calculator,
   Clock,
   Globe,
-  Phone
+  Phone,
+  ShieldAlert
 } from 'lucide-react';
 
 interface ClassSlot {
@@ -310,6 +321,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
   // Academic Files states
   const [isDevModeActive, setIsDevModeActive] = useState(false);
+  const [reportedMessages, setReportedMessages] = useState<FirestoreMessage[]>([]);
   const [academicFiles, setAcademicFiles] = useState<AcademicFile[]>([]);
   const [activeAcademicTab, setActiveAcademicTab] = useState<AcademicTab>('syllabus');
   const [acadFilterYear, setAcadFilterYear] = useState('1st Year');
@@ -518,6 +530,17 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     }
   };
 
+  const loadReportedMessages = async () => {
+    try {
+      if (user.role === 'developer') {
+        const data = await fetchReportedMessagesAction();
+        setReportedMessages(data);
+      }
+    } catch (err) {
+      console.error('Failed to load reported messages:', err);
+    }
+  };
+
   useEffect(() => {
     let active = true;
     const loadData = async () => {
@@ -538,6 +561,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           loadFeedbackData();
           loadClubsData();
           loadAcademicFiles();
+          loadReportedMessages();
           if (user.role === 'developer') {
             const subs = await fetchTimetableSubmissions();
             setTimetableSubmissions(subs);
@@ -592,6 +616,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         { id: 'dev_timetables', label: 'Timetables 📅', icon: Calendar, color: '#f4a261' },
         { id: 'dev_clubs', label: 'Clubs 🏆', icon: Contact, color: '#9b5de5' },
         { id: 'dev_files', label: 'Files 📚', icon: GraduationCap, color: '#3d5a80' },
+        { id: 'dev_moderation', label: 'Moderation ⚖️', icon: ShieldAlert, color: '#e76f51' },
       ]
     : [
         { id: 'home', label: 'Home', icon: Home, color: 'var(--pine-primary)' },
@@ -2685,20 +2710,23 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         );
       }
       case 'chat': {
+        const activeRoom = chatRoomsList.find(r => r.id === selectedRoomId);
+
         const handleSendMessage = async (e: React.FormEvent) => {
           e.preventDefault();
           if (!newMsgText.trim()) return;
           const textToSend = newMsgText;
           setNewMsgText('');
-          const success = await sendChatMessage(selectedRoomId, user.id, user.name, textToSend);
-          if (success) {
+          const res = await sendChatMessage(selectedRoomId, activeRoom?.name || 'Chat', user.id, user.name, textToSend);
+          if (res.success) {
             loadMessages(selectedRoomId);
+          } else if (res.banned) {
+            const dateStr = new Date(res.bannedUntil!).toLocaleString();
+            showToast(`Banned from chatroom: expires on ${dateStr}. Reason: ${res.reason}`, 'error');
           } else {
             showToast('Failed to send message.', 'error');
           }
         };
-
-        const activeRoom = chatRoomsList.find(r => r.id === selectedRoomId);
 
         const categories: Record<string, FirestoreChatroom[]> = {};
         chatRoomsList.forEach(room => {
@@ -2930,6 +2958,34 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                             <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
                               {formattedTime}
                             </span>
+                            {!isOwnMessage && (
+                              <button
+                                onClick={async () => {
+                                  if (!confirm("Are you sure you want to report this message for policy violation?")) return;
+                                  const res = await reportMessageAction(msg.id!, user.id);
+                                  if (res.success) {
+                                    showToast("Message reported to moderators.", "info");
+                                  } else {
+                                    showToast("Failed to report message.", "error");
+                                  }
+                                }}
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  color: '#e76f51',
+                                  fontSize: '10px',
+                                  cursor: 'pointer',
+                                  padding: '0 4px',
+                                  opacity: 0.7,
+                                  fontWeight: '600',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '2px'
+                                }}
+                              >
+                                ⚠️ Report
+                              </button>
+                            )}
                           </div>
 
                           <div style={{
@@ -3800,6 +3856,175 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                         </button>
                       </div>
                     ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      }
+      case 'dev_moderation': {
+        return (
+          <div style={styles.exploreTabContainer} className="animate-fade-in">
+            <div style={styles.exploreHeaderSection}>
+              <h2 style={styles.exploreTitle}>Chatroom <span style={{ color: '#e76f51' }}>Moderation</span> ⚖️</h2>
+              <p style={styles.exploreSubtitle}>Review flagged messages and enforce timeouts/bans on problematic accounts</p>
+            </div>
+
+            <div style={{ marginTop: '20px' }}>
+              <div 
+                className="glass-panel" 
+                style={{ 
+                  padding: '24px', 
+                  backgroundColor: '#ffffff', 
+                  border: '1px solid var(--border-subtle)', 
+                  borderRadius: 'var(--radius-lg)'
+                }}
+              >
+                <h3 style={{ fontSize: '16px', fontWeight: '800', color: 'var(--pine-deep)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>Flagged Messages (3+ Reports)</span>
+                  {reportedMessages.length > 0 && (
+                    <span style={{
+                      backgroundColor: '#e76f51',
+                      color: '#ffffff',
+                      fontSize: '11px',
+                      fontWeight: '800',
+                      padding: '2px 8px',
+                      borderRadius: '10px'
+                    }}>
+                      {reportedMessages.length}
+                    </span>
+                  )}
+                </h3>
+
+                {reportedMessages.length === 0 ? (
+                  <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                    No reported messages to review. Chatrooms are clean! 😇
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {reportedMessages.map((msg) => {
+                      return (
+                        <div 
+                          key={msg.id}
+                          style={{
+                            padding: '16px',
+                            borderRadius: '10px',
+                            border: '1px solid var(--border-subtle)',
+                            backgroundColor: 'rgba(0,0,0,0.01)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '12px'
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                            <div>
+                              <h4 style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-main)', margin: 0 }}>
+                                {msg.user_name} <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>(ID: {msg.user_id})</span>
+                              </h4>
+                              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                Chatroom: <strong>#{msg.chatroom_name || 'unknown'}</strong>
+                              </span>
+                            </div>
+                            <span style={{
+                              fontSize: '11px',
+                              backgroundColor: 'rgba(231, 111, 81, 0.15)',
+                              color: '#e76f51',
+                              fontWeight: '800',
+                              padding: '4px 10px',
+                              borderRadius: '20px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}>
+                              🚨 {msg.reports_count} Reports
+                            </span>
+                          </div>
+
+                          <p style={{ 
+                            fontSize: '13.5px', 
+                            color: 'var(--text-main)', 
+                            margin: '4px 0', 
+                            lineHeight: '1.4', 
+                            backgroundColor: 'var(--bg-input)', 
+                            padding: '12px', 
+                            borderRadius: '8px', 
+                            borderLeft: '4px solid #e76f51',
+                            fontStyle: 'italic'
+                          }}>
+                            &ldquo;{msg.text}&rdquo;
+                          </p>
+
+                          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                            <button
+                              onClick={async () => {
+                                const success = await dismissReportsAction(msg.id!);
+                                if (success) {
+                                  showToast('Reports dismissed successfully.', 'success');
+                                  loadReportedMessages();
+                                } else {
+                                  showToast('Failed to dismiss reports.', 'error');
+                                }
+                              }}
+                              className="btn-secondary"
+                              style={{ padding: '8px 16px', fontSize: '12px', fontWeight: '700' }}
+                            >
+                              Dismiss Reports
+                            </button>
+                            <button
+                              onClick={async () => {
+                                if (!confirm("Are you sure you want to delete this message?")) return;
+                                const success = await deleteMessageAction(msg.id!);
+                                if (success) {
+                                  showToast('Message deleted.', 'success');
+                                  loadReportedMessages();
+                                } else {
+                                  showToast('Failed to delete message.', 'error');
+                                }
+                              }}
+                              className="btn-secondary"
+                              style={{ padding: '8px 16px', fontSize: '12px', color: '#e76f51', borderColor: 'rgba(231, 111, 81, 0.2)', fontWeight: '700' }}
+                            >
+                              Delete Message
+                            </button>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: 'auto' }}>
+                              <select 
+                                id={`ban-duration-${msg.id}`}
+                                defaultValue="24"
+                                style={{ padding: '8px', borderRadius: '8px', border: '1px solid var(--border-subtle)', fontSize: '12px', fontWeight: '700', backgroundColor: '#fff', color: 'var(--text-main)', cursor: 'pointer' }}
+                              >
+                                <option value="1">Ban 1 Hour</option>
+                                <option value="24">Ban 1 Day</option>
+                                <option value="168">Ban 7 Days</option>
+                                <option value="-1">Ban Permanent</option>
+                              </select>
+                              <button
+                                onClick={async () => {
+                                  const selectEl = document.getElementById(`ban-duration-${msg.id}`) as HTMLSelectElement;
+                                  const duration = Number(selectEl?.value || '24');
+                                  const reason = prompt("Enter ban reason:", "Violation of chatroom policies");
+                                  if (reason === null) return;
+                                  
+                                  const success = await banUserAction(msg.user_id, duration, reason);
+                                  if (success) {
+                                    await deleteMessageAction(msg.id!);
+                                    showToast('User banned and message deleted.', 'success');
+                                    loadReportedMessages();
+                                  } else {
+                                    showToast('Failed to ban user.', 'error');
+                                  }
+                                }}
+                                className="btn-primary"
+                                style={{ padding: '8px 16px', fontSize: '12px', backgroundColor: '#e76f51', borderColor: 'transparent', fontWeight: '700' }}
+                              >
+                                Ban Sender & Delete
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>

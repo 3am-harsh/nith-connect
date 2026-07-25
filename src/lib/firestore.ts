@@ -25,6 +25,8 @@ export interface FirestoreUser {
   blood_group?: string;
   role: string;
   created_at?: unknown;
+  banned_until?: string | null;
+  ban_reason?: string | null;
 }
 
 export interface FirestoreMessMenu {
@@ -459,10 +461,13 @@ export interface FirestoreChatroom {
 export interface FirestoreMessage {
   id?: string;
   chatroom_id: string;
+  chatroom_name?: string;
   user_id: string;
   user_name: string;
   text: string;
   created_at: string | null;
+  reported_by?: string[];
+  reports_count?: number;
 }
 
 export async function getFirestoreChatrooms(): Promise<FirestoreChatroom[]> {
@@ -1098,4 +1103,125 @@ export async function deleteAcademicFile(fileId: string): Promise<boolean> {
     console.error('Error deleting academic file:', error);
     return false;
   }
+}
+
+export async function reportFirestoreMessage(messageId: string, userId: string): Promise<{ success: boolean; reportsCount: number }> {
+  try {
+    const docRef = doc(db, 'messages', messageId);
+    const docSnap = await getDoc(docRef);
+    if (!docSnap.exists()) return { success: false, reportsCount: 0 };
+    
+    const data = docSnap.data();
+    const reportedBy = data.reported_by || [];
+    
+    if (reportedBy.includes(userId)) {
+      return { success: true, reportsCount: reportedBy.length };
+    }
+    
+    const nextReportedBy = [...reportedBy, userId];
+    await updateDoc(docRef, {
+      reported_by: nextReportedBy,
+      reports_count: nextReportedBy.length
+    });
+    
+    return { success: true, reportsCount: nextReportedBy.length };
+  } catch (error) {
+    console.error('Error reporting message:', error);
+    return { success: false, reportsCount: 0 };
+  }
+}
+
+export async function getReportedFirestoreMessages(): Promise<FirestoreMessage[]> {
+  try {
+    const q = query(
+      collection(db, 'messages'),
+      where('reports_count', '>=', 3)
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as FirestoreMessage[];
+  } catch (error) {
+    console.error('Error fetching reported messages:', error);
+    return [];
+  }
+}
+
+export async function dismissFirestoreMessageReports(messageId: string): Promise<boolean> {
+  try {
+    const docRef = doc(db, 'messages', messageId);
+    await updateDoc(docRef, {
+      reported_by: [],
+      reports_count: 0
+    });
+    return true;
+  } catch (error) {
+    console.error('Error dismissing reports:', error);
+    return false;
+  }
+}
+
+export async function deleteFirestoreMessage(messageId: string): Promise<boolean> {
+  try {
+    const docRef = doc(db, 'messages', messageId);
+    await deleteDoc(docRef);
+    return true;
+  } catch (error) {
+    console.error('Error deleting message:', error);
+    return false;
+  }
+}
+
+export async function banFirestoreUser(userId: string, bannedUntil: string, reason?: string): Promise<boolean> {
+  try {
+    const docRef = doc(db, 'users', userId);
+    await updateDoc(docRef, {
+      banned_until: bannedUntil,
+      ban_reason: reason || 'Violation of chatroom policies'
+    });
+    return true;
+  } catch (error) {
+    console.error('Error banning user:', error);
+    return false;
+  }
+}
+
+export async function unbanFirestoreUser(userId: string): Promise<boolean> {
+  try {
+    const docRef = doc(db, 'users', userId);
+    await updateDoc(docRef, {
+      banned_until: null,
+      ban_reason: null
+    });
+    return true;
+  } catch (error) {
+    console.error('Error unbanning user:', error);
+    return false;
+  }
+}
+
+export async function isFirestoreUserBanned(userId: string): Promise<{ banned: boolean; bannedUntil?: string | null; reason?: string | null }> {
+  try {
+    const docRef = doc(db, 'users', userId);
+    const docSnap = await getDoc(docRef);
+    if (!docSnap.exists()) return { banned: false };
+    
+    const data = docSnap.data();
+    const bannedUntil = data.banned_until;
+    if (bannedUntil) {
+      const expiry = new Date(bannedUntil).getTime();
+      const now = new Date().getTime();
+      if (expiry > now) {
+        return { banned: true, bannedUntil, reason: data.ban_reason };
+      }
+      await updateDoc(docRef, {
+        banned_until: null,
+        ban_reason: null
+      });
+    }
+  } catch (error) {
+    console.error('Error checking user ban status:', error);
+  }
+  return { banned: false };
 }

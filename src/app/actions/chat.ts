@@ -3,7 +3,14 @@
 import { 
   getFirestoreChatrooms, 
   getFirestoreMessages, 
-  createFirestoreMessage 
+  createFirestoreMessage,
+  reportFirestoreMessage,
+  getReportedFirestoreMessages,
+  dismissFirestoreMessageReports,
+  deleteFirestoreMessage,
+  banFirestoreUser,
+  unbanFirestoreUser,
+  isFirestoreUserBanned
 } from '@/lib/firestore';
 
 export async function fetchChatrooms() {
@@ -14,16 +21,57 @@ export async function fetchMessages(chatroomId: string) {
   return getFirestoreMessages(chatroomId);
 }
 
-export async function sendChatMessage(chatroomId: string, userId: string, userName: string, text: string) {
+export async function sendChatMessage(chatroomId: string, chatroomName: string, userId: string, userName: string, text: string) {
   try {
-    return createFirestoreMessage({
+    // Check if user is banned
+    const banStatus = await isFirestoreUserBanned(userId);
+    if (banStatus.banned) {
+      return { success: false, banned: true, bannedUntil: banStatus.bannedUntil, reason: banStatus.reason };
+    }
+
+    const success = await createFirestoreMessage({
       chatroom_id: chatroomId,
+      chatroom_name: chatroomName,
       user_id: userId,
       user_name: userName,
       text: text.trim()
     });
+    return { success };
   } catch (error) {
     console.error('Failed to send chat message:', error);
-    return false;
+    return { success: false };
   }
+}
+
+export async function reportMessageAction(messageId: string, userId: string) {
+  return reportFirestoreMessage(messageId, userId);
+}
+
+export async function fetchReportedMessagesAction() {
+  return getReportedFirestoreMessages();
+}
+
+export async function dismissReportsAction(messageId: string) {
+  return dismissFirestoreMessageReports(messageId);
+}
+
+export async function deleteMessageAction(messageId: string) {
+  return deleteFirestoreMessage(messageId);
+}
+
+export async function banUserAction(userId: string, durationHours: number, reason?: string) {
+  // If durationHours is -1, it's a permanent ban (100 years in future)
+  const durationMs = durationHours === -1 
+    ? 100 * 365 * 24 * 60 * 60 * 1000 
+    : durationHours * 60 * 60 * 1000;
+  const bannedUntil = new Date(Date.now() + durationMs).toISOString();
+  return banFirestoreUser(userId, bannedUntil, reason);
+}
+
+export async function unbanUserAction(userId: string) {
+  return unbanFirestoreUser(userId);
+}
+
+export async function checkUserBanStatusAction(userId: string) {
+  return isFirestoreUserBanned(userId);
 }
