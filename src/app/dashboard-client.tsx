@@ -33,6 +33,13 @@ import {
   awardVisionaryBadgeAction,
   fetchUserAchievementsAction
 } from './actions/feedback';
+import {
+  submitClubRequestAction,
+  fetchClubSubmissionsAction,
+  fetchApprovedClubsAction,
+  approveClubSubmissionAction,
+  rejectClubSubmissionAction
+} from './actions/clubs';
 import { 
   type FirestoreAnnouncement, 
   type FirestoreComment, 
@@ -42,7 +49,9 @@ import {
   type FirestoreMarketplaceItem,
   type TimetableSubmission,
   type ApprovedTimetable,
-  type FeedbackSubmission
+  type FeedbackSubmission,
+  type Club,
+  type ClubSubmission
 } from '@/lib/firestore';
 import { 
   Mountain, 
@@ -271,6 +280,16 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   const [isSuggestFormOpen, setIsSuggestFormOpen] = useState(false);
 
+  // Clubs & Societies states
+  const [approvedClubs, setApprovedClubs] = useState<Club[]>([]);
+  const [clubSubmissions, setClubSubmissions] = useState<ClubSubmission[]>([]);
+  const [isRegisterClubOpen, setIsRegisterClubOpen] = useState(false);
+  const [newClubName, setNewClubName] = useState('');
+  const [newClubDesc, setNewClubDesc] = useState('');
+  const [newClubCategory, setNewClubCategory] = useState('cultural');
+  const [newClubContact, setNewClubContact] = useState('');
+  const [isSubmittingClub, setIsSubmittingClub] = useState(false);
+
   // Lost & Found States
   const [lostFoundItems, setLostFoundItems] = useState<FirestoreLostFoundItem[]>([]);
   const [selectedLostFoundFilter, setSelectedLostFoundFilter] = useState<'all' | 'lost' | 'found'>('all');
@@ -443,6 +462,19 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     }
   };
 
+  const loadClubsData = async () => {
+    try {
+      const approved = await fetchApprovedClubsAction();
+      setApprovedClubs(approved);
+      if (user.role === 'developer') {
+        const subs = await fetchClubSubmissionsAction();
+        setClubSubmissions(subs);
+      }
+    } catch (err) {
+      console.error('Failed to load clubs data:', err);
+    }
+  };
+
   useEffect(() => {
     let active = true;
     const loadData = async () => {
@@ -461,6 +493,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           setApprovedTimetables(approvedData);
           loadUserAchievements();
           loadFeedbackData();
+          loadClubsData();
           if (user.role === 'developer') {
             const subs = await fetchTimetableSubmissions();
             setTimetableSubmissions(subs);
@@ -1227,67 +1260,140 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
         const renderCategoryDetails = () => {
           switch (selectedExploreCategory) {
-            case 'tech':
+            case 'tech': {
+              const filteredTechClubs = approvedClubs.filter(c => c.category === 'technical');
               return (
                 <div style={styles.exploreSubpage}>
-                  <div style={styles.subpageHeader}>
-                    <h3 style={styles.subpageTitle}>Technical Clubs & Societies</h3>
-                    <p style={styles.subpageDesc}>Code, innovate, and build systems at NITH</p>
+                  <div style={{ ...styles.subpageHeader, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+                    <div>
+                      <h3 style={styles.subpageTitle}>Technical Clubs & Societies</h3>
+                      <p style={styles.subpageDesc}>Code, innovate, and build systems at NITH</p>
+                    </div>
+                    {user.role !== 'guest' && (
+                      <button
+                        onClick={() => {
+                          setNewClubCategory('technical');
+                          setIsRegisterClubOpen(true);
+                        }}
+                        className="btn-primary"
+                        style={{ padding: '8px 16px', fontSize: '11px', fontWeight: '800' }}
+                      >
+                        Register a Tech Club
+                      </button>
+                    )}
                   </div>
-                  <div style={styles.subpageList}>
-                    <div style={styles.clubCard} className="glass-panel">
-                      <h4 style={styles.clubTitle}>GLUG NITH</h4>
-                      <p style={styles.clubDesc}>GNU/Linux User Group: Promoting open source, Linux workshops, and software freedom.</p>
-                      <span style={styles.clubContact}>Contact: glug@nith.ac.in</span>
+
+                  {filteredTechClubs.length === 0 ? (
+                    <div 
+                      className="glass-panel animate-fade-in" 
+                      style={{ 
+                        padding: '40px 24px', 
+                        textAlign: 'center', 
+                        borderRadius: '12px', 
+                        border: '2px dashed var(--border-subtle)', 
+                        marginTop: '16px',
+                        backgroundColor: '#ffffff'
+                      }}
+                    >
+                      <Sparkles size={40} color="var(--pine-primary)" style={{ marginBottom: '12px', opacity: 0.8, marginLeft: 'auto', marginRight: 'auto' }} />
+                      <h4 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--pine-deep)', margin: '0 0 6px' }}>No Tech Clubs Registered</h4>
+                      <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 16px', maxWidth: '360px', marginLeft: 'auto', marginRight: 'auto' }}>
+                        Be the first to list your technical or coding club on NITH Connect!
+                      </p>
+                      {user.role !== 'guest' && (
+                        <button
+                          onClick={() => {
+                            setNewClubCategory('technical');
+                            setIsRegisterClubOpen(true);
+                          }}
+                          className="btn-primary"
+                          style={{ padding: '8px 16px', fontSize: '11px', fontWeight: '800' }}
+                        >
+                          Submit Registration Request
+                        </button>
+                      )}
                     </div>
-                    <div style={styles.clubCard} className="glass-panel">
-                      <h4 style={styles.clubTitle}>SPEC NITH</h4>
-                      <p style={styles.clubDesc}>Society for Promotion of Electronics Culture: Focused on embedded systems, IoT, robotics, and hardware fests.</p>
-                      <span style={styles.clubContact}>Contact: spec@nith.ac.in</span>
+                  ) : (
+                    <div style={styles.subpageList}>
+                      {filteredTechClubs.map((club) => (
+                        <div key={club.id} style={styles.clubCard} className="glass-panel">
+                          <h4 style={styles.clubTitle}>{club.name}</h4>
+                          <p style={styles.clubDesc}>{club.desc}</p>
+                          <span style={styles.clubContact}>Contact: {club.contact}</span>
+                        </div>
+                      ))}
                     </div>
-                    <div style={styles.clubCard} className="glass-panel">
-                      <h4 style={styles.clubTitle}>CSEC NITH</h4>
-                      <p style={styles.clubDesc}>Computer Science Engineers Club: Leading competitive coding events, hackathons, and software engineering preparation.</p>
-                      <span style={styles.clubContact}>Contact: csec@nith.ac.in</span>
-                    </div>
-                  </div>
+                  )}
                 </div>
               );
-            case 'clubs_societies':
+            }
+            case 'clubs_societies': {
+              const filteredClubs = approvedClubs.filter(c => c.category !== 'technical');
               return (
                 <div style={styles.exploreSubpage}>
-                  <div style={styles.subpageHeader}>
-                    <h3 style={styles.subpageTitle}>Clubs & Societies</h3>
-                    <p style={styles.subpageDesc}>Explore cultural, literary, arts, and student groups at NITH</p>
+                  <div style={{ ...styles.subpageHeader, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+                    <div>
+                      <h3 style={styles.subpageTitle}>Clubs & Societies</h3>
+                      <p style={styles.subpageDesc}>Explore cultural, literary, arts, and student groups at NITH</p>
+                    </div>
+                    {user.role !== 'guest' && (
+                      <button
+                        onClick={() => {
+                          setNewClubCategory('cultural');
+                          setIsRegisterClubOpen(true);
+                        }}
+                        className="btn-primary"
+                        style={{ padding: '8px 16px', fontSize: '11px', fontWeight: '800' }}
+                      >
+                        Register a Club
+                      </button>
+                    )}
                   </div>
-                  <div style={styles.subpageList}>
-                    <div style={styles.clubCard} className="glass-panel">
-                      <h4 style={styles.clubTitle}>Pithoo Dramatics Club 🎭</h4>
-                      <p style={styles.clubDesc}>Famous for Street Plays (Nukkad Natak), stage plays, and hosting acting/direction workshops during HillFFair.</p>
+                  
+                  {filteredClubs.length === 0 ? (
+                    <div 
+                      className="glass-panel animate-fade-in" 
+                      style={{ 
+                        padding: '40px 24px', 
+                        textAlign: 'center', 
+                        borderRadius: '12px', 
+                        border: '2px dashed var(--border-subtle)', 
+                        marginTop: '16px',
+                        backgroundColor: '#ffffff'
+                      }}
+                    >
+                      <Sparkles size={40} color="var(--pine-primary)" style={{ marginBottom: '12px', opacity: 0.8, marginLeft: 'auto', marginRight: 'auto' }} />
+                      <h4 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--pine-deep)', margin: '0 0 6px' }}>No Clubs Registered</h4>
+                      <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 16px', maxWidth: '360px', marginLeft: 'auto', marginRight: 'auto' }}>
+                        Be the first to list your cultural, literary, or hobby society on NITH Connect!
+                      </p>
+                      {user.role !== 'guest' && (
+                        <button
+                          onClick={() => {
+                            setNewClubCategory('cultural');
+                            setIsRegisterClubOpen(true);
+                          }}
+                          className="btn-primary"
+                          style={{ padding: '8px 16px', fontSize: '11px', fontWeight: '800' }}
+                        >
+                          Submit Registration Request
+                        </button>
+                      )}
                     </div>
-                    <div style={styles.clubCard} className="glass-panel">
-                      <h4 style={styles.clubTitle}>NITH Music Club 🎸</h4>
-                      <p style={styles.clubDesc}>Home of the campus rock bands, vocalists, acoustic sets, and classical instrumental performances.</p>
+                  ) : (
+                    <div style={styles.subpageList}>
+                      {filteredClubs.map((club) => (
+                        <div key={club.id} style={styles.clubCard} className="glass-panel">
+                          <h4 style={styles.clubTitle}>{club.name}</h4>
+                          <p style={styles.clubDesc}>{club.desc}</p>
+                          <span style={styles.clubContact}>Contact: {club.contact}</span>
+                        </div>
+                      ))}
                     </div>
-                    <div style={styles.clubCard} className="glass-panel">
-                      <h4 style={styles.clubTitle}>Choreography Club 💃</h4>
-                      <p style={styles.clubDesc}>Covers western dance routines, hip-hop, freestyle, and traditional folk dances (like Bhangra) for national events.</p>
-                    </div>
-                    <div style={styles.clubCard} className="glass-panel">
-                      <h4 style={styles.clubTitle}>Literary Society (LitSoc) ✒️</h4>
-                      <p style={styles.clubDesc}>Organizes Model United Nations (MUN), public debating championships, poetry slams, and creative writing contests.</p>
-                    </div>
-                    <div style={styles.clubCard} className="glass-panel">
-                      <h4 style={styles.clubTitle}>Quiz Club (Q-Fi) 🧠</h4>
-                      <p style={styles.clubDesc}>The trivia hub of NITH. Conducts weekly quizzes, campus championships, and participates in national inter-college quiz contests.</p>
-                    </div>
-                    <div style={styles.clubCard} className="glass-panel">
-                      <h4 style={styles.clubTitle}>Fine Arts Society 🎨</h4>
-                      <p style={styles.clubDesc}>Decorates the campus walls with murals, hosts painting and sketching exhibitions, and builds beautiful art fests installations.</p>
-                    </div>
-                  </div>
+                  )}
                 </div>
               );
+            }
             case 'sports':
               return (
                 <div style={styles.exploreSubpage}>
@@ -3299,6 +3405,123 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   </div>
                 )}
               </div>
+              {/* Club Approvals Moderation Section */}
+              <div 
+                className="glass-panel" 
+                style={{ 
+                  gridColumn: '1 / -1', 
+                  padding: '24px', 
+                  backgroundColor: '#ffffff', 
+                  border: '1px solid var(--border-subtle)', 
+                  borderRadius: 'var(--radius-lg)',
+                  marginTop: '16px'
+                }}
+              >
+                <h3 style={{ fontSize: '16px', fontWeight: '800', color: 'var(--pine-deep)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>Club Registration Requests</span>
+                  {clubSubmissions.filter(s => s.status === 'pending').length > 0 && (
+                    <span style={{
+                      backgroundColor: '#e76f51',
+                      color: '#ffffff',
+                      fontSize: '11px',
+                      fontWeight: '800',
+                      padding: '2px 8px',
+                      borderRadius: '10px'
+                    }}>
+                      {clubSubmissions.filter(s => s.status === 'pending').length}
+                    </span>
+                  )}
+                </h3>
+
+                {clubSubmissions.length === 0 ? (
+                  <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                    No club registration requests submitted yet. 🎪
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {clubSubmissions.map((sub) => {
+                      return (
+                        <div 
+                          key={sub.id}
+                          style={{
+                            padding: '16px',
+                            borderRadius: '10px',
+                            border: '1px solid var(--border-subtle)',
+                            backgroundColor: 'rgba(0,0,0,0.01)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '8px'
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                            <div>
+                              <h4 style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-main)', margin: 0 }}>
+                                {sub.name} <span style={{ fontSize: '11px', fontWeight: '500', color: 'var(--pine-primary)', backgroundColor: 'rgba(42,157,143,0.1)', padding: '2px 6px', borderRadius: '4px', marginLeft: '6px' }}>{sub.category}</span>
+                              </h4>
+                              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                Submitted by: <strong>{sub.submitted_by}</strong> ({sub.submitted_by_email})
+                              </span>
+                            </div>
+                            
+                            <span style={{
+                              fontSize: '10px',
+                              backgroundColor: sub.status === 'approved' ? 'rgba(42,157,143,0.15)' : sub.status === 'rejected' ? 'rgba(231,111,81,0.15)' : 'rgba(244,162,97,0.15)',
+                              color: sub.status === 'approved' ? 'var(--pine-primary)' : sub.status === 'rejected' ? '#e76f51' : '#f4a261',
+                              fontWeight: '800',
+                              padding: '2px 8px',
+                              borderRadius: '4px'
+                            }}>
+                              {sub.status.toUpperCase()}
+                            </span>
+                          </div>
+
+                          <p style={{ fontSize: '13px', color: 'var(--text-main)', margin: '4px 0', lineHeight: '1.4' }}>
+                            {sub.desc}
+                          </p>
+                          <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0 }}>
+                            <strong>Contact / Socials:</strong> {sub.contact}
+                          </p>
+
+                          {sub.status === 'pending' && (
+                            <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+                              <button
+                                onClick={async () => {
+                                  const success = await approveClubSubmissionAction(sub.id!, user.email);
+                                  if (success) {
+                                    showToast(`Approved club "${sub.name}"!`, 'success');
+                                    loadClubsData();
+                                  } else {
+                                    showToast('Failed to approve club registration.', 'error');
+                                  }
+                                }}
+                                className="btn-primary"
+                                style={{ padding: '6px 12px', fontSize: '11px', fontWeight: '800' }}
+                              >
+                                Approve & List Club
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  const success = await rejectClubSubmissionAction(sub.id!);
+                                  if (success) {
+                                    showToast('Rejected club request.', 'info');
+                                    loadClubsData();
+                                  } else {
+                                    showToast('Failed to reject request.', 'error');
+                                  }
+                                }}
+                                className="btn-secondary"
+                                style={{ padding: '6px 12px', fontSize: '11px', fontWeight: '800', color: '#e76f51', borderColor: 'rgba(231, 111, 81, 0.2)' }}
+                              >
+                                Reject Request
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         );
@@ -4462,6 +4685,126 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 onClick={() => setIsUploadTimetableOpen(false)}
                 className="btn-secondary" 
                 disabled={isSubmittingTimetable}
+                style={{ flex: 1, padding: '10px' }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Register Club Modal */}
+      {isRegisterClubOpen && (
+        <div style={styles.modalOverlay} onClick={() => setIsRegisterClubOpen(false)}>
+          <div 
+            style={{ ...styles.idCardModal, maxWidth: '480px', width: '92%' }} 
+            className="glass-panel animate-fade-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={styles.modalHeader}>
+              <div>
+                <h3 style={styles.modalTitle}>Register a Club 🎪</h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0' }}>
+                  Submit details of your club or society to the developer for listing approval
+                </p>
+              </div>
+              <button 
+                onClick={() => setIsRegisterClubOpen(false)}
+                style={styles.modalCloseBtn}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '10px' }}>
+              <div>
+                <label style={styles.formLabel}>Club Name</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g. English Debating Club, Glug, SPEC..." 
+                  value={newClubName} 
+                  onChange={(e) => setNewClubName(e.target.value)} 
+                  style={styles.formInput} 
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={styles.formLabel}>Club Category</label>
+                  <select 
+                    value={newClubCategory} 
+                    onChange={(e) => setNewClubCategory(e.target.value)} 
+                    style={{ ...styles.formInput, padding: '8px 12px' }}
+                  >
+                    <option value="cultural">Cultural Club</option>
+                    <option value="technical">Technical Club</option>
+                    <option value="literary">Literary / Hobby Club</option>
+                    <option value="sports">Sports Club / Gym</option>
+                  </select>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={styles.formLabel}>Contact Info</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. instahandle or email" 
+                    value={newClubContact} 
+                    onChange={(e) => setNewClubContact(e.target.value)} 
+                    style={styles.formInput} 
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={styles.formLabel}>Description & Vibe</label>
+                <textarea 
+                  placeholder="What is this club about? Focus, activities, fests details..." 
+                  value={newClubDesc} 
+                  onChange={(e) => setNewClubDesc(e.target.value)} 
+                  style={{ ...styles.formInput, minHeight: '100px', resize: 'vertical' }} 
+                />
+              </div>
+            </div>
+
+            <div style={{ ...styles.idCardActions, marginTop: '20px' }}>
+              <button 
+                onClick={async () => {
+                  if (!newClubName.trim() || !newClubDesc.trim() || !newClubContact.trim()) {
+                    showToast('Please fill out all fields.', 'error');
+                    return;
+                  }
+                  setIsSubmittingClub(true);
+                  const success = await submitClubRequestAction(
+                    newClubName,
+                    newClubDesc,
+                    newClubCategory,
+                    newClubContact,
+                    user.name,
+                    user.email
+                  );
+                  setIsSubmittingClub(true); // set true to keep disabled until finished reloading
+                  if (success) {
+                    showToast('Success! Club request submitted to developer for review.', 'success');
+                    setNewClubName('');
+                    setNewClubDesc('');
+                    setNewClubContact('');
+                    setIsRegisterClubOpen(false);
+                    await loadClubsData();
+                  } else {
+                    showToast('Failed to submit request. Try again.', 'error');
+                  }
+                  setIsSubmittingClub(false);
+                }}
+                className="btn-primary" 
+                disabled={isSubmittingClub}
+                style={{ flex: 1, padding: '10px' }}
+              >
+                {isSubmittingClub ? 'Submitting...' : 'Submit Request'}
+              </button>
+              <button 
+                onClick={() => setIsRegisterClubOpen(false)}
+                className="btn-secondary" 
+                disabled={isSubmittingClub}
                 style={{ flex: 1, padding: '10px' }}
               >
                 Cancel

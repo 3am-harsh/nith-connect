@@ -850,3 +850,157 @@ export async function getUserAchievements(userEmail: string): Promise<{
     return { pathfinderTier: 0, isVisionary: false };
   }
 }
+
+export interface Club {
+  id?: string;
+  name: string;
+  desc: string;
+  category: string;
+  contact: string;
+  approved_by: string;
+  created_at?: string | null;
+}
+
+export interface ClubSubmission {
+  id?: string;
+  name: string;
+  desc: string;
+  category: string;
+  contact: string;
+  status: 'pending' | 'approved' | 'rejected';
+  submitted_by: string;
+  submitted_by_email: string;
+  created_at?: string | null;
+}
+
+export async function submitClubRequest(
+  name: string,
+  desc: string,
+  category: string,
+  contact: string,
+  userName: string,
+  userEmail: string
+): Promise<boolean> {
+  try {
+    await addDoc(collection(db, 'club_submissions'), {
+      name,
+      desc,
+      category,
+      contact,
+      status: 'pending',
+      submitted_by: userName,
+      submitted_by_email: userEmail,
+      created_at: serverTimestamp()
+    });
+    return true;
+  } catch (error) {
+    console.error('Error submitting club request:', error);
+    return false;
+  }
+}
+
+export async function getClubSubmissions(): Promise<ClubSubmission[]> {
+  try {
+    const q = query(collection(db, 'club_submissions'), orderBy('created_at', 'desc'));
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => {
+      const data = doc.data();
+      const createdAt = data.created_at;
+      let serializableCreatedAt = null;
+      if (createdAt && typeof createdAt === 'object') {
+        const ts = createdAt as { toDate?: () => { toISOString: () => string }; seconds?: number };
+        if (typeof ts.toDate === 'function') {
+          serializableCreatedAt = ts.toDate().toISOString();
+        } else if (typeof ts.seconds === 'number') {
+          serializableCreatedAt = new Date(ts.seconds * 1000).toISOString();
+        }
+      } else if (createdAt) {
+        serializableCreatedAt = String(createdAt);
+      }
+      return {
+        id: doc.id,
+        name: data.name || '',
+        desc: data.desc || '',
+        category: data.category || 'cultural',
+        contact: data.contact || '',
+        status: data.status || 'pending',
+        submitted_by: data.submitted_by || '',
+        submitted_by_email: data.submitted_by_email || '',
+        created_at: serializableCreatedAt
+      };
+    });
+  } catch (error) {
+    console.error('Error getting club submissions:', error);
+    return [];
+  }
+}
+
+export async function getApprovedClubs(): Promise<Club[]> {
+  try {
+    const q = query(collection(db, 'clubs'), orderBy('created_at', 'desc'));
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => {
+      const data = doc.data();
+      const createdAt = data.created_at;
+      let serializableCreatedAt = null;
+      if (createdAt && typeof createdAt === 'object') {
+        const ts = createdAt as { toDate?: () => { toISOString: () => string }; seconds?: number };
+        if (typeof ts.toDate === 'function') {
+          serializableCreatedAt = ts.toDate().toISOString();
+        } else if (typeof ts.seconds === 'number') {
+          serializableCreatedAt = new Date(ts.seconds * 1000).toISOString();
+        }
+      } else if (createdAt) {
+        serializableCreatedAt = String(createdAt);
+      }
+      return {
+        id: doc.id,
+        name: data.name || '',
+        desc: data.desc || '',
+        category: data.category || 'cultural',
+        contact: data.contact || '',
+        approved_by: data.approved_by || '',
+        created_at: serializableCreatedAt
+      };
+    });
+  } catch (error) {
+    console.error('Error getting approved clubs:', error);
+    return [];
+  }
+}
+
+export async function approveClubSubmission(submissionId: string, devEmail: string): Promise<boolean> {
+  try {
+    const subRef = doc(db, 'club_submissions', submissionId);
+    const snap = await getDoc(subRef);
+    if (!snap.exists()) return false;
+    
+    const subData = snap.data();
+    
+    await addDoc(collection(db, 'clubs'), {
+      name: subData.name,
+      desc: subData.desc,
+      category: subData.category,
+      contact: subData.contact,
+      approved_by: devEmail,
+      created_at: serverTimestamp()
+    });
+    
+    await updateDoc(subRef, { status: 'approved' });
+    return true;
+  } catch (error) {
+    console.error('Error approving club submission:', error);
+    return false;
+  }
+}
+
+export async function rejectClubSubmission(submissionId: string): Promise<boolean> {
+  try {
+    const subRef = doc(db, 'club_submissions', submissionId);
+    await updateDoc(subRef, { status: 'rejected' });
+    return true;
+  } catch (error) {
+    console.error('Error rejecting club submission:', error);
+    return false;
+  }
+}
