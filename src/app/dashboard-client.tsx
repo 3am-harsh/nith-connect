@@ -41,6 +41,7 @@ import {
   Mountain, 
   Home, 
   Contact, 
+  User,
   Rss, 
   ShoppingBag, 
   BookOpen, 
@@ -188,8 +189,8 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const [activeTab, setActiveTab] = useState<string>('home');
   const [isPending, startTransition] = useTransition();
 
-  // ID Card modal state
-  const [isIdCardOpen, setIsIdCardOpen] = useState(false);
+  // Profile Drawer state
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   // Quick Links modal state
   const [isQuickLinksOpen, setIsQuickLinksOpen] = useState(false);
@@ -3183,11 +3184,11 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
           {user.role !== 'guest' && (
             <button 
-              onClick={() => setIsIdCardOpen(true)}
+              onClick={() => setIsProfileOpen(true)}
               style={styles.navLink}
             >
-              <Contact size={18} color="rgba(255, 255, 255, 0.7)" />
-              <span>Digital ID Card</span>
+              <User size={18} color="rgba(255, 255, 255, 0.7)" />
+              <span>Profile</span>
             </button>
           )}
         </nav>
@@ -3221,16 +3222,16 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         {/* App Topbar - Replicating screenshot */}
         <header style={styles.topbar} className="glass-panel">
           <div style={styles.topbarLeft}>
-            {/* ID Pill */}
+            {/* Profile Pill */}
             {user.role !== 'guest' && (
               <button 
-                onClick={() => setIsIdCardOpen(true)}
+                onClick={() => setIsProfileOpen(true)}
                 style={styles.idPill}
               >
                 <div style={styles.idPillIcon}>
-                  <Contact size={14} color="#ffffff" />
+                  <User size={14} color="#ffffff" />
                 </div>
-                <span style={styles.idPillText}>ID</span>
+                <span style={styles.idPillText}>Profile</span>
               </button>
             )}
           </div>
@@ -3288,121 +3289,199 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         })}
       </nav>
 
-      {/* Digital ID Card Modal / Drawer */}
-      {isIdCardOpen && (
-        <div style={styles.modalOverlay} onClick={() => setIsIdCardOpen(false)}>
-          <div 
-            style={styles.idCardModal} 
-            className="glass-panel animate-fade-in"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div style={styles.modalHeader}>
-              <h3 style={styles.modalTitle}>Student Identity</h3>
-              <button 
-                onClick={() => setIsIdCardOpen(false)}
-                style={styles.modalCloseBtn}
-              >
-                <X size={20} />
-              </button>
+      {/* Profile Sidebar Drawer (Slides left-to-right smoothly) */}
+      <div 
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: isProfileOpen ? 'rgba(14, 61, 47, 0.3)' : 'transparent',
+          backdropFilter: isProfileOpen ? 'blur(6px)' : 'none',
+          pointerEvents: isProfileOpen ? 'auto' : 'none',
+          transition: 'all 0.3s ease-in-out',
+          zIndex: 1100,
+        }}
+        onClick={() => setIsProfileOpen(false)}
+      >
+        <div 
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            maxWidth: '380px',
+            height: '100%',
+            backgroundColor: '#ffffff',
+            borderRight: '1px solid var(--border-subtle)',
+            boxShadow: '4px 0 24px rgba(0, 0, 0, 0.15)',
+            transform: isProfileOpen ? 'translateX(0)' : 'translateX(-100%)',
+            transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+            display: 'flex',
+            flexDirection: 'column',
+            padding: '24px',
+            overflowY: 'auto'
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '24px',
+            borderBottom: '1px solid var(--border-subtle)',
+            paddingBottom: '16px'
+          }}>
+            <div>
+              <h3 style={{ fontSize: '18px', fontWeight: '800', color: 'var(--pine-deep)', margin: 0 }}>Student Profile</h3>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0' }}>Manage achievements & badges</p>
+            </div>
+            <button 
+              onClick={() => setIsProfileOpen(false)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--text-muted)',
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: 'rgba(0,0,0,0.02)',
+                transition: 'all 0.2s'
+              }}
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Profile Quick Summary */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', marginBottom: '24px', textAlign: 'center' }}>
+            <div style={{
+              width: '80px',
+              height: '80px',
+              borderRadius: '50%',
+              border: `3px solid ${user.role === 'developer' ? '#f4a261' : 'var(--pine-primary)'}`,
+              backgroundColor: 'var(--pine-light)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '32px',
+              fontWeight: '800',
+              color: 'var(--pine-deep)',
+              boxShadow: '0 4px 12px rgba(42, 157, 143, 0.15)'
+            }}>
+              {user.name.charAt(0)}
+            </div>
+            <div>
+              <h4 style={{ fontSize: '16px', fontWeight: '800', color: 'var(--text-main)', margin: 0 }}>{user.name}</h4>
+              <span style={{
+                fontSize: '11px',
+                fontWeight: '700',
+                color: user.role === 'developer' ? '#e76f51' : 'var(--pine-primary)',
+                backgroundColor: user.role === 'developer' ? 'rgba(231, 111, 81, 0.1)' : 'rgba(42, 157, 143, 0.1)',
+                padding: '2px 8px',
+                borderRadius: '12px',
+                marginTop: '4px',
+                display: 'inline-block'
+              }}>
+                {user.role === 'developer' ? 'App Developer 🛠️' : 'Student Scholar'}
+              </span>
+            </div>
+          </div>
+
+          {/* Placeholders for future options user wants to define */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
+            <div style={{ padding: '14px', borderRadius: '10px', border: '1px dashed var(--border-subtle)', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+              🎖️ Profile Badges & Achievements coming soon
             </div>
 
-            {/* Premium ID Card Grid */}
-            <div style={styles.idCardLayout}>
-              <div style={styles.idCardBadge}>
-                {/* Header banner */}
-                <div style={styles.idCardHeaderBanner}>
-                  <Mountain size={18} color="#ffffff" />
-                  <span style={styles.idCardHeaderTitle}>NIT HAMIRPUR</span>
-                </div>
-                
-                {/* Body details */}
-                <div style={styles.idCardContent}>
-                  <div style={styles.idCardProfileRow}>
-                    <div style={{
-                      ...styles.idCardAvatar,
-                      borderColor: user.role === 'developer' ? '#f4a261' : 'rgba(255,255,255,0.4)',
-                      backgroundColor: user.role === 'developer' ? 'rgba(244, 162, 97, 0.15)' : 'rgba(255,255,255,0.08)'
-                    }}>
-                      {user.name.charAt(0)}
-                    </div>
-                    <div style={styles.idCardMainDetails}>
-                      <h4 style={styles.idCardName}>{user.name}</h4>
-                      <p style={{
-                        ...styles.idCardRoleText,
-                        color: user.role === 'developer' ? '#f4a261' : '#a7f3d0'
-                      }}>
-                        {user.role === 'developer' 
-                          ? 'App Developer 🛠️' 
-                          : user.role === 'guest' 
-                            ? 'Campus Guest' 
-                            : 'Student Scholar'}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div style={styles.idCardDetailsGrid}>
-                    <div style={styles.idCardDetailItem}>
-                      <span style={styles.idCardLabel}>Roll No:</span>
-                      <span style={styles.idCardVal}>{user.roll_number || 'N/A'}</span>
-                    </div>
-                    <div style={styles.idCardDetailItem}>
-                      <span style={styles.idCardLabel}>Department:</span>
-                      <span style={styles.idCardVal}>{user.department || 'Visitor'}</span>
-                    </div>
-                    <div style={styles.idCardDetailItem}>
-                      <span style={styles.idCardLabel}>Hostel:</span>
-                      <span style={styles.idCardVal}>{user.hostel || 'Guest House'}</span>
-                    </div>
-                    {user.blood_group && (
-                      <div style={styles.idCardDetailItem}>
-                        <span style={styles.idCardLabel}>Blood Group:</span>
-                        <span style={styles.idCardVal}>{user.blood_group}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Scannable Vector QR Code */}
-                  <div style={styles.idCardQrWrapper}>
-                    <div style={{
-                      padding: '12px',
-                      backgroundColor: '#ffffff',
-                      borderRadius: '12px',
-                      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}>
-                      <svg width="110" height="110" viewBox="0 0 29 29" style={{ shapeRendering: 'crispEdges' }}>
-                        <path fill="#ffffff" d="M0 0h29v29H0z"/>
-                        <path fill="#0e3d2f" d="M0 0h7v7H0zm22 0h7v7h-7zM0 22h7v7H0zm9 0h1v1H9zm1-1h1v1h-1zm1 2h1v1h-1zm-2 1h1v1H9zm1 1h1v1h-1zm1-2h1v1h-1zm1 3h1v1h-1zm-2 1h1v1H9zm4-8h1v1h-1zm1 1h1v1h-1zm-1-2h1v1h-1zm2 1h1v1h-1zm1 2h1v1h-1zm-2 1h1v1h-1zm1 1h1v1h-1zm1-2h1v1h-1zm1 3h1v1h-1zm-2 1h1v1h-1zm6-6h1v1h-1zm1 1h1v1h-1zm-1-2h1v1h-1zm2 1h1v1h-1zm1 2h1v1h-1zm-2 1h1v1h-1zm1 1h1v1h-1zm1-2h1v1h-1zm1 3h1v1h-1zm-2 1h1v1h-1zM2 2h3v3H2zm20 0h3v3h-3zM2 24h3v3H2zm8-16h1v1h-1zm1 1h1v1h-1zm-1-2h1v1h-1zm2 1h1v1h-1zm1 2h1v1h-1zm-2 1h1v1h-1zm1 1h1v1h-1zm1-2h1v1h-1zm1 3h1v1h-1zm-2 1h1v1h-1zm6-6h1v1h-1zm1 1h1v1h-1zm-1-2h1v1h-1zm2 1h1v1h-1zm1 2h1v1h-1zm-2 1h1v1h-1zm1 1h1v1h-1zm1-2h1v1h-1zm1 3h1v1h-1zm-2 1h1v1h-1zm-8 4h1v1h-1zm1 1h1v1h-1zm-1-2h1v1h-1zm2 1h1v1h-1zm1 2h1v1h-1zm-2 1h1v1h-1zm1 1h1v1h-1zm1-2h1v1h-1zm1 3h1v1h-1zm-2 1h1v1h-1zm6-6h1v1h-1zm1 1h1v1h-1zm-1-2h1v1h-1zm2 1h1v1h-1zm1 2h1v1h-1zm-2 1h1v1h-1zm1 1h1v1h-1zm1-2h1v1h-1zm1 3h1v1h-1zm-2 1h1v1h-1z"/>
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div style={styles.idCardActions}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
+              <span style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-placeholder)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Account Settings</span>
+              
               <button 
-                onClick={() => showToast('Identity pass downloaded successfully.', 'success')}
-                className="btn-primary" 
-                style={{ flex: 1, padding: '10px' }}
+                onClick={() => showToast('Profile settings are read-only.', 'info')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-subtle)',
+                  backgroundColor: '#ffffff',
+                  color: 'var(--text-main)',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'background-color 0.2s'
+                }}
               >
-                <Download size={14} style={{ marginRight: 6 }} /> Download Pass
+                <span>Department:</span>
+                <span style={{ marginLeft: 'auto', color: 'var(--text-muted)', fontWeight: '500' }}>{user.department || 'Visitor'}</span>
               </button>
+
               <button 
-                onClick={() => setIsIdCardOpen(false)}
-                className="btn-secondary" 
-                style={{ flex: 1, padding: '10px' }}
+                onClick={() => showToast('Profile settings are read-only.', 'info')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-subtle)',
+                  backgroundColor: '#ffffff',
+                  color: 'var(--text-main)',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'background-color 0.2s'
+                }}
               >
-                Close View
+                <span>Roll Number:</span>
+                <span style={{ marginLeft: 'auto', color: 'var(--text-muted)', fontWeight: '500' }}>{user.roll_number || 'N/A'}</span>
+              </button>
+
+              <button 
+                onClick={() => showToast('Profile settings are read-only.', 'info')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-subtle)',
+                  backgroundColor: '#ffffff',
+                  color: 'var(--text-main)',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'background-color 0.2s'
+                }}
+              >
+                <span>Hostel Residence:</span>
+                <span style={{ marginLeft: 'auto', color: 'var(--text-muted)', fontWeight: '500' }}>{user.hostel || 'Guest House'}</span>
               </button>
             </div>
           </div>
+
+          <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <button 
+              onClick={() => setIsProfileOpen(false)}
+              className="btn-primary"
+              style={{ width: '100%', padding: '12px' }}
+            >
+              Close Profile
+            </button>
+          </div>
         </div>
-      )}
+      </div>
 
       {/* Quick Links Modal */}
       {isQuickLinksOpen && (
