@@ -12,6 +12,12 @@ const config: CapacitorConfig = {
     Keyboard: {
       resize: 'body',
       style: 'dark'
+    },
+    CapacitorCookies: {
+      enabled: true
+    },
+    CapacitorHttp: {
+      enabled: true
     }
   }
 };
