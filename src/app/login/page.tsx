@@ -102,15 +102,15 @@ export default function LoginPage() {
                   <path fill="#FBBC05" d="M5.27 14.36c-.25-.76-.39-1.57-.39-2.36s.14-1.6.39-2.36V6.79H1.02C.37 8.09 0 9.56 0 11.12s.37 3.03 1.02 4.33l4.25-3.09z"/>
                   <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.23 0 3.01 1.82 1.02 4.88l4.25 3.09c.95-2.85 3.6-4.96 6.73-4.96z"/>
                 </svg>
-                <span>Sign In with Google</span>
+                <span>Continue with Google</span>
               </button>
-
+ 
               <div style={styles.divider}>
                 <div style={styles.dividerLine} />
                 <span style={styles.dividerText}>or bypass with Developer Mode</span>
                 <div style={styles.dividerLine} />
               </div>
-
+ 
               {/* Dev mode options */}
               <div style={styles.devButtons}>
                 <button 
@@ -142,7 +142,7 @@ export default function LoginPage() {
           ) : (
             /* Simulated Google Sign In Modal Form */
             <form onSubmit={handleGoogleSimulate} style={styles.form}>
-              <h3 style={styles.formTitle}>Simulate Google Sign-In</h3>
+              <h3 style={styles.formTitle}>Continue with Google</h3>
               <p style={styles.formSubtitle}>Enter details matching your NITH email domain credentials.</p>
               
               <div className="form-group">
@@ -259,7 +259,7 @@ export default function LoginPage() {
                   style={{padding: '10px 20px', flex: 1}}
                 >
                   <LogIn size={16} />
-                  <span>{isPending ? 'Signing In...' : 'Verify & Sign In'}</span>
+                  <span>{isPending ? 'Connecting...' : 'Verify & Continue'}</span>
                 </button>
               </div>
             </form>
