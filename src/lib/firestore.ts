@@ -1381,3 +1381,69 @@ export async function updateFirestoreUser(userId: string, data: Partial<Firestor
     return false;
   }
 }
+
+export interface DirectoryContact {
+  id: string;
+  name: string;
+  category: string;
+  subtext: string;
+  phone: string;
+}
+
+export async function getFirestoreDirectoryContacts(): Promise<DirectoryContact[]> {
+  try {
+    const snap = await getDocs(collection(db, 'directory_contacts'));
+    const list = snap.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as DirectoryContact[];
+    
+    // Seed initial contacts if database is empty
+    if (list.length === 0) {
+      const initial = [
+        { name: "Campus Security Guard", category: "🚨 Emergency & Security", subtext: "Main Gate Helpdesk", phone: "+911972254011" },
+        { name: "NITH Health Centre", category: "🚨 Emergency & Security", subtext: "Ambulance Services", phone: "+911972254900" },
+        { name: "Karan Singh (Auto)", category: "🛺 Campus Auto Rickshaws", subtext: "Available: 7 AM - 9 PM", phone: "+919816045123" },
+        { name: "Ramesh Kumar (Auto)", category: "🛺 Campus Auto Rickshaws", subtext: "Available: 8 AM - 10 PM", phone: "+919418123456" },
+        { name: "Surjeet Auto Service", category: "🛺 Campus Auto Rickshaws", subtext: "Available: 24/7 (Emergency)", phone: "+918219012345" },
+        { name: "SBI NITH Branch", category: "🏢 Academic & Bank Contacts", subtext: "Queries & Banking desks", phone: "+911972254350" },
+        { name: "Academic Branch Desk", category: "🏢 Academic & Bank Contacts", subtext: "Student Section Office", phone: "+911972254077" }
+      ];
+      
+      for (const item of initial) {
+        await addDoc(collection(db, 'directory_contacts'), item);
+      }
+      
+      const freshSnap = await getDocs(collection(db, 'directory_contacts'));
+      return freshSnap.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as DirectoryContact[];
+    }
+    
+    return list;
+  } catch (error) {
+    console.error('Error fetching directory contacts:', error);
+    return [];
+  }
+}
+
+export async function createFirestoreDirectoryContact(contact: Omit<DirectoryContact, 'id'>): Promise<boolean> {
+  try {
+    await addDoc(collection(db, 'directory_contacts'), contact);
+    return true;
+  } catch (error) {
+    console.error('Error adding directory contact:', error);
+    return false;
+  }
+}
+
+export async function deleteFirestoreDirectoryContact(contactId: string): Promise<boolean> {
+  try {
+    await deleteDoc(doc(db, 'directory_contacts', contactId));
+    return true;
+  } catch (error) {
+    console.error('Error deleting directory contact:', error);
+    return false;
+  }
+}

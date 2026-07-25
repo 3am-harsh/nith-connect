@@ -30,6 +30,11 @@ import {
 } from './actions/chat';
 import { fetchUserProfile, updateUserProfile } from './actions/profile';
 import { 
+  fetchDirectoryContactsAction,
+  addDirectoryContactAction,
+  deleteDirectoryContactAction
+} from './actions/directory';
+import { 
   getMarketplaceItemsAction, 
   createMarketplaceItemAction, 
   updateMarketplaceItemStatusAction 
@@ -73,7 +78,8 @@ import {
   type ClubSubmission,
   type AcademicFile,
   type AcademicTab,
-  type FirestoreUser
+  type FirestoreUser,
+  type DirectoryContact
 } from '@/lib/firestore';
 import { 
   Mountain, 
@@ -107,7 +113,8 @@ import {
   Globe,
   Phone,
   ShieldAlert,
-  Lock
+  Lock,
+  Trash2
 } from 'lucide-react';
 
 interface ClassSlot {
@@ -254,6 +261,14 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
   // Quick Links modal state
   const [isQuickLinksOpen, setIsQuickLinksOpen] = useState(false);
+
+  // Dynamic Campus Directory States
+  const [directoryContacts, setDirectoryContacts] = useState<DirectoryContact[]>([]);
+  const [newContactName, setNewContactName] = useState('');
+  const [newContactPhone, setNewContactPhone] = useState('');
+  const [newContactCategory, setNewContactCategory] = useState('🚨 Emergency & Security');
+  const [newContactSubtext, setNewContactSubtext] = useState('');
+  const [isAddingContact, setIsAddingContact] = useState(false);
 
   // Announcements Feed States
   const [announcements, setAnnouncements] = useState<FirestoreAnnouncement[]>([]);
@@ -602,6 +617,27 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     }
   };
 
+  const loadDirectoryContacts = async () => {
+    try {
+      // 1. Try local storage cache first
+      if (typeof window !== 'undefined') {
+        const cached = localStorage.getItem('nith_campus_directory');
+        if (cached) {
+          setDirectoryContacts(JSON.parse(cached));
+        }
+      }
+      // 2. Revalidate from server
+      const data = await fetchDirectoryContactsAction();
+      setDirectoryContacts(data);
+      // 3. Write back to cache
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('nith_campus_directory', JSON.stringify(data));
+      }
+    } catch (err) {
+      console.error('Failed to load directory contacts:', err);
+    }
+  };
+
   useEffect(() => {
     let active = true;
     const loadData = async () => {
@@ -625,6 +661,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           loadReportedMessages();
           loadBlockedWords();
           loadCurrentUserProfile();
+          loadDirectoryContacts();
           if (user.role === 'developer') {
             const subs = await fetchTimetableSubmissions();
             setTimetableSubmissions(subs);
@@ -5146,105 +5183,144 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             </div>
 
             {/* Contacts List */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '55vh', overflowY: 'auto', paddingRight: '4px', marginTop: '12px' }}>
-              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px', textAlign: 'center', lineHeight: '1.4' }}>
-                Instant dial links for essential campus helplines, auto-rickshaws, and emergency services.
-              </p>
+            {(() => {
+              const categories: Record<string, DirectoryContact[]> = {};
+              directoryContacts.forEach(contact => {
+                const cat = contact.category || 'Other';
+                if (!categories[cat]) categories[cat] = [];
+                categories[cat].push(contact);
+              });
               
-              {/* Category: Emergency */}
-              <div>
-                <span style={{ fontSize: '10px', fontWeight: '800', color: '#e76f51', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '8px' }}>
-                  🚨 Emergency & Security
-                </span>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg-input)', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                    <div>
-                      <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-main)' }}>Campus Security Guard</div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Main Gate Helpdesk</div>
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '42vh', overflowY: 'auto', paddingRight: '4px', marginTop: '12px' }}>
+                  {directoryContacts.length === 0 ? (
+                    <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12.5px' }}>
+                      No contacts logged in directory.
                     </div>
-                    <a href="tel:+911972254011" style={{ fontSize: '11.5px', fontWeight: '800', color: 'var(--pine-primary)', textDecoration: 'none', backgroundColor: '#ffffff', padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
-                      Call Guard
-                    </a>
-                  </div>
-                  
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg-input)', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                    <div>
-                      <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-main)' }}>NITH Health Centre</div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Ambulance Services</div>
-                    </div>
-                    <a href="tel:+911972254900" style={{ fontSize: '11.5px', fontWeight: '800', color: '#e76f51', textDecoration: 'none', backgroundColor: '#ffffff', padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
-                      Call Ambulance
-                    </a>
-                  </div>
+                  ) : (
+                    Object.keys(categories).map(catName => (
+                      <div key={catName}>
+                        <span style={{ fontSize: '10px', fontWeight: '800', color: catName.includes('🚨') ? '#e76f51' : catName.includes('🛺') ? 'var(--pine-primary)' : 'var(--text-placeholder)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '8px' }}>
+                          {catName}
+                        </span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {categories[catName].map(contact => (
+                            <div key={contact.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg-input)', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                              <div>
+                                <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-main)' }}>{contact.name}</div>
+                                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{contact.subtext}</div>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <a href={`tel:${contact.phone}`} style={{ fontSize: '11.5px', fontWeight: '800', color: 'var(--pine-primary)', textDecoration: 'none', backgroundColor: '#ffffff', padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
+                                  Call
+                                </a>
+                                {user.role === 'developer' && (
+                                  <button
+                                    onClick={async () => {
+                                      if (!confirm(`Delete contact "${contact.name}"?`)) return;
+                                      const success = await deleteDirectoryContactAction(contact.id);
+                                      if (success) {
+                                        showToast("Contact deleted.", "success");
+                                        await loadDirectoryContacts();
+                                      } else {
+                                        showToast("Failed to delete contact.", "error");
+                                      }
+                                    }}
+                                    style={{
+                                      background: 'rgba(239, 68, 68, 0.08)',
+                                      border: '1px solid rgba(239, 68, 68, 0.2)',
+                                      color: '#ef4444',
+                                      width: '28px',
+                                      height: '28px',
+                                      borderRadius: '6px',
+                                      cursor: 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      transition: 'all 0.2s'
+                                    }}
+                                    title="Delete contact"
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
-              </div>
+              );
+            })()}
 
-              {/* Category: Auto Rickshaws */}
-              <div>
-                <span style={{ fontSize: '10px', fontWeight: '800', color: 'var(--pine-primary)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '8px' }}>
-                  🛺 Campus Auto Rickshaws
-                </span>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg-input)', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                    <div>
-                      <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-main)' }}>Karan Singh (Auto)</div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Available: 7 AM - 9 PM</div>
-                    </div>
-                    <a href="tel:+919816045123" style={{ fontSize: '11.5px', fontWeight: '800', color: 'var(--pine-primary)', textDecoration: 'none', backgroundColor: '#ffffff', padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
-                      Call Auto
-                    </a>
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg-input)', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                    <div>
-                      <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-main)' }}>Ramesh Kumar (Auto)</div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Available: 8 AM - 10 PM</div>
-                    </div>
-                    <a href="tel:+919418123456" style={{ fontSize: '11.5px', fontWeight: '800', color: 'var(--pine-primary)', textDecoration: 'none', backgroundColor: '#ffffff', padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
-                      Call Auto
-                    </a>
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg-input)', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                    <div>
-                      <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-main)' }}>Surjeet Auto Service</div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Available: 24/7 (Emergency)</div>
-                    </div>
-                    <a href="tel:+918219012345" style={{ fontSize: '11.5px', fontWeight: '800', color: 'var(--pine-primary)', textDecoration: 'none', backgroundColor: '#ffffff', padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
-                      Call Auto
-                    </a>
-                  </div>
+            {/* Developer Add Contact Form */}
+            {user.role === 'developer' && (
+              <div style={{ padding: '12px', border: '1px solid var(--border-subtle)', borderRadius: '8px', marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px', backgroundColor: 'var(--bg-input)' }}>
+                <span style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-main)' }}>Add Directory Contact (Dev Mode 🛠️)</span>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                  <input
+                    type="text"
+                    placeholder="Contact Name"
+                    value={newContactName}
+                    onChange={(e) => setNewContactName(e.target.value)}
+                    style={{ padding: '6px', fontSize: '11.5px', borderRadius: '4px', border: '1px solid var(--border-subtle)', outline: 'none' }}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Phone/Dial Number"
+                    value={newContactPhone}
+                    onChange={(e) => setNewContactPhone(e.target.value)}
+                    style={{ padding: '6px', fontSize: '11.5px', borderRadius: '4px', border: '1px solid var(--border-subtle)', outline: 'none' }}
+                  />
                 </div>
-              </div>
-
-              {/* Category: Support Desks */}
-              <div>
-                <span style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-placeholder)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '8px' }}>
-                  🏢 Academic & Bank Contacts
-                </span>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg-input)', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                    <div>
-                      <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-main)' }}>SBI NITH Branch</div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Queries & Banking desks</div>
-                    </div>
-                    <a href="tel:+911972254350" style={{ fontSize: '11.5px', fontWeight: '800', color: 'var(--pine-primary)', textDecoration: 'none', backgroundColor: '#ffffff', padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
-                      Call SBI
-                    </a>
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg-input)', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                    <div>
-                      <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-main)' }}>Academic Branch Desk</div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Student Section Office</div>
-                    </div>
-                    <a href="tel:+911972254077" style={{ fontSize: '11.5px', fontWeight: '800', color: 'var(--pine-primary)', textDecoration: 'none', backgroundColor: '#ffffff', padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
-                      Call Office
-                    </a>
-                  </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                  <select
+                    value={newContactCategory}
+                    onChange={(e) => setNewContactCategory(e.target.value)}
+                    style={{ padding: '6px', fontSize: '11.5px', borderRadius: '4px', border: '1px solid var(--border-subtle)', backgroundColor: '#ffffff', outline: 'none' }}
+                  >
+                    <option value="🚨 Emergency & Security">🚨 Emergency & Security</option>
+                    <option value="🛺 Campus Auto Rickshaws">🛺 Campus Auto Rickshaws</option>
+                    <option value="🏢 Academic & Bank Contacts">🏢 Academic & Bank Contacts</option>
+                  </select>
+                  <input
+                    type="text"
+                    placeholder="Note (e.g. Available 24/7)"
+                    value={newContactSubtext}
+                    onChange={(e) => setNewContactSubtext(e.target.value)}
+                    style={{ padding: '6px', fontSize: '11.5px', borderRadius: '4px', border: '1px solid var(--border-subtle)', outline: 'none' }}
+                  />
                 </div>
+                <button
+                  disabled={isAddingContact || !newContactName.trim() || !newContactPhone.trim()}
+                  onClick={async () => {
+                    setIsAddingContact(true);
+                    const success = await addDirectoryContactAction({
+                      name: newContactName,
+                      phone: newContactPhone,
+                      category: newContactCategory,
+                      subtext: newContactSubtext
+                    });
+                    setIsAddingContact(false);
+                    if (success) {
+                      showToast("Contact added successfully!", "success");
+                      setNewContactName('');
+                      setNewContactPhone('');
+                      setNewContactSubtext('');
+                      await loadDirectoryContacts();
+                    } else {
+                      showToast("Failed to add contact.", "error");
+                    }
+                  }}
+                  className="btn-primary"
+                  style={{ padding: '8px', fontSize: '11px', fontWeight: '800' }}
+                >
+                  {isAddingContact ? 'Adding...' : 'Add Contact'}
+                </button>
               </div>
-            </div>
+            )}
 
             <button 
               onClick={() => setIsQuickLinksOpen(false)}
