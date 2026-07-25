@@ -971,6 +971,34 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               </div>
             </div>
 
+            {/* Academics Banner */}
+            <div 
+              style={{
+                background: 'linear-gradient(135deg, #3d5a80 0%, #5e60ce 100%)',
+                borderRadius: 'var(--radius-md)',
+                padding: '20px 24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                color: '#ffffff',
+                position: 'relative',
+                overflow: 'hidden',
+                boxShadow: '0 6px 20px rgba(61, 90, 128, 0.2)',
+              }}
+              onClick={() => setActiveTab('explore')}
+              className="glass-panel-hover"
+            >
+              <div style={styles.qrBannerGlow} />
+              <div style={styles.qrBannerText}>
+                <h3 style={styles.qrBannerTitle}>Academics</h3>
+                <p style={styles.qrBannerSubtitle}>Timetables, syllabus & resources</p>
+              </div>
+              <div style={styles.qrBannerIconBg}>
+                <BookOpen size={40} color="#ffffff" style={{ opacity: 0.95 }} />
+              </div>
+            </div>
+
             {/* Services Section - Replicating screenshot */}
             <div style={styles.servicesSection}>
               <h3 style={styles.servicesHeader}>Services</h3>
