@@ -1320,7 +1320,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   ) : (
                     <div style={styles.subpageList}>
                       {filteredTechClubs.map((club) => (
-                        <div key={club.id} className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', borderRadius: '12px', border: '1px solid var(--border-subtle)', backgroundColor: '#ffffff' }}>
+                        <div key={club.id || club.name} className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', borderRadius: '12px', border: '1px solid var(--border-subtle)', backgroundColor: '#ffffff' }}>
                           <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '800', color: 'var(--text-main)' }}>{club.name}</h4>
                           <p style={{ margin: '4px 0', fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4' }}>{club.desc}</p>
                           
@@ -1405,7 +1405,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   ) : (
                     <div style={styles.subpageList}>
                       {filteredClubs.map((club) => (
-                        <div key={club.id} className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', borderRadius: '12px', border: '1px solid var(--border-subtle)', backgroundColor: '#ffffff' }}>
+                        <div key={club.id || club.name} className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', borderRadius: '12px', border: '1px solid var(--border-subtle)', backgroundColor: '#ffffff' }}>
                           <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '800', color: 'var(--text-main)' }}>{club.name}</h4>
                           <p style={{ margin: '4px 0', fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4' }}>{club.desc}</p>
                           
@@ -3482,7 +3482,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     {clubSubmissions.map((sub) => {
                       return (
                         <div 
-                          key={sub.id}
+                          key={sub.id || sub.name}
                           style={{
                             padding: '16px',
                             borderRadius: '10px',
