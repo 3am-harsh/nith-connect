@@ -2269,6 +2269,11 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             return;
           }
 
+          if (newItemContact.replace(/\D/g, '').length !== 10) {
+            showToast('Please enter a valid 10-digit phone number.', 'error');
+            return;
+          }
+
           const success = await createLostFoundItemAction(
             newItemTitle,
             newItemDesc,
@@ -2632,13 +2637,15 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     </div>
 
                     <div>
-                      <label style={styles.formLabel}>Contact Details *</label>
+                      <label style={styles.formLabel}>Contact Details (10-Digit Phone Number) *</label>
                       <input 
-                        type="text" 
+                        type="tel" 
                         required
-                        placeholder="e.g. Phone number or email..." 
+                        maxLength={10}
+                        pattern="[0-9]{10}"
+                        placeholder="e.g. 9816012345" 
                         value={newItemContact} 
-                        onChange={(e) => setNewItemContact(e.target.value)} 
+                        onChange={(e) => setNewItemContact(e.target.value.replace(/\D/g, ''))} 
                         style={styles.formInput} 
                       />
                     </div>
@@ -5449,6 +5456,11 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 return;
               }
 
+              if (newListingContact.replace(/\D/g, '').length !== 10) {
+                showToast('Please enter a valid 10-digit WhatsApp number.', 'error');
+                return;
+              }
+
               const originalVal = Number(newListingOriginalPrice) || Number(newListingSellingPrice);
               const sellingVal = Number(newListingSellingPrice);
 
@@ -5637,12 +5649,14 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
               {/* Contact number */}
               <div>
-                <label style={styles.formLabel}>WhatsApp Contact Number *</label>
+                <label style={styles.formLabel}>WhatsApp Contact Number (10-Digit Phone Number) *</label>
                 <input 
-                  type="text" 
-                  placeholder="e.g. 9816012345 (no spaces/dashes)"
+                  type="tel" 
+                  maxLength={10}
+                  pattern="[0-9]{10}"
+                  placeholder="e.g. 9816012345"
                   value={newListingContact}
-                  onChange={(e) => setNewListingContact(e.target.value)}
+                  onChange={(e) => setNewListingContact(e.target.value.replace(/\D/g, ''))}
                   style={styles.formInput}
                   required
                 />
