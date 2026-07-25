@@ -505,7 +505,9 @@ export async function getFirestoreMessages(chatroomId: string): Promise<Firestor
   try {
     const q = query(
       collection(db, 'messages'),
-      where('chatroom_id', '==', chatroomId)
+      where('chatroom_id', '==', chatroomId),
+      orderBy('created_at', 'desc'),
+      limit(100)
     );
     const snap = await getDocs(q);
     const msgs = snap.docs.map(doc => {
