@@ -845,7 +845,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   <h3 style={styles.messTitle}>Today&apos;s Classes</h3>
                   <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                     {currentDayName === 'Saturday' || currentDayName === 'Sunday' 
-                      ? 'Weekend Preview (Monday)' 
+                      ? 'Weekend (Holiday)' 
                       : `${currentDayName}, ${new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`}
                   </span>
                 </div>
@@ -1019,8 +1019,55 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 const isMockPrefilled = !!timetablesData[key];
                 
                 if (isMockPrefilled) {
+                  const isWeekend = currentDayName === 'Saturday' || currentDayName === 'Sunday';
+                  
+                  if (isWeekend) {
+                    return (
+                      <div 
+                        onClick={() => setIsTimetableModalOpen(true)}
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '12px',
+                          padding: '24px 16px',
+                          borderRadius: '12px',
+                          border: '1px solid var(--border-subtle)',
+                          background: 'linear-gradient(135deg, rgba(244, 162, 97, 0.08) 0%, rgba(42, 157, 143, 0.05) 100%)',
+                          textAlign: 'center',
+                          marginTop: '4px',
+                          cursor: 'pointer'
+                        }}
+                        className="glass-panel-hover"
+                      >
+                        <div style={{
+                          width: '48px',
+                          height: '48px',
+                          borderRadius: '50%',
+                          backgroundColor: 'rgba(244, 162, 97, 0.15)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#f4a261',
+                          fontSize: '22px'
+                        }}>
+                          🌴
+                        </div>
+                        <div>
+                          <h4 style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-main)', margin: '0 0 4px 0' }}>
+                            Weekend Holiday
+                          </h4>
+                          <p style={{ fontSize: '11.5px', color: 'var(--text-muted)', margin: 0 }}>
+                            No classes scheduled for today. Enjoy your weekend!
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  }
+
                   const timeSlots = ['9-10', '10-11', '11-12', '12-1', '1-2', '2-3', '3-4', '4-5', '5-6'];
-                  const activeDayName = (currentDayName === 'Saturday' || currentDayName === 'Sunday') ? 'Monday' : currentDayName;
+                  const activeDayName = currentDayName;
                   const dayClasses = getActiveTimetableMap()[activeDayName] || [];
 
                   const gridSlots = timeSlots.map(slotTime => {
