@@ -185,6 +185,52 @@ const weeklyTimetable: Record<string, ClassSlot[]> = {
   Sunday: []
 };
 
+const timetablesData: Record<string, Record<string, ClassSlot[]>> = {
+  '1st Year_A': weeklyTimetable,
+  '2nd Year_A_ECE': {
+    Monday: [
+      { time: '9-10', subject: 'Maths (MA-218)', code: 'MA-218', room: 'Shru' },
+      { time: '10-11', subject: 'EC-213', code: 'EC-213', room: 'SB' },
+      { time: '11-12', subject: 'EC-214', code: 'EC-214', room: 'AR' },
+      { time: '12-1', subject: 'EC-211', code: 'EC-211', room: 'AB' },
+      { time: '1-2', subject: 'Lunch Break', code: 'LUNCH', room: 'Mess', isLunch: true },
+      { time: '3-4', subject: 'EC-216 (G1) / EC-218 (G2)', code: 'LAB', room: 'Lab' },
+      { time: '4-5', subject: 'EC-216 (G1) / EC-218 (G2)', code: 'LAB', room: 'Lab' }
+    ],
+    Tuesday: [
+      { time: '9-10', subject: 'Maths (MA-218)', code: 'MA-218', room: 'Shru' },
+      { time: '10-11', subject: 'EC-212', code: 'EC-212', room: 'RD' },
+      { time: '11-12', subject: 'EC-214', code: 'EC-214', room: 'AR' },
+      { time: '12-1', subject: 'EC-211', code: 'EC-211', room: 'AB' },
+      { time: '1-2', subject: 'Lunch Break', code: 'LUNCH', room: 'Mess', isLunch: true },
+      { time: '3-4', subject: 'EC-217 (G1) / EC-216 (G2)', code: 'LAB', room: 'Lab' },
+      { time: '4-5', subject: 'EC-217 (G1) / EC-216 (G2)', code: 'LAB', room: 'Lab' }
+    ],
+    Wednesday: [
+      { time: '9-10', subject: 'Maths (MA-218)', code: 'MA-218', room: 'Shru' },
+      { time: '10-11', subject: 'EC-212', code: 'EC-212', room: 'RD' },
+      { time: '11-12', subject: 'EC-214', code: 'EC-214', room: 'AR' },
+      { time: '12-1', subject: 'EC-211', code: 'EC-211', room: 'AB' },
+      { time: '1-2', subject: 'Lunch Break', code: 'LUNCH', room: 'Mess', isLunch: true },
+      { time: '3-4', subject: 'EC-218 (G1) / EC-217 (G2)', code: 'LAB', room: 'Lab' },
+      { time: '4-5', subject: 'EC-218 (G1) / EC-217 (G2)', code: 'LAB', room: 'Lab' }
+    ],
+    Thursday: [
+      { time: '1-2', subject: 'Lunch Break', code: 'LUNCH', room: 'Mess', isLunch: true },
+      { time: '2-3', subject: 'EC-212', code: 'EC-212', room: 'RD' },
+      { time: '3-4', subject: 'EC-215', code: 'EC-215', room: 'AB' },
+      { time: '4-5', subject: 'EC-213', code: 'EC-213', room: 'SB' }
+    ],
+    Friday: [
+      { time: '1-2', subject: 'Lunch Break', code: 'LUNCH', room: 'Mess', isLunch: true },
+      { time: '2-3', subject: 'EC-213', code: 'EC-213', room: 'SB' },
+      { time: '3-4', subject: 'EC-215', code: 'EC-215', room: 'AB' }
+    ],
+    Saturday: [],
+    Sunday: []
+  }
+};
+
 const parseSlotHours = (slotTime: string): { start: number; end: number } => {
   switch (slotTime) {
     case '9-10': return { start: 9, end: 10 };
@@ -331,6 +377,30 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const [uploadTimetableFileName, setUploadTimetableFileName] = useState('');
   const [isSubmittingTimetable, setIsSubmittingTimetable] = useState(false);
   const [timetableModalViewMode, setTimetableModalViewMode] = useState<'grid' | 'image'>('grid');
+
+  // Helper to get active prefilled timetable map
+  const getActiveTimetableMap = (): Record<string, ClassSlot[]> => {
+    let branchCode = 'CSE';
+    if (selectedBranch.includes('Electronics') || selectedBranch === 'ECE') {
+      branchCode = 'ECE';
+    } else if (selectedBranch.includes('Electrical')) {
+      branchCode = 'EE';
+    } else if (selectedBranch.includes('Mechanical')) {
+      branchCode = 'ME';
+    } else if (selectedBranch.includes('Civil')) {
+      branchCode = 'CE';
+    } else if (selectedBranch.includes('Chemical')) {
+      branchCode = 'CH';
+    } else if (selectedBranch.includes('Material')) {
+      branchCode = 'MS';
+    }
+    
+    const key = selectedYear === '1st Year'
+      ? `1st Year_${selectedSection}`
+      : `${selectedYear}_${selectedSection}_${branchCode}`;
+      
+    return timetablesData[key] || timetablesData['1st Year_A'] || weeklyTimetable;
+  };
 
   // Feedback Suggestions and Achievements states
   const [userAchievements, setUserAchievements] = useState<{ pathfinderTier: number; isVisionary: boolean }>({ pathfinderTier: 0, isVisionary: false });
@@ -941,12 +1011,17 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   );
                 }
 
-                const isMockPrefilled = selectedYear === '1st Year' && selectedSection === 'A';
+                const branchCode = selectedBranch.includes('Electronics') || selectedBranch === 'ECE' ? 'ECE' : 'CSE';
+                const key = selectedYear === '1st Year'
+                  ? `1st Year_${selectedSection}`
+                  : `${selectedYear}_${selectedSection}_${branchCode}`;
+                  
+                const isMockPrefilled = !!timetablesData[key];
                 
                 if (isMockPrefilled) {
                   const timeSlots = ['9-10', '10-11', '11-12', '12-1', '1-2', '2-3', '3-4', '4-5', '5-6'];
                   const activeDayName = (currentDayName === 'Saturday' || currentDayName === 'Sunday') ? 'Monday' : currentDayName;
-                  const dayClasses = weeklyTimetable[activeDayName] || [];
+                  const dayClasses = getActiveTimetableMap()[activeDayName] || [];
 
                   const gridSlots = timeSlots.map(slotTime => {
                     const found = dayClasses.find(c => c.time === slotTime);
@@ -5860,12 +5935,12 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     paddingRight: '6px',
                     scrollbarWidth: 'thin'
                   }}>
-                    {(weeklyTimetable[selectedTimetableDay] || []).length === 0 ? (
+                    {(getActiveTimetableMap()[selectedTimetableDay] || []).length === 0 ? (
                       <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
                         No classes scheduled.
                       </div>
                     ) : (
-                      (weeklyTimetable[selectedTimetableDay] || []).map((slot, idx) => (
+                      (getActiveTimetableMap()[selectedTimetableDay] || []).map((slot, idx) => (
                         <div
                           key={idx}
                           style={{
