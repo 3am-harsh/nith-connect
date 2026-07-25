@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">NITH Connect</string>
+    <string name="title_activity_main">NITH Connect</string>
+    <string name="package_name">com.nith.connect</string>
+    <string name="custom_url_scheme">com.nith.connect</string>
+</resources>

@@ -9,6 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@capacitor/android": "^8.4.2",
+    "@capacitor/cli": "^8.4.2",
+    "@capacitor/core": "^8.4.2",
     "better-sqlite3": "^12.11.1",
     "firebase": "^12.15.0",
     "lucide-react": "^1.23.0",
