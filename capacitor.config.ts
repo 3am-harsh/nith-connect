@@ -7,6 +7,12 @@ const config: CapacitorConfig = {
   server: {
     url: 'https://nith-connect-oi66.vercel.app',
     cleartext: true
+  },
+  plugins: {
+    Keyboard: {
+      resize: 'body',
+      style: 'dark'
+    }
   }
 };
 

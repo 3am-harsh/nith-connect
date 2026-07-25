@@ -75,6 +75,15 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
   overflow-x: hidden;
+  overscroll-behavior: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+input, textarea, select, [contenteditable="true"], .selectable-text {
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 /* Scrollbar styles */
