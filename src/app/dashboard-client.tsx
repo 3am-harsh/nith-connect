@@ -27,6 +27,12 @@ import {
   approveTimetableAction,
   rejectTimetableAction
 } from './actions/timetable';
+import {
+  submitFeedbackAction,
+  fetchFeedbackSubmissionsAction,
+  awardVisionaryBadgeAction,
+  fetchUserAchievementsAction
+} from './actions/feedback';
 import { 
   type FirestoreAnnouncement, 
   type FirestoreComment, 
@@ -35,7 +41,8 @@ import {
   type FirestoreMessage,
   type FirestoreMarketplaceItem,
   type TimetableSubmission,
-  type ApprovedTimetable
+  type ApprovedTimetable,
+  type FeedbackSubmission
 } from '@/lib/firestore';
 import { 
   Mountain, 
@@ -257,6 +264,13 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const [isSubmittingTimetable, setIsSubmittingTimetable] = useState(false);
   const [timetableModalViewMode, setTimetableModalViewMode] = useState<'grid' | 'image'>('grid');
 
+  // Feedback Suggestions and Achievements states
+  const [userAchievements, setUserAchievements] = useState<{ pathfinderTier: number; isVisionary: boolean }>({ pathfinderTier: 0, isVisionary: false });
+  const [feedbackSubmissions, setFeedbackSubmissions] = useState<FeedbackSubmission[]>([]);
+  const [feedbackText, setFeedbackText] = useState('');
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+  const [isSuggestFormOpen, setIsSuggestFormOpen] = useState(false);
+
   // Lost & Found States
   const [lostFoundItems, setLostFoundItems] = useState<FirestoreLostFoundItem[]>([]);
   const [selectedLostFoundFilter, setSelectedLostFoundFilter] = useState<'all' | 'lost' | 'found'>('all');
@@ -409,6 +423,26 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     }
   };
 
+  const loadUserAchievements = async () => {
+    try {
+      const ach = await fetchUserAchievementsAction(user.email);
+      setUserAchievements(ach);
+    } catch (err) {
+      console.error('Failed to load achievements:', err);
+    }
+  };
+
+  const loadFeedbackData = async () => {
+    try {
+      if (user.role === 'developer') {
+        const subs = await fetchFeedbackSubmissionsAction();
+        setFeedbackSubmissions(subs);
+      }
+    } catch (err) {
+      console.error('Failed to load feedback submissions:', err);
+    }
+  };
+
   useEffect(() => {
     let active = true;
     const loadData = async () => {
@@ -425,6 +459,8 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           setLostFoundItems(lostFoundData);
           setMarketplaceItems(marketplaceData);
           setApprovedTimetables(approvedData);
+          loadUserAchievements();
+          loadFeedbackData();
           if (user.role === 'developer') {
             const subs = await fetchTimetableSubmissions();
             setTimetableSubmissions(subs);
@@ -3127,6 +3163,130 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   </div>
                 )}
               </div>
+              {/* Feedback Suggestions Section */}
+              <div 
+                className="glass-panel" 
+                style={{ 
+                  gridColumn: '1 / -1', 
+                  padding: '24px', 
+                  backgroundColor: '#ffffff', 
+                  border: '1px solid var(--border-subtle)', 
+                  borderRadius: 'var(--radius-lg)',
+                  marginTop: '16px'
+                }}
+              >
+                <h3 style={{ fontSize: '16px', fontWeight: '800', color: 'var(--pine-deep)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>Student Feedback & Suggestions</span>
+                  {feedbackSubmissions.length > 0 && (
+                    <span style={{
+                      backgroundColor: 'var(--pine-primary)',
+                      color: '#ffffff',
+                      fontSize: '11px',
+                      fontWeight: '800',
+                      padding: '2px 8px',
+                      borderRadius: '10px'
+                    }}>
+                      {feedbackSubmissions.length}
+                    </span>
+                  )}
+                </h3>
+
+                {feedbackSubmissions.length === 0 ? (
+                  <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                    No suggestions submitted by students yet. 💡
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {feedbackSubmissions.map((sub) => {
+                      return (
+                        <div 
+                          key={sub.id}
+                          style={{
+                            padding: '16px',
+                            borderRadius: '10px',
+                            border: '1px solid var(--border-subtle)',
+                            backgroundColor: 'rgba(0,0,0,0.01)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '8px'
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                            <div>
+                              <span style={{ fontSize: '12px', fontWeight: '800', color: 'var(--text-main)' }}>
+                                {sub.submitted_by}
+                              </span>
+                              <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '6px' }}>
+                                ({sub.submitted_by_email})
+                              </span>
+                            </div>
+                            
+                            {sub.awarded_visionary ? (
+                              <span style={{
+                                fontSize: '10px',
+                                backgroundColor: 'rgba(233, 196, 106, 0.15)',
+                                color: '#b58900',
+                                fontWeight: '800',
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}>
+                                💡 Visionary Awarded
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '700' }}>
+                                Suggestion Pending Review
+                              </span>
+                            )}
+                          </div>
+
+                          <p style={{ fontSize: '13px', color: 'var(--text-main)', margin: '4px 0', lineHeight: '1.4', fontStyle: 'italic' }}>
+                            &ldquo;{sub.suggestion}&rdquo;
+                          </p>
+
+                          <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+                            {!sub.awarded_visionary ? (
+                              <button
+                                onClick={async () => {
+                                  const success = await awardVisionaryBadgeAction(sub.id!, true);
+                                  if (success) {
+                                    showToast(`Successfully awarded The Visionary Badge! 💡`, 'success');
+                                    loadFeedbackData();
+                                  } else {
+                                    showToast('Failed to award badge.', 'error');
+                                  }
+                                }}
+                                className="btn-primary"
+                                style={{ padding: '6px 12px', fontSize: '11px', fontWeight: '800' }}
+                              >
+                                💡 Award Visionary Badge
+                              </button>
+                            ) : (
+                              <button
+                                onClick={async () => {
+                                  const success = await awardVisionaryBadgeAction(sub.id!, false);
+                                  if (success) {
+                                    showToast(`Revoked The Visionary Badge.`, 'info');
+                                    loadFeedbackData();
+                                  } else {
+                                    showToast('Failed to revoke badge.', 'error');
+                                  }
+                                }}
+                                className="btn-secondary"
+                                style={{ padding: '6px 12px', fontSize: '11px', fontWeight: '800', color: '#e76f51', borderColor: 'rgba(231, 111, 81, 0.2)' }}
+                              >
+                                Revoke Visionary Badge
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         );
@@ -3394,12 +3554,215 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             </div>
           </div>
 
-          {/* Placeholders for future options user wants to define */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
-            <div style={{ padding: '14px', borderRadius: '10px', border: '1px dashed var(--border-subtle)', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
-              🎖️ Profile Badges & Achievements coming soon
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
+            {/* Badges & Achievements Row (Max 3 Badges) */}
+            <div>
+              <span style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-placeholder)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '8px' }}>
+                Earned Badges (Max 3)
+              </span>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-start', flexWrap: 'wrap' }}>
+                {/* 1. Developer / Pioneer Badge */}
+                {user.role === 'developer' ? (
+                  <div 
+                    title="The Primordial: Architect of NITH Connect. Creator of the universe."
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      width: '80px',
+                      textAlign: 'center',
+                      gap: '4px',
+                      cursor: 'help'
+                    }}
+                  >
+                    <div style={{
+                      width: '50px',
+                      height: '50px',
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #7b2cbf, #3c096c)',
+                      border: '2px solid #e0aaff',
+                      boxShadow: '0 0 10px rgba(123, 44, 191, 0.4)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '20px'
+                    }}>
+                      🌌
+                    </div>
+                    <span style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-main)' }}>Primordial</span>
+                  </div>
+                ) : (
+                  <div 
+                    title="Beta Pioneer: Awarded to the early founders who joined during the beta launch phase."
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      width: '80px',
+                      textAlign: 'center',
+                      gap: '4px',
+                      cursor: 'help'
+                    }}
+                  >
+                    <div style={{
+                      width: '50px',
+                      height: '50px',
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #e76f51, #f4a261)',
+                      border: '2px solid #ffffff',
+                      boxShadow: '0 4px 10px rgba(231, 111, 81, 0.25)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '20px'
+                    }}>
+                      🚀
+                    </div>
+                    <span style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-main)' }}>Beta Pioneer</span>
+                  </div>
+                )}
+
+                {/* 2. Pathfinder Badge (Based on feedback count) */}
+                {userAchievements.pathfinderTier > 0 && (
+                  <div 
+                    title={`Pathfinder Tier ${'I'.repeat(userAchievements.pathfinderTier)}: Granted for submitting suggestions to improve campus life.`}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      width: '80px',
+                      textAlign: 'center',
+                      gap: '4px',
+                      cursor: 'help'
+                    }}
+                  >
+                    <div style={{
+                      width: '50px',
+                      height: '50px',
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #2a9d8f, #125b44)',
+                      border: '2px solid #a7f3d0',
+                      boxShadow: '0 4px 10px rgba(42, 157, 143, 0.25)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '20px'
+                    }}>
+                      🧭
+                    </div>
+                    <span style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-main)' }}>
+                      Pathfinder {'I'.repeat(userAchievements.pathfinderTier)}
+                    </span>
+                  </div>
+                )}
+
+                {/* 3. The Visionaries Badge (Awarded by developer if approved suggestion) */}
+                {userAchievements.isVisionary && (
+                  <div 
+                    title="The Visionary: Awarded by the Developer for contributing a premium, game-changing feature suggestion."
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      width: '80px',
+                      textAlign: 'center',
+                      gap: '4px',
+                      cursor: 'help'
+                    }}
+                  >
+                    <div style={{
+                      width: '50px',
+                      height: '50px',
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #e9c46a, #e76f51)',
+                      border: '2px solid #ffe3a8',
+                      boxShadow: '0 4px 10px rgba(233, 196, 106, 0.35)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '20px'
+                    }}>
+                      💡
+                    </div>
+                    <span style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-main)' }}>The Visionary</span>
+                  </div>
+                )}
+              </div>
             </div>
 
+            {/* Suggestion & Improvement Area */}
+            <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '16px' }}>
+              <button
+                onClick={() => setIsSuggestFormOpen(!isSuggestFormOpen)}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--pine-primary)',
+                  backgroundColor: 'rgba(42, 157, 143, 0.04)',
+                  color: 'var(--pine-primary)',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                <span>💡 Suggest an Improvement</span>
+              </button>
+
+              {isSuggestFormOpen && (
+                <div style={{ 
+                  marginTop: '10px', 
+                  padding: '12px', 
+                  borderRadius: '8px', 
+                  backgroundColor: 'rgba(0,0,0,0.01)', 
+                  border: '1px solid var(--border-subtle)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px'
+                }}>
+                  <textarea
+                    placeholder="Suggest a new badge, feature, or improvement..."
+                    value={feedbackText}
+                    onChange={(e) => setFeedbackText(e.target.value)}
+                    style={{
+                      width: '100%',
+                      minHeight: '80px',
+                      padding: '8px 10px',
+                      borderRadius: '6px',
+                      border: '1px solid var(--border-subtle)',
+                      outline: 'none',
+                      fontSize: '12px',
+                      resize: 'vertical'
+                    }}
+                  />
+                  <button
+                    disabled={isSubmittingFeedback || !feedbackText.trim()}
+                    onClick={async () => {
+                      setIsSubmittingFeedback(true);
+                      const success = await submitFeedbackAction(feedbackText, user.name, user.email);
+                      setIsSubmittingFeedback(false);
+                      if (success) {
+                        showToast("Thank you! Suggestion submitted successfully.", "success");
+                        setFeedbackText('');
+                        setIsSuggestFormOpen(false);
+                        loadUserAchievements(); // instantly refresh badges!
+                      } else {
+                        showToast("Failed to submit suggestion.", "error");
+                      }
+                    }}
+                    className="btn-primary"
+                    style={{ padding: '6px 12px', fontSize: '11px', fontWeight: '800' }}
+                  >
+                    {isSubmittingFeedback ? 'Submitting...' : 'Submit Suggestion'}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
               <span style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-placeholder)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Account Settings</span>
               
@@ -3469,7 +3832,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 <span style={{ marginLeft: 'auto', color: 'var(--text-muted)', fontWeight: '500' }}>{user.hostel || 'Guest House'}</span>
               </button>
             </div>
-          </div>
 
           <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <button 

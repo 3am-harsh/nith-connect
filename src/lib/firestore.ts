@@ -750,3 +750,103 @@ export async function rejectTimetableSubmission(submissionId: string): Promise<b
     return false;
   }
 }
+
+export interface FeedbackSubmission {
+  id?: string;
+  suggestion: string;
+  submitted_by: string;
+  submitted_by_email: string;
+  awarded_visionary: boolean;
+  created_at?: string | null;
+}
+
+export async function submitFeedback(suggestion: string, userName: string, userEmail: string): Promise<boolean> {
+  try {
+    await addDoc(collection(db, 'feedback_submissions'), {
+      suggestion,
+      submitted_by: userName,
+      submitted_by_email: userEmail,
+      awarded_visionary: false,
+      created_at: serverTimestamp()
+    });
+    return true;
+  } catch (error) {
+    console.error('Error submitting feedback:', error);
+    return false;
+  }
+}
+
+export async function getFeedbackSubmissions(): Promise<FeedbackSubmission[]> {
+  try {
+    const q = query(collection(db, 'feedback_submissions'), orderBy('created_at', 'desc'));
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => {
+      const data = doc.data();
+      const createdAt = data.created_at;
+      let serializableCreatedAt = null;
+      if (createdAt && typeof createdAt === 'object') {
+        const ts = createdAt as { toDate?: () => { toISOString: () => string }; seconds?: number };
+        if (typeof ts.toDate === 'function') {
+          serializableCreatedAt = ts.toDate().toISOString();
+        } else if (typeof ts.seconds === 'number') {
+          serializableCreatedAt = new Date(ts.seconds * 1000).toISOString();
+        }
+      } else if (createdAt) {
+        serializableCreatedAt = String(createdAt);
+      }
+      return {
+        id: doc.id,
+        suggestion: data.suggestion || '',
+        submitted_by: data.submitted_by || '',
+        submitted_by_email: data.submitted_by_email || '',
+        awarded_visionary: !!data.awarded_visionary,
+        created_at: serializableCreatedAt
+      };
+    });
+  } catch (error) {
+    console.error('Error getting feedback submissions:', error);
+    return [];
+  }
+}
+
+export async function awardVisionaryBadge(submissionId: string, award: boolean): Promise<boolean> {
+  try {
+    const docRef = doc(db, 'feedback_submissions', submissionId);
+    await updateDoc(docRef, { awarded_visionary: award });
+    return true;
+  } catch (error) {
+    console.error('Error awarding visionary badge:', error);
+    return false;
+  }
+}
+
+export async function getUserAchievements(userEmail: string): Promise<{
+  pathfinderTier: number;
+  isVisionary: boolean;
+}> {
+  try {
+    const q = query(collection(db, 'feedback_submissions'), where('submitted_by_email', '==', userEmail));
+    const snap = await getDocs(q);
+    const submissions = snap.docs.map(doc => doc.data());
+    
+    const count = submissions.length;
+    let pathfinderTier = 0;
+    if (count >= 5) {
+      pathfinderTier = 3;
+    } else if (count >= 3) {
+      pathfinderTier = 2;
+    } else if (count >= 1) {
+      pathfinderTier = 1;
+    }
+    
+    const isVisionary = submissions.some(s => s.awarded_visionary === true);
+    
+    return {
+      pathfinderTier,
+      isVisionary
+    };
+  } catch (error) {
+    console.error('Error getting user achievements:', error);
+    return { pathfinderTier: 0, isVisionary: false };
+  }
+}
