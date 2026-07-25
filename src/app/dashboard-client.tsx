@@ -1217,7 +1217,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
       }
       case 'explore': {
         const exploreCategories = [
-          { id: 'cult', title: 'Cult', image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&q=80', subtitle: 'Music, Drama & Arts' },
+          { id: 'clubs_societies', title: 'Clubs & Societies', image: 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=500&q=80', subtitle: 'Cultural, Literary & Hobby Clubs' },
           { id: 'tech', title: 'Tech', image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=500&q=80', subtitle: 'Coding, Electronics & Robos' },
           { id: 'sports', title: 'Sports', image: 'https://images.unsplash.com/photo-1541252260730-0412e8e2108e?w=500&q=80', subtitle: 'Teams, Gym & Tournaments' },
           { id: 'academics', title: 'Academics', image: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=500&q=80', subtitle: 'Curriculum & Resources' },
@@ -1253,25 +1253,37 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   </div>
                 </div>
               );
-            case 'cult':
+            case 'clubs_societies':
               return (
                 <div style={styles.exploreSubpage}>
                   <div style={styles.subpageHeader}>
-                    <h3 style={styles.subpageTitle}>Cultural & Fine Arts Clubs</h3>
-                    <p style={styles.subpageDesc}>Express yourself through drama, music, and art</p>
+                    <h3 style={styles.subpageTitle}>Clubs & Societies</h3>
+                    <p style={styles.subpageDesc}>Explore cultural, literary, arts, and student groups at NITH</p>
                   </div>
                   <div style={styles.subpageList}>
                     <div style={styles.clubCard} className="glass-panel">
-                      <h4 style={styles.clubTitle}>Pithoo Dramatics Club</h4>
-                      <p style={styles.clubDesc}>Famous for Street Plays (Nukkad Natak), stage plays, and hosting drama workshops during HillFFair.</p>
+                      <h4 style={styles.clubTitle}>Pithoo Dramatics Club 🎭</h4>
+                      <p style={styles.clubDesc}>Famous for Street Plays (Nukkad Natak), stage plays, and hosting acting/direction workshops during HillFFair.</p>
                     </div>
                     <div style={styles.clubCard} className="glass-panel">
-                      <h4 style={styles.clubTitle}>NITH Music Club</h4>
-                      <p style={styles.clubDesc}>Home of the college rock bands, choir ensembles, and classical instrumental performances.</p>
+                      <h4 style={styles.clubTitle}>NITH Music Club 🎸</h4>
+                      <p style={styles.clubDesc}>Home of the campus rock bands, vocalists, acoustic sets, and classical instrumental performances.</p>
                     </div>
                     <div style={styles.clubCard} className="glass-panel">
-                      <h4 style={styles.clubTitle}>Choreography Club</h4>
-                      <p style={styles.clubDesc}>Covers western, freestyle, street hip-hop, and traditional bhangra dance forms.</p>
+                      <h4 style={styles.clubTitle}>Choreography Club 💃</h4>
+                      <p style={styles.clubDesc}>Covers western dance routines, hip-hop, freestyle, and traditional folk dances (like Bhangra) for national events.</p>
+                    </div>
+                    <div style={styles.clubCard} className="glass-panel">
+                      <h4 style={styles.clubTitle}>Literary Society (LitSoc) ✒️</h4>
+                      <p style={styles.clubDesc}>Organizes Model United Nations (MUN), public debating championships, poetry slams, and creative writing contests.</p>
+                    </div>
+                    <div style={styles.clubCard} className="glass-panel">
+                      <h4 style={styles.clubTitle}>Quiz Club (Q-Fi) 🧠</h4>
+                      <p style={styles.clubDesc}>The trivia hub of NITH. Conducts weekly quizzes, campus championships, and participates in national inter-college quiz contests.</p>
+                    </div>
+                    <div style={styles.clubCard} className="glass-panel">
+                      <h4 style={styles.clubTitle}>Fine Arts Society 🎨</h4>
+                      <p style={styles.clubDesc}>Decorates the campus walls with murals, hosts painting and sketching exhibitions, and builds beautiful art fests installations.</p>
                     </div>
                   </div>
                 </div>
