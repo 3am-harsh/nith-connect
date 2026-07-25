@@ -23,7 +23,10 @@ import {
   dismissReportsAction,
   deleteMessageAction,
   banUserAction,
-  unbanUserAction
+  unbanUserAction,
+  fetchBlockedWordsAction,
+  addBlockedWordAction,
+  removeBlockedWordAction
 } from './actions/chat';
 import { 
   getMarketplaceItemsAction, 
@@ -322,6 +325,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   // Academic Files states
   const [isDevModeActive, setIsDevModeActive] = useState(false);
   const [reportedMessages, setReportedMessages] = useState<FirestoreMessage[]>([]);
+  const [blockedWords, setBlockedWords] = useState<string[]>([]);
+  const [newBadWord, setNewBadWord] = useState('');
+  const [isSubmittingBadWord, setIsSubmittingBadWord] = useState(false);
   const [academicFiles, setAcademicFiles] = useState<AcademicFile[]>([]);
   const [activeAcademicTab, setActiveAcademicTab] = useState<AcademicTab>('syllabus');
   const [acadFilterYear, setAcadFilterYear] = useState('1st Year');
@@ -541,6 +547,17 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     }
   };
 
+  const loadBlockedWords = async () => {
+    try {
+      if (user.role === 'developer') {
+        const words = await fetchBlockedWordsAction();
+        setBlockedWords(words);
+      }
+    } catch (err) {
+      console.error('Failed to load blocked words:', err);
+    }
+  };
+
   useEffect(() => {
     let active = true;
     const loadData = async () => {
@@ -562,6 +579,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           loadClubsData();
           loadAcademicFiles();
           loadReportedMessages();
+          loadBlockedWords();
           if (user.role === 'developer') {
             const subs = await fetchTimetableSubmissions();
             setTimetableSubmissions(subs);
@@ -2723,6 +2741,8 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           } else if (res.banned) {
             const dateStr = new Date(res.bannedUntil!).toLocaleString();
             showToast(`Banned from chatroom: expires on ${dateStr}. Reason: ${res.reason}`, 'error');
+          } else if (res.containsProfanity) {
+            showToast('Message blocked: Contains prohibited language/profanity.', 'error');
           } else {
             showToast('Failed to send message.', 'error');
           }
@@ -4025,6 +4045,120 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                         </div>
                       );
                     })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div style={{ marginTop: '24px' }}>
+              <div 
+                className="glass-panel" 
+                style={{ 
+                  padding: '24px', 
+                  backgroundColor: '#ffffff', 
+                  border: '1px solid var(--border-subtle)', 
+                  borderRadius: 'var(--radius-lg)'
+                }}
+              >
+                <h3 style={{ fontSize: '16px', fontWeight: '800', color: 'var(--pine-deep)', marginBottom: '8px' }}>
+                  Prohibited Language & Profanity Blocklist 🚫
+                </h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '20px' }}>
+                  Messages matching these words (case-insensitive, whole-word matching) will automatically be blocked before transmission.
+                </p>
+
+                <form 
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (!newBadWord.trim()) return;
+                    setIsSubmittingBadWord(true);
+                    const success = await addBlockedWordAction(newBadWord.trim());
+                    if (success) {
+                      showToast(`Added "${newBadWord.trim()}" to blocklist.`, 'success');
+                      setNewBadWord('');
+                      await loadBlockedWords();
+                    } else {
+                      showToast('Failed to add word.', 'error');
+                    }
+                    setIsSubmittingBadWord(false);
+                  }}
+                  style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}
+                >
+                  <input
+                    type="text"
+                    placeholder="Enter word to block..."
+                    value={newBadWord}
+                    onChange={(e) => setNewBadWord(e.target.value)}
+                    style={{
+                      flex: 1,
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-subtle)',
+                      backgroundColor: 'var(--bg-hover)',
+                      fontSize: '13px',
+                      color: 'var(--text-main)'
+                    }}
+                  />
+                  <button
+                    type="submit"
+                    disabled={isSubmittingBadWord}
+                    className="btn-primary"
+                    style={{ padding: '10px 20px', fontSize: '13px', fontWeight: '800', whiteSpace: 'nowrap' }}
+                  >
+                    {isSubmittingBadWord ? 'Adding...' : '+ Add Word'}
+                  </button>
+                </form>
+
+                {blockedWords.length === 0 ? (
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>No prohibited words on the blocklist.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {blockedWords.map((word) => (
+                      <span 
+                        key={word}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          backgroundColor: 'var(--bg-hover)',
+                          border: '1px solid var(--border-subtle)',
+                          color: 'var(--text-main)',
+                          padding: '6px 12px',
+                          borderRadius: '20px',
+                          fontSize: '12px',
+                          fontWeight: '700'
+                        }}
+                      >
+                        {word}
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!confirm(`Are you sure you want to remove "${word}" from the blocklist?`)) return;
+                            const success = await removeBlockedWordAction(word);
+                            if (success) {
+                              showToast(`Removed "${word}" from blocklist.`, 'info');
+                              await loadBlockedWords();
+                            } else {
+                              showToast('Failed to remove word.', 'error');
+                            }
+                          }}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#e76f51',
+                            cursor: 'pointer',
+                            padding: '0 2px',
+                            fontWeight: '800',
+                            fontSize: '11px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    ))}
                   </div>
                 )}
               </div>

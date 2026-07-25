@@ -1225,3 +1225,75 @@ export async function isFirestoreUserBanned(userId: string): Promise<{ banned: b
   }
   return { banned: false };
 }
+
+const DEFAULT_BAD_WORDS = [
+  'fuck', 'shit', 'bitch', 'asshole', 'bastard', 'cunt', 'dick', 'pussy', 'whore', 'slut'
+];
+
+export async function getBlockedWords(): Promise<string[]> {
+  try {
+    const docRef = doc(db, 'settings', 'chatroom_moderation');
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      if (Array.isArray(data.blocked_words)) {
+        return data.blocked_words;
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching blocked words:', error);
+  }
+  return DEFAULT_BAD_WORDS;
+}
+
+export async function addBlockedWord(word: string): Promise<boolean> {
+  try {
+    const cleanWord = word.trim().toLowerCase();
+    if (!cleanWord) return false;
+    
+    const docRef = doc(db, 'settings', 'chatroom_moderation');
+    const docSnap = await getDoc(docRef);
+    
+    let currentWords = [...DEFAULT_BAD_WORDS];
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      if (Array.isArray(data.blocked_words)) {
+        currentWords = data.blocked_words;
+      }
+    }
+    
+    if (currentWords.includes(cleanWord)) return true;
+    
+    const nextWords = [...currentWords, cleanWord];
+    await setDoc(docRef, { blocked_words: nextWords }, { merge: true });
+    return true;
+  } catch (error) {
+    console.error('Error adding blocked word:', error);
+    return false;
+  }
+}
+
+export async function removeBlockedWord(word: string): Promise<boolean> {
+  try {
+    const cleanWord = word.trim().toLowerCase();
+    if (!cleanWord) return false;
+    
+    const docRef = doc(db, 'settings', 'chatroom_moderation');
+    const docSnap = await getDoc(docRef);
+    
+    let currentWords = [...DEFAULT_BAD_WORDS];
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      if (Array.isArray(data.blocked_words)) {
+        currentWords = data.blocked_words;
+      }
+    }
+    
+    const nextWords = currentWords.filter(w => w !== cleanWord);
+    await setDoc(docRef, { blocked_words: nextWords }, { merge: true });
+    return true;
+  } catch (error) {
+    console.error('Error removing blocked word:', error);
+    return false;
+  }
+}

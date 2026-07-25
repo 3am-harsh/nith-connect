@@ -10,7 +10,10 @@ import {
   deleteFirestoreMessage,
   banFirestoreUser,
   unbanFirestoreUser,
-  isFirestoreUserBanned
+  isFirestoreUserBanned,
+  getBlockedWords,
+  addBlockedWord,
+  removeBlockedWord
 } from '@/lib/firestore';
 
 export async function fetchChatrooms() {
@@ -27,6 +30,19 @@ export async function sendChatMessage(chatroomId: string, chatroomName: string, 
     const banStatus = await isFirestoreUserBanned(userId);
     if (banStatus.banned) {
       return { success: false, banned: true, bannedUntil: banStatus.bannedUntil, reason: banStatus.reason };
+    }
+
+    // Check for blocked words
+    const textLower = text.toLowerCase();
+    const blockedWords = await getBlockedWords();
+    const containsBadWord = blockedWords.some(word => {
+      const escaped = word.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+      const regex = new RegExp(`\\b${escaped}\\b`, 'i');
+      return regex.test(textLower);
+    });
+
+    if (containsBadWord) {
+      return { success: false, containsProfanity: true };
     }
 
     const success = await createFirestoreMessage({
@@ -74,4 +90,16 @@ export async function unbanUserAction(userId: string) {
 
 export async function checkUserBanStatusAction(userId: string) {
   return isFirestoreUserBanned(userId);
+}
+
+export async function fetchBlockedWordsAction() {
+  return getBlockedWords();
+}
+
+export async function addBlockedWordAction(word: string) {
+  return addBlockedWord(word);
+}
+
+export async function removeBlockedWordAction(word: string) {
+  return removeBlockedWord(word);
 }
