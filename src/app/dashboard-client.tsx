@@ -1684,14 +1684,16 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   <h2 style={styles.exploreTitle}>Campus <span style={{ color: 'var(--pine-primary)' }}>Marketplace</span> 🛒</h2>
                   <p style={styles.exploreSubtitle}>Buy and sell items directly within the NITH student community</p>
                 </div>
-                <button 
-                  onClick={() => setIsAddListingOpen(true)}
-                  className="btn-primary"
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 16px', fontWeight: '700' }}
-                >
-                  <Plus size={16} />
-                  <span>List an Item</span>
-                </button>
+                {user.role !== 'guest' && (
+                  <button 
+                    onClick={() => setIsAddListingOpen(true)}
+                    className="btn-primary"
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 16px', fontWeight: '700' }}
+                  >
+                    <Plus size={16} />
+                    <span>List an Item</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1908,18 +1910,24 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                           gap: '8px'
                         }}>
                           <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                            Seller: <span 
-                              onClick={() => handleOpenUserProfile(item.user_id)}
-                              style={{ cursor: 'pointer', textDecoration: 'underline decoration-dotted', fontWeight: '700', color: 'var(--text-main)' }}
-                              title={`View ${item.user_name}'s profile`}
-                            >
-                              {item.user_name}
-                            </span>
+                            Seller: {user.role === 'guest' ? (
+                              <span style={{ color: '#e76f51', fontWeight: '700' }}>
+                                🔒 Locked (Students only)
+                              </span>
+                            ) : (
+                              <span 
+                                onClick={() => handleOpenUserProfile(item.user_id)}
+                                style={{ cursor: 'pointer', textDecoration: 'underline decoration-dotted', fontWeight: '700', color: 'var(--text-main)' }}
+                                title={`View ${item.user_name}'s profile`}
+                              >
+                                {item.user_name}
+                              </span>
+                            )}
                           </span>
 
                           <div style={{ display: 'flex', gap: '6px' }}>
                             {/* WhatsApp Direct Chat Button */}
-                            {!isSold && (
+                            {user.role !== 'guest' && !isSold && (
                               <a 
                                 href={waUrl}
                                 target="_blank"
@@ -2458,51 +2466,53 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               </div>
 
               {/* Action Buttons */}
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button
-                  onClick={() => {
-                    setLostFoundSubView('report_cr');
-                    setCrStep(1);
-                    setSelectedCrYear('');
-                    setSelectedCrBranch('');
-                    setSelectedCrGender(null);
-                    setCrItemTitle('');
-                    setCrItemLocation('');
-                    setCrItemDate('');
-                    setCrItemDesc('');
-                    setCrContactDetails(user.name + ' (' + (user.roll_number || 'Guest') + ')');
-                  }}
-                  className="btn-primary"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '10px 16px',
-                    backgroundColor: '#25d366',
-                    boxShadow: '0 4px 12px rgba(37, 211, 102, 0.2)',
-                  }}
-                >
-                  <MessageSquare size={16} />
-                  <span>Report to CR</span>
-                </button>
+              {user.role !== 'guest' && (
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    onClick={() => {
+                      setLostFoundSubView('report_cr');
+                      setCrStep(1);
+                      setSelectedCrYear('');
+                      setSelectedCrBranch('');
+                      setSelectedCrGender(null);
+                      setCrItemTitle('');
+                      setCrItemLocation('');
+                      setCrItemDate('');
+                      setCrItemDesc('');
+                      setCrContactDetails(user.name + ' (' + (user.roll_number || 'Guest') + ')');
+                    }}
+                    className="btn-primary"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '10px 16px',
+                      backgroundColor: '#25d366',
+                      boxShadow: '0 4px 12px rgba(37, 211, 102, 0.2)',
+                    }}
+                  >
+                    <MessageSquare size={16} />
+                    <span>Report to CR</span>
+                  </button>
 
-                {/* Report New Button */}
-                <button
-                  onClick={() => setIsReportLostFoundOpen(true)}
-                  className="btn-primary"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '10px 16px',
-                    backgroundColor: 'var(--aqua-primary)',
-                    boxShadow: '0 4px 12px rgba(32, 178, 170, 0.2)',
-                  }}
-                >
-                  <Plus size={16} />
-                  <span>Report Item</span>
-                </button>
-              </div>
+                  {/* Report New Button */}
+                  <button
+                    onClick={() => setIsReportLostFoundOpen(true)}
+                    className="btn-primary"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '10px 16px',
+                      backgroundColor: 'var(--aqua-primary)',
+                      boxShadow: '0 4px 12px rgba(32, 178, 170, 0.2)',
+                    }}
+                  >
+                    <Plus size={16} />
+                    <span>Report Item</span>
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Search Bar */}
@@ -2585,22 +2595,28 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                             <span><strong>Date:</strong> {item.date}</span>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', padding: '6px 8px', borderRadius: '4px', backgroundColor: 'var(--bg-input)', fontSize: '11.5px', color: 'var(--pine-deep)' }}>
-                            <span>
-                              <strong>Contact:</strong> {item.contact} (
-                              <span 
-                                onClick={() => handleOpenUserProfile(item.user_id)}
-                                style={{ cursor: 'pointer', textDecoration: 'underline decoration-dotted', fontWeight: '700' }}
-                                title={`View ${item.user_name}'s profile`}
-                              >
-                                {item.user_name}
+                            {user.role === 'guest' ? (
+                              <span style={{ color: '#e76f51', fontWeight: '700' }}>
+                                🔒 Contact details locked (Students only)
                               </span>
-                              )
-                            </span>
+                            ) : (
+                              <span>
+                                <strong>Contact:</strong> {item.contact} (
+                                <span 
+                                  onClick={() => handleOpenUserProfile(item.user_id)}
+                                  style={{ cursor: 'pointer', textDecoration: 'underline decoration-dotted', fontWeight: '700' }}
+                                  title={`View ${item.user_name}'s profile`}
+                                >
+                                  {item.user_name}
+                                </span>
+                                )
+                              </span>
+                            )}
                           </div>
                         </div>
 
                         {/* Contact Action Buttons */}
-                        {isPhoneValid && (
+                        {user.role !== 'guest' && isPhoneValid && (
                           <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
                             <a
                               href={waUrl}
