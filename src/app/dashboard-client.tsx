@@ -590,7 +590,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   if (selectedYear === '1st Year') {
                     return t.year === selectedYear && t.section === selectedSection;
                   } else {
-                    return t.year === selectedYear && t.branch === selectedBranch;
+                    return t.year === selectedYear && t.branch === selectedBranch && t.section === selectedSection;
                   }
                 });
                 if (hasCustom) {
@@ -617,7 +617,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                       if (selectedYear === '1st Year') {
                         return t.year === selectedYear && t.section === selectedSection;
                       } else {
-                        return t.year === selectedYear && t.branch === selectedBranch;
+                        return t.year === selectedYear && t.branch === selectedBranch && t.section === selectedSection;
                       }
                     });
                     if (hasCustom) {
@@ -679,30 +679,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   </select>
                 </div>
 
-                {selectedYear === '1st Year' ? (
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                    <label style={{ fontSize: '9px', fontWeight: '800', color: 'var(--text-placeholder)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Section</label>
-                    <select
-                      value={selectedSection}
-                      onChange={(e) => setSelectedSection(e.target.value)}
-                      style={{
-                        padding: '6px 10px',
-                        borderRadius: '8px',
-                        border: '1px solid var(--border-subtle)',
-                        backgroundColor: '#ffffff',
-                        color: 'var(--text-main)',
-                        fontSize: '12px',
-                        fontWeight: '700',
-                        outline: 'none',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'].map(sec => (
-                        <option key={sec} value={sec}>Section {sec}</option>
-                      ))}
-                    </select>
-                  </div>
-                ) : (
+                {selectedYear !== '1st Year' && (
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '3px' }}>
                     <label style={{ fontSize: '9px', fontWeight: '800', color: 'var(--text-placeholder)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Branch</label>
                     <select
@@ -731,6 +708,29 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     </select>
                   </div>
                 )}
+
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  <label style={{ fontSize: '9px', fontWeight: '800', color: 'var(--text-placeholder)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Section</label>
+                  <select
+                    value={selectedSection}
+                    onChange={(e) => setSelectedSection(e.target.value)}
+                    style={{
+                      padding: '6px 10px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-subtle)',
+                      backgroundColor: '#ffffff',
+                      color: 'var(--text-main)',
+                      fontSize: '12px',
+                      fontWeight: '700',
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'].map(sec => (
+                      <option key={sec} value={sec}>Section {sec}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {(() => {
@@ -738,7 +738,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   if (selectedYear === '1st Year') {
                     return t.year === selectedYear && t.section === selectedSection;
                   } else {
-                    return t.year === selectedYear && t.branch === selectedBranch;
+                    return t.year === selectedYear && t.branch === selectedBranch && t.section === selectedSection;
                   }
                 });
 
@@ -938,7 +938,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                       <button
                         onClick={() => {
                           setUploadTimetableYear(selectedYear);
-                          setUploadTimetableSec(selectedYear === '1st Year' ? selectedSection : '');
+                          setUploadTimetableSec(selectedSection);
                           setUploadTimetableBranch(selectedYear !== '1st Year' ? selectedBranch : '');
                           setUploadTimetableFile('');
                           setUploadTimetableFileName('');
@@ -3264,7 +3264,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
                               <div>
                                 <h4 style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-main)', margin: 0 }}>
-                                  {sub.year} — {sub.year === '1st Year' ? `Section ${sub.section}` : sub.branch}
+                                  {sub.year} — {sub.year === '1st Year' ? `Section ${sub.section}` : `${sub.branch} (Section ${sub.section})`}
                                 </h4>
                                 <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                                   Submitted by: <strong>{sub.uploaded_by}</strong> ({sub.uploaded_by_email})
@@ -4653,15 +4653,26 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     />
                   </div>
                 ) : (
-                  <div style={{ flex: 1 }}>
-                    <label style={styles.formLabel}>Selected Branch</label>
-                    <input 
-                      type="text" 
-                      value={uploadTimetableBranch} 
-                      disabled 
-                      style={{ ...styles.formInput, backgroundColor: 'rgba(0,0,0,0.03)', color: 'var(--text-muted)', padding: '8px 12px' }} 
-                    />
-                  </div>
+                  <>
+                    <div style={{ flex: 1 }}>
+                      <label style={styles.formLabel}>Selected Branch</label>
+                      <input 
+                        type="text" 
+                        value={uploadTimetableBranch} 
+                        disabled 
+                        style={{ ...styles.formInput, backgroundColor: 'rgba(0,0,0,0.03)', color: 'var(--text-muted)', padding: '8px 12px' }} 
+                      />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label style={styles.formLabel}>Selected Section</label>
+                      <input 
+                        type="text" 
+                        value={`Section ${uploadTimetableSec}`} 
+                        disabled 
+                        style={{ ...styles.formInput, backgroundColor: 'rgba(0,0,0,0.03)', color: 'var(--text-muted)', padding: '8px 12px' }} 
+                      />
+                    </div>
+                  </>
                 )}
               </div>
 
