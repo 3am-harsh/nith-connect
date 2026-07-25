@@ -1256,10 +1256,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         const exploreCategories = [
           { id: 'clubs_societies', title: 'Clubs & Societies', image: 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=500&q=80', subtitle: 'Cultural, Literary & Hobby Clubs' },
           { id: 'tech', title: 'Tech', image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=500&q=80', subtitle: 'Coding, Electronics & Robos' },
-          { id: 'sports', title: 'Sports', image: 'https://images.unsplash.com/photo-1541252260730-0412e8e2108e?w=500&q=80', subtitle: 'Teams, Gym & Tournaments' },
-          { id: 'academics', title: 'Academics', image: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=500&q=80', subtitle: 'Curriculum & Resources' },
-          { id: 'hostels', title: 'Hostels', image: 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=500&q=80', subtitle: 'Mess menu & updates' },
-          { id: 'departments', title: 'Departments', image: 'https://images.unsplash.com/photo-1562774053-701939374585?w=500&q=80', subtitle: 'Offices & Labs' },
         ];
 
         const renderCategoryDetails = () => {
@@ -1434,101 +1430,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 </div>
               );
             }
-            case 'sports':
-              return (
-                <div style={styles.exploreSubpage}>
-                  <div style={styles.subpageHeader}>
-                    <h3 style={styles.subpageTitle}>Sports Facilities & Gyms</h3>
-                    <p style={styles.subpageDesc}>Stay active on campus</p>
-                  </div>
-                  <div style={styles.subpageList}>
-                    <div style={styles.clubCard} className="glass-panel">
-                      <div style={{ ...styles.subpageCardImage, backgroundImage: 'url("https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=500&q=80")' }} />
-                      <h4 style={styles.clubTitle}>Student Gym Center</h4>
-                      <p style={styles.clubDesc}>Fully functional gymnasium located near Student Activity Center. Open daily 5:30 AM - 8:30 AM and 4:30 PM - 8:30 PM.</p>
-                    </div>
-                    <div style={styles.clubCard} className="glass-panel">
-                      <div style={{ ...styles.subpageCardImage, backgroundImage: 'url("https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=500&q=80")' }} />
-                      <h4 style={styles.clubTitle}>Indoor Badminton Courts</h4>
-                      <p style={styles.clubDesc}>Three wooden-floored courts located inside the Sports Complex. Bring your own racquets and indoor non-marking shoes.</p>
-                    </div>
-                    <div style={styles.clubCard} className="glass-panel">
-                      <div style={{ ...styles.subpageCardImage, backgroundImage: 'url("https://images.unsplash.com/photo-1546519638-68e109498ffc?w=500&q=80")' }} />
-                      <h4 style={styles.clubTitle}>Volleyball & Basketball Courts</h4>
-                      <p style={styles.clubDesc}>Outdoor courts with floodlights for evening games. Hosts annual NITH sports fests.</p>
-                    </div>
-                  </div>
-                </div>
-              );
-            case 'academics':
-              return (
-                <div style={styles.exploreSubpage}>
-                  <div style={styles.subpageHeader}>
-                    <h3 style={styles.subpageTitle}>Academic Resources</h3>
-                    <p style={styles.subpageDesc}>Important study and administrative links</p>
-                  </div>
-                  <div style={styles.subpageList}>
-                    <div style={styles.clubCard} className="glass-panel">
-                      <div style={{ ...styles.subpageCardImage, backgroundImage: 'url("https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=500&q=80")' }} />
-                      <h4 style={styles.clubTitle}>NITH Syllabus Portal</h4>
-                      <p style={styles.clubDesc}>Download B.Tech, M.Tech, and PhD syllabus sheets and curriculum structure for all departments.</p>
-                    </div>
-                    <div style={styles.clubCard} className="glass-panel">
-                      <div style={{ ...styles.subpageCardImage, backgroundImage: 'url("https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=500&q=80")' }} />
-                      <h4 style={styles.clubTitle}>Central Library Catalogue</h4>
-                      <p style={styles.clubDesc}>Browse book availability, access e-journals, and search online catalogs via library network.</p>
-                    </div>
-                  </div>
-                </div>
-              );
-            case 'hostels':
-              return (
-                <div style={styles.exploreSubpage}>
-                  <div style={styles.subpageHeader}>
-                    <h3 style={styles.subpageTitle}>NITH Hostel Directory</h3>
-                    <p style={styles.subpageDesc}>Tap any hostel to view its mess menu instantly</p>
-                  </div>
-                  <div style={styles.subpageList}>
-                    {hostels.map((hostelName) => (
-                      <button
-                        key={hostelName}
-                        onClick={() => {
-                          setSelectedHostel(hostelName);
-                          setActiveHostelMenu(hostelName);
-                        }}
-                        style={styles.exploreHostelButton}
-                        className="glass-panel glass-panel-hover"
-                      >
-                        <span>{hostelName}</span>
-                        <ArrowRight size={14} color="var(--pine-primary)" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              );
-            case 'departments':
-              return (
-                <div style={styles.exploreSubpage}>
-                  <div style={styles.subpageHeader}>
-                    <h3 style={styles.subpageTitle}>Academic Departments</h3>
-                    <p style={styles.subpageDesc}>Faculty, research centers, and offices</p>
-                  </div>
-                  <div style={styles.subpageList}>
-                    <div style={styles.clubCard} className="glass-panel">
-                      <h4 style={styles.clubTitle}>Computer Science & Engineering</h4>
-                      <p style={styles.clubDesc}>Department offices and computer labs. Host of CSEC and GLUG clubs.</p>
-                    </div>
-                    <div style={styles.clubCard} className="glass-panel">
-                      <h4 style={styles.clubTitle}>Electronics & Communication Engineering</h4>
-                      <p style={styles.clubDesc}>Labs for analog, digital, microprocessor design, and VLSI systems. Host of SPEC.</p>
-                    </div>
-                    <div style={styles.clubCard} className="glass-panel">
-                      <h4 style={styles.clubTitle}>Electrical Engineering</h4>
-                      <p style={styles.clubDesc}>Control system labs, power grid laboratories, and smart energy modules.</p>
-                    </div>
-                  </div>
-                </div>
-              );
+
             default:
               return null;
           }
