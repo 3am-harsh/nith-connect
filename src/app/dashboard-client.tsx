@@ -288,6 +288,10 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const [newClubDesc, setNewClubDesc] = useState('');
   const [newClubCategory, setNewClubCategory] = useState('cultural');
   const [newClubContact, setNewClubContact] = useState('');
+  const [newClubPresidentName, setNewClubPresidentName] = useState('');
+  const [newClubPresidentEmail, setNewClubPresidentEmail] = useState('');
+  const [newClubPresidentDesignation, setNewClubPresidentDesignation] = useState('President/Coordinator');
+  const [newClubDomains, setNewClubDomains] = useState('');
   const [isSubmittingClub, setIsSubmittingClub] = useState(false);
 
   // Lost & Found States
@@ -1316,10 +1320,28 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   ) : (
                     <div style={styles.subpageList}>
                       {filteredTechClubs.map((club) => (
-                        <div key={club.id} style={styles.clubCard} className="glass-panel">
-                          <h4 style={styles.clubTitle}>{club.name}</h4>
-                          <p style={styles.clubDesc}>{club.desc}</p>
-                          <span style={styles.clubContact}>Contact: {club.contact}</span>
+                        <div key={club.id} className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', borderRadius: '12px', border: '1px solid var(--border-subtle)', backgroundColor: '#ffffff' }}>
+                          <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '800', color: 'var(--text-main)' }}>{club.name}</h4>
+                          <p style={{ margin: '4px 0', fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4' }}>{club.desc}</p>
+                          
+                          {club.domains && (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', margin: '4px 0' }}>
+                              {club.domains.split(',').map((d, idx) => (
+                                <span key={idx} style={{ fontSize: '9px', backgroundColor: 'rgba(42,157,143,0.1)', color: 'var(--pine-primary)', padding: '2px 8px', borderRadius: '4px', fontWeight: '800' }}>
+                                  {d.trim()}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-subtle)', paddingTop: '10px', marginTop: '6px', fontSize: '11px', color: 'var(--text-muted)' }}>
+                            <div>
+                              <strong>{club.president_designation || 'President'}:</strong> {club.president_name}
+                            </div>
+                            <a href={club.contact.startsWith('http') ? club.contact : `mailto:${club.contact}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--pine-primary)', fontWeight: '800', textDecoration: 'none' }}>
+                              Contact / Social
+                            </a>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1383,10 +1405,28 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   ) : (
                     <div style={styles.subpageList}>
                       {filteredClubs.map((club) => (
-                        <div key={club.id} style={styles.clubCard} className="glass-panel">
-                          <h4 style={styles.clubTitle}>{club.name}</h4>
-                          <p style={styles.clubDesc}>{club.desc}</p>
-                          <span style={styles.clubContact}>Contact: {club.contact}</span>
+                        <div key={club.id} className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', borderRadius: '12px', border: '1px solid var(--border-subtle)', backgroundColor: '#ffffff' }}>
+                          <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '800', color: 'var(--text-main)' }}>{club.name}</h4>
+                          <p style={{ margin: '4px 0', fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4' }}>{club.desc}</p>
+                          
+                          {club.domains && (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', margin: '4px 0' }}>
+                              {club.domains.split(',').map((d, idx) => (
+                                <span key={idx} style={{ fontSize: '9px', backgroundColor: 'rgba(42,157,143,0.1)', color: 'var(--pine-primary)', padding: '2px 8px', borderRadius: '4px', fontWeight: '800' }}>
+                                  {d.trim()}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-subtle)', paddingTop: '10px', marginTop: '6px', fontSize: '11px', color: 'var(--text-muted)' }}>
+                            <div>
+                              <strong>{club.president_designation || 'President'}:</strong> {club.president_name}
+                            </div>
+                            <a href={club.contact.startsWith('http') ? club.contact : `mailto:${club.contact}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--pine-primary)', fontWeight: '800', textDecoration: 'none' }}>
+                              Contact / Social
+                            </a>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -3478,9 +3518,22 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                           <p style={{ fontSize: '13px', color: 'var(--text-main)', margin: '4px 0', lineHeight: '1.4' }}>
                             {sub.desc}
                           </p>
-                          <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0 }}>
-                            <strong>Contact / Socials:</strong> {sub.contact}
-                          </p>
+
+                          <div style={{ 
+                            fontSize: '11px', 
+                            color: 'var(--text-muted)', 
+                            backgroundColor: 'rgba(0,0,0,0.02)', 
+                            padding: '10px', 
+                            borderRadius: '6px', 
+                            display: 'flex', 
+                            flexDirection: 'column', 
+                            gap: '4px',
+                            margin: '6px 0'
+                          }}>
+                            <div><strong>President / Lead:</strong> {sub.president_name} ({sub.president_email}) - <em>{sub.president_designation}</em></div>
+                            <div><strong>Domains / Focus:</strong> {sub.domains || 'General'}</div>
+                            <div><strong>Contact Link:</strong> {sub.contact}</div>
+                          </div>
 
                           {sub.status === 'pending' && (
                             <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
@@ -4718,18 +4771,17 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '10px' }}>
-              <div>
-                <label style={styles.formLabel}>Club Name</label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. English Debating Club, Glug, SPEC..." 
-                  value={newClubName} 
-                  onChange={(e) => setNewClubName(e.target.value)} 
-                  style={styles.formInput} 
-                />
-              </div>
-
               <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={styles.formLabel}>Club Name</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. English Debating Club, SPEC..." 
+                    value={newClubName} 
+                    onChange={(e) => setNewClubName(e.target.value)} 
+                    style={styles.formInput} 
+                  />
+                </div>
                 <div style={{ flex: 1 }}>
                   <label style={styles.formLabel}>Club Category</label>
                   <select 
@@ -4743,11 +4795,60 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     <option value="sports">Sports Club / Gym</option>
                   </select>
                 </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
                 <div style={{ flex: 1 }}>
-                  <label style={styles.formLabel}>Contact Info</label>
+                  <label style={styles.formLabel}>President / Coordinator Name</label>
                   <input 
                     type="text" 
-                    placeholder="e.g. instahandle or email" 
+                    placeholder="e.g. Rahul Sharma" 
+                    value={newClubPresidentName} 
+                    onChange={(e) => setNewClubPresidentName(e.target.value)} 
+                    style={styles.formInput} 
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={styles.formLabel}>Official Email (for Admin access)</label>
+                  <input 
+                    type="email" 
+                    placeholder="e.g. president@nith.ac.in" 
+                    value={newClubPresidentEmail} 
+                    onChange={(e) => setNewClubPresidentEmail(e.target.value)} 
+                    style={styles.formInput} 
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={styles.formLabel}>Leader Designation</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Coordinator, President, Lead" 
+                    value={newClubPresidentDesignation} 
+                    onChange={(e) => setNewClubPresidentDesignation(e.target.value)} 
+                    style={styles.formInput} 
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={styles.formLabel}>Club Domains (comma-separated)</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Web Dev, Design, PR, Core" 
+                    value={newClubDomains} 
+                    onChange={(e) => setNewClubDomains(e.target.value)} 
+                    style={styles.formInput} 
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={styles.formLabel}>Contact Link / Handle</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. instagram.com/clubname or email" 
                     value={newClubContact} 
                     onChange={(e) => setNewClubContact(e.target.value)} 
                     style={styles.formInput} 
@@ -4761,7 +4862,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   placeholder="What is this club about? Focus, activities, fests details..." 
                   value={newClubDesc} 
                   onChange={(e) => setNewClubDesc(e.target.value)} 
-                  style={{ ...styles.formInput, minHeight: '100px', resize: 'vertical' }} 
+                  style={{ ...styles.formInput, minHeight: '80px', resize: 'vertical' }} 
                 />
               </div>
             </div>
@@ -4769,8 +4870,14 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             <div style={{ ...styles.idCardActions, marginTop: '20px' }}>
               <button 
                 onClick={async () => {
-                  if (!newClubName.trim() || !newClubDesc.trim() || !newClubContact.trim()) {
-                    showToast('Please fill out all fields.', 'error');
+                  if (
+                    !newClubName.trim() || 
+                    !newClubDesc.trim() || 
+                    !newClubContact.trim() || 
+                    !newClubPresidentName.trim() || 
+                    !newClubPresidentEmail.trim()
+                  ) {
+                    showToast('Please fill out all required fields.', 'error');
                     return;
                   }
                   setIsSubmittingClub(true);
@@ -4779,15 +4886,23 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     newClubDesc,
                     newClubCategory,
                     newClubContact,
+                    newClubPresidentName,
+                    newClubPresidentEmail,
+                    newClubPresidentDesignation,
+                    newClubDomains,
                     user.name,
                     user.email
                   );
-                  setIsSubmittingClub(true); // set true to keep disabled until finished reloading
+                  setIsSubmittingClub(true);
                   if (success) {
                     showToast('Success! Club request submitted to developer for review.', 'success');
                     setNewClubName('');
                     setNewClubDesc('');
                     setNewClubContact('');
+                    setNewClubPresidentName('');
+                    setNewClubPresidentEmail('');
+                    setNewClubPresidentDesignation('President/Coordinator');
+                    setNewClubDomains('');
                     setIsRegisterClubOpen(false);
                     await loadClubsData();
                   } else {

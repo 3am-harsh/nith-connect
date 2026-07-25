@@ -857,6 +857,10 @@ export interface Club {
   desc: string;
   category: string;
   contact: string;
+  president_name: string;
+  president_email: string;
+  president_designation: string;
+  domains: string;
   approved_by: string;
   created_at?: string | null;
 }
@@ -867,6 +871,10 @@ export interface ClubSubmission {
   desc: string;
   category: string;
   contact: string;
+  president_name: string;
+  president_email: string;
+  president_designation: string;
+  domains: string;
   status: 'pending' | 'approved' | 'rejected';
   submitted_by: string;
   submitted_by_email: string;
@@ -878,6 +886,10 @@ export async function submitClubRequest(
   desc: string,
   category: string,
   contact: string,
+  presidentName: string,
+  presidentEmail: string,
+  presidentDesignation: string,
+  domains: string,
   userName: string,
   userEmail: string
 ): Promise<boolean> {
@@ -887,6 +899,10 @@ export async function submitClubRequest(
       desc,
       category,
       contact,
+      president_name: presidentName,
+      president_email: presidentEmail,
+      president_designation: presidentDesignation,
+      domains,
       status: 'pending',
       submitted_by: userName,
       submitted_by_email: userEmail,
@@ -923,6 +939,10 @@ export async function getClubSubmissions(): Promise<ClubSubmission[]> {
         desc: data.desc || '',
         category: data.category || 'cultural',
         contact: data.contact || '',
+        president_name: data.president_name || '',
+        president_email: data.president_email || '',
+        president_designation: data.president_designation || '',
+        domains: data.domains || '',
         status: data.status || 'pending',
         submitted_by: data.submitted_by || '',
         submitted_by_email: data.submitted_by_email || '',
@@ -959,6 +979,10 @@ export async function getApprovedClubs(): Promise<Club[]> {
         desc: data.desc || '',
         category: data.category || 'cultural',
         contact: data.contact || '',
+        president_name: data.president_name || '',
+        president_email: data.president_email || '',
+        president_designation: data.president_designation || '',
+        domains: data.domains || '',
         approved_by: data.approved_by || '',
         created_at: serializableCreatedAt
       };
@@ -982,6 +1006,10 @@ export async function approveClubSubmission(submissionId: string, devEmail: stri
       desc: subData.desc,
       category: subData.category,
       contact: subData.contact,
+      president_name: subData.president_name || '',
+      president_email: subData.president_email || '',
+      president_designation: subData.president_designation || '',
+      domains: subData.domains || '',
       approved_by: devEmail,
       created_at: serverTimestamp()
     });

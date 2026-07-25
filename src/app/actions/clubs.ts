@@ -13,11 +13,26 @@ export async function submitClubRequestAction(
   desc: string,
   category: string,
   contact: string,
+  presidentName: string,
+  presidentEmail: string,
+  presidentDesignation: string,
+  domains: string,
   userName: string,
   userEmail: string
 ) {
   try {
-    return await submitClubRequest(name, desc, category, contact, userName, userEmail);
+    return await submitClubRequest(
+      name,
+      desc,
+      category,
+      contact,
+      presidentName,
+      presidentEmail,
+      presidentDesignation,
+      domains,
+      userName,
+      userEmail
+    );
   } catch (error) {
     console.error('Failed to submit club request action:', error);
     return false;
