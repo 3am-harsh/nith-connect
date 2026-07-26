@@ -2848,7 +2848,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               <div style={styles.modalOverlay} onClick={() => setIsReportLostFoundOpen(false)}>
                 <div 
                   style={{ ...styles.idCardModal, maxWidth: '480px' }} 
-                  className="glass-panel animate-fade-in"
+                  className="glass-panel animate-slide-up"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div style={styles.modalHeader}>
@@ -4620,6 +4620,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   backgroundColor: isActive ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
                   fontWeight: isActive ? '600' : '400',
                 }}
+                className="touch-feedback"
               >
                 <Icon size={18} color={isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.7)'} />
                 <span>{item.label}</span>
@@ -4672,6 +4673,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               <button 
                 onClick={() => setIsProfileOpen(true)}
                 style={styles.idPill}
+                className="touch-feedback"
               >
                 <div style={styles.idPillIcon}>
                   <User size={14} color="#ffffff" />
@@ -4692,6 +4694,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             <button 
               onClick={() => showToast('Notifications: All caught up!', 'info')}
               style={styles.iconBtn}
+              className="touch-feedback"
             >
               <Bell size={18} color="var(--pine-deep)" />
             </button>
@@ -4699,8 +4702,10 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         </header>
 
         {/* Render Page Content based on selected tab */}
-        <main style={styles.contentContainer}>
-          {renderActiveTabContent()}
+        <main style={styles.contentContainer} className="tab-transition-container">
+          <div key={activeTab} className="tab-view" style={{ width: '100%' }}>
+            {renderActiveTabContent()}
+          </div>
         </main>
       </div>
 
@@ -4714,6 +4719,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               key={item.id}
               onClick={() => setActiveTab(item.id)}
               style={styles.bottomNavBtn}
+              className="touch-feedback"
             >
               <div style={{
                 ...styles.bottomNavIconWrapper,
@@ -5290,7 +5296,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         <div style={styles.modalOverlay} onClick={() => setIsQuickLinksOpen(false)}>
           <div 
             style={{ ...styles.idCardModal, maxWidth: '440px' }} 
-            className="glass-panel animate-fade-in"
+            className="glass-panel animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
@@ -5651,7 +5657,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         <div style={styles.modalOverlay} onClick={() => setIsCreateAnnouncementOpen(false)}>
           <div 
             style={styles.idCardModal} 
-            className="glass-panel animate-fade-in"
+            className="glass-panel animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
@@ -5822,7 +5828,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         <div style={styles.modalOverlay} onClick={() => setIsTimetableModalOpen(false)}>
           <div 
             style={{ ...styles.idCardModal, maxWidth: '580px', width: '92%' }} 
-            className="glass-panel animate-fade-in"
+            className="glass-panel animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
@@ -6048,7 +6054,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         <div style={styles.modalOverlay} onClick={() => setIsUploadTimetableOpen(false)}>
           <div 
             style={{ ...styles.idCardModal, maxWidth: '480px', width: '92%' }} 
-            className="glass-panel animate-fade-in"
+            className="glass-panel animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
             <div style={styles.modalHeader}>
@@ -6219,7 +6225,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         <div style={styles.modalOverlay} onClick={() => setIsRegisterClubOpen(false)}>
           <div 
             style={{ ...styles.idCardModal, maxWidth: '480px', width: '92%' }} 
-            className="glass-panel animate-fade-in"
+            className="glass-panel animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
             <div style={styles.modalHeader}>
@@ -6401,7 +6407,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         <div style={styles.modalOverlay} onClick={() => setActiveHostelMenu(null)}>
           <div 
             style={{ ...styles.idCardModal, maxWidth: '500px', width: '92%' }} 
-            className="glass-panel animate-fade-in"
+            className="glass-panel animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
@@ -6508,7 +6514,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         <div style={styles.modalOverlay} onClick={() => setIsAddListingOpen(false)}>
           <div 
             style={{ ...styles.idCardModal, maxWidth: '520px', width: '92%' }} 
-            className="glass-panel animate-fade-in"
+            className="glass-panel animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}

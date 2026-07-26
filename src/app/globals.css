@@ -275,3 +275,48 @@ button, input, select, textarea {
   50% { left: 150%; }
   100% { left: 150%; }
 }
+
+/* Tactile Mobile Touch Feedback (Micro-interactions) */
+.touch-feedback {
+  transition: transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.15s ease, opacity 0.15s ease !important;
+  user-select: none;
+}
+
+.touch-feedback:active {
+  transform: scale(0.96) translate3d(0, 0, 0) !important;
+  opacity: 0.9;
+}
+
+/* GPU Hardware Accelerated sliding drawer modal */
+.native-drawer {
+  will-change: transform, opacity;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Smooth Tab Fade Transition */
+.tab-transition-container {
+  position: relative;
+  width: 100%;
+}
+
+.tab-view {
+  animation: tabFadeIn 0.25s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes tabFadeIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* Optimize shadows to reduce layout painting cost on lower-end devices */
+.glass-panel-hover:hover {
+  transform: translateY(-2px) translate3d(0, 0, 0) !important;
+}
+
