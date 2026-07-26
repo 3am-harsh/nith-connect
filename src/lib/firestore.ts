@@ -1115,8 +1115,8 @@ export async function fetchAcademicFiles(tab: AcademicTab): Promise<AcademicFile
     });
 
     files.sort((a, b) => {
-      const timeA = a.uploaded_at ? new Date(a.uploaded_at).getTime() : 0;
-      const timeB = b.uploaded_at ? new Date(b.uploaded_at).getTime() : 0;
+      const timeA = a.uploaded_at ? new Date(a.uploaded_at as string).getTime() : 0;
+      const timeB = b.uploaded_at ? new Date(b.uploaded_at as string).getTime() : 0;
       return timeB - timeA;
     });
 
