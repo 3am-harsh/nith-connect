@@ -505,9 +505,7 @@ export async function getFirestoreMessages(chatroomId: string): Promise<Firestor
   try {
     const q = query(
       collection(db, 'messages'),
-      where('chatroom_id', '==', chatroomId),
-      orderBy('created_at', 'desc'),
-      limit(100)
+      where('chatroom_id', '==', chatroomId)
     );
     const snap = await getDocs(q);
     const msgs = snap.docs.map(doc => {
@@ -538,7 +536,7 @@ export async function getFirestoreMessages(chatroomId: string): Promise<Firestor
       return timeA - timeB;
     });
 
-    return msgs;
+    return msgs.slice(-100);
   } catch (error) {
     console.error('Error fetching messages:', error);
     return [];
@@ -1092,11 +1090,10 @@ export async function fetchAcademicFiles(tab: AcademicTab): Promise<AcademicFile
   try {
     const q = query(
       collection(db, 'academic_files'),
-      where('tab', '==', tab),
-      orderBy('uploaded_at', 'desc')
+      where('tab', '==', tab)
     );
     const snap = await getDocs(q);
-    return snap.docs.map(doc => {
+    const files = snap.docs.map(doc => {
       const data = doc.data();
       const uploadedAt = data.uploaded_at;
       let serializableUploadedAt = null;
@@ -1116,6 +1113,14 @@ export async function fetchAcademicFiles(tab: AcademicTab): Promise<AcademicFile
         uploaded_at: serializableUploadedAt
       } as AcademicFile;
     });
+
+    files.sort((a, b) => {
+      const timeA = a.uploaded_at ? new Date(a.uploaded_at).getTime() : 0;
+      const timeB = b.uploaded_at ? new Date(b.uploaded_at).getTime() : 0;
+      return timeB - timeA;
+    });
+
+    return files;
   } catch (error) {
     console.error('Error fetching academic files:', error);
     return [];
