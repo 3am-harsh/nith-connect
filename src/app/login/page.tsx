@@ -3,20 +3,14 @@
 import React, { useState, useTransition, useEffect } from 'react';
 import { loginWithEmail, loginDeveloper, checkUserRegisteredAction, loginWithFirebaseUserAction } from './actions';
 import { Mountain, LogIn, ShieldAlert, Sparkles, User, Mail, GraduationCap, Building, Home, Activity } from 'lucide-react';
-import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { signInWithPopup, signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { Capacitor } from '@capacitor/core';
 
 export default function LoginPage() {
   const [isPending, startTransition] = useTransition();
   const [showGoogleMock, setShowGoogleMock] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isBraveBrowser, setIsBraveBrowser] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && ((navigator as any).brave !== undefined || navigator.userAgent.includes('Brave'))) {
-      setIsBraveBrowser(true);
-    }
-  }, []);
 
   // Form states for simulated Google accounts
   const [email, setEmail] = useState('');
@@ -66,15 +60,32 @@ export default function LoginPage() {
     setErrorMessage(null);
     startTransition(async () => {
       try {
-        const provider = new GoogleAuthProvider();
-        provider.setCustomParameters({
-          hd: 'nith.ac.in',
-          prompt: 'select_account'
-        });
-        
-        const result = await signInWithPopup(auth, provider);
-        const user = result.user;
-        const userEmail = user.email || '';
+        let userEmail = '';
+        let displayName = '';
+
+        // If running inside Capacitor Native WebView, run the native authentication flow
+        if (Capacitor.isNativePlatform()) {
+          const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
+          const result = await FirebaseAuthentication.signInWithGoogle({});
+          if (!result.credential?.idToken) {
+            throw new Error('No ID Token returned from native Google Sign-in.');
+          }
+          const credential = GoogleAuthProvider.credential(result.credential.idToken);
+          const fbResult = await signInWithCredential(auth, credential);
+          userEmail = fbResult.user.email || '';
+          displayName = fbResult.user.displayName || '';
+        } else {
+          // Standard browser auth
+          const provider = new GoogleAuthProvider();
+          provider.setCustomParameters({
+            hd: 'nith.ac.in',
+            prompt: 'select_account'
+          });
+          
+          const result = await signInWithPopup(auth, provider);
+          userEmail = result.user.email || '';
+          displayName = result.user.displayName || '';
+        }
         
         if (!userEmail) {
           setErrorMessage('Could not fetch email from Google account.');
@@ -97,13 +108,13 @@ export default function LoginPage() {
           }
         } else {
           setEmail(userEmail);
-          setName(user.displayName || '');
+          setName(displayName || '');
           setShowGoogleMock(true);
         }
       } catch (err: unknown) {
         console.error('Google Auth error:', err);
         const errMsg = err instanceof Error ? err.message : String(err);
-        setErrorMessage(errMsg || 'Google Auth Popup closed or failed.');
+        setErrorMessage(errMsg || 'Google authentication closed or failed.');
       }
     });
   };
@@ -143,28 +154,6 @@ export default function LoginPage() {
               <p style={styles.infoText}>
                 Access mess menus, your student ID card, lost & found, blogs, and live chatrooms.
               </p>
-
-              {isBraveBrowser && (
-                <div style={{
-                  padding: '10px 14px',
-                  borderRadius: 'var(--radius-md)',
-                  backgroundColor: 'rgba(244, 162, 97, 0.1)',
-                  border: '1px solid rgba(244, 162, 97, 0.3)',
-                  fontSize: '12px',
-                  color: '#d67d3e',
-                  lineHeight: '1.4',
-                  marginBottom: '16px',
-                  textAlign: 'left',
-                  display: 'flex',
-                  gap: '8px',
-                  alignItems: 'flex-start'
-                }}>
-                  <span style={{ fontSize: '16px', lineHeight: '1' }}>🦁</span>
-                  <div>
-                    <strong>Brave Browser:</strong> Turn <strong>OFF</strong> Brave Shields for this site to log in. Click the orange lion icon in the address bar and switch Shields to OFF.
-                  </div>
-                </div>
-              )}
 
               {/* Standard Google Login Button */}
               <button 
