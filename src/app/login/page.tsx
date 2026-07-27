@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useTransition } from 'react';
+import React, { useState, useTransition, useEffect } from 'react';
 import { loginWithEmail, loginDeveloper, checkUserRegisteredAction, loginWithFirebaseUserAction } from './actions';
 import { Mountain, LogIn, ShieldAlert, Sparkles, User, Mail, GraduationCap, Building, Home, Activity } from 'lucide-react';
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
@@ -10,6 +10,13 @@ export default function LoginPage() {
   const [isPending, startTransition] = useTransition();
   const [showGoogleMock, setShowGoogleMock] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isBraveBrowser, setIsBraveBrowser] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && ((navigator as any).brave !== undefined || navigator.userAgent.includes('Brave'))) {
+      setIsBraveBrowser(true);
+    }
+  }, []);
 
   // Form states for simulated Google accounts
   const [email, setEmail] = useState('');
@@ -136,6 +143,28 @@ export default function LoginPage() {
               <p style={styles.infoText}>
                 Access mess menus, your student ID card, lost & found, blogs, and live chatrooms.
               </p>
+
+              {isBraveBrowser && (
+                <div style={{
+                  padding: '10px 14px',
+                  borderRadius: 'var(--radius-md)',
+                  backgroundColor: 'rgba(244, 162, 97, 0.1)',
+                  border: '1px solid rgba(244, 162, 97, 0.3)',
+                  fontSize: '12px',
+                  color: '#d67d3e',
+                  lineHeight: '1.4',
+                  marginBottom: '16px',
+                  textAlign: 'left',
+                  display: 'flex',
+                  gap: '8px',
+                  alignItems: 'flex-start'
+                }}>
+                  <span style={{ fontSize: '16px', lineHeight: '1' }}>🦁</span>
+                  <div>
+                    <strong>Brave Browser:</strong> Turn <strong>OFF</strong> Brave Shields for this site to log in. Click the orange lion icon in the address bar and switch Shields to OFF.
+                  </div>
+                </div>
+              )}
 
               {/* Standard Google Login Button */}
               <button 
