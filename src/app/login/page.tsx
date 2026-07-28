@@ -61,13 +61,68 @@ export default function LoginPage() {
   const [showGoogleMock, setShowGoogleMock] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Form states for simulated Google accounts
+  // Form states for registration
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [rollNo, setRollNo] = useState('');
   const [dept, setDept] = useState('Computer Science & Engineering');
-  const [hostel, setHostel] = useState('Kailash Hostel');
+  const [yearOfStudy, setYearOfStudy] = useState('1st Year');
+  
+  // Custom user inputs remaining
+  const [hostel, setHostel] = useState('Kailash Boys Hostel (est. 1989)');
   const [bloodGroup, setBloodGroup] = useState('B+');
+
+  const parseNithEmail = (userEmail: string) => {
+    const prefix = userEmail.split('@')[0].toUpperCase();
+    const match = prefix.match(/^(\d+)([A-Z]+)(\d+)/);
+    
+    if (!match) {
+      return {
+        rollNumber: prefix,
+        department: 'Computer Science & Engineering',
+        yearText: 'Student Scholar'
+      };
+    }
+    
+    const [_, yearStr, branchCode] = match;
+    const entryYear = parseInt(yearStr, 10); // e.g. 25
+    
+    // Calculate Year of Study (academic years change in July)
+    const today = new Date();
+    const currentYear = today.getFullYear() % 100; // e.g. 26
+    const currentMonth = today.getMonth() + 1; // 1-12
+    
+    let yearNum = currentYear - entryYear;
+    if (currentMonth >= 7) {
+      yearNum += 1;
+    }
+    
+    // Ensure we don't get negative/zero years
+    yearNum = Math.max(1, yearNum);
+    
+    const yearLabels = ['1st Year (Freshman)', '2nd Year (Sophomore)', '3rd Year (Junior)', '4th Year (Senior)', '5th Year (Senior+)'];
+    const yearText = yearLabels[yearNum - 1] || `${yearNum}th Year`;
+
+    const branchMap: Record<string, string> = {
+      'BCS': 'Computer Science & Engineering',
+      'BEC': 'Electronics & Communication Engineering',
+      'DCS': 'Computer Science & Engineering (Dual Degree)',
+      'DEC': 'Electronics & Communication Engineering (Dual Degree)',
+      'BEE': 'Electrical Engineering',
+      'BME': 'Mechanical Engineering',
+      'BCH': 'Chemical Engineering',
+      'BCE': 'Civil Engineering',
+      'BMA': 'Mathematics & Computing',
+      'BMS': 'Materials Science & Engineering',
+      'BAR': 'Architecture'
+    };
+
+    return {
+      rollNumber: prefix,
+      department: branchMap[branchCode] || 'Computer Science & Engineering',
+      yearText: yearText
+    };
+  };
 
   const handleGoogleSimulate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,9 +161,6 @@ export default function LoginPage() {
   };
 
   const handleGoogleSignIn = () => {
-    // Alert prompting user to use their college email
-    alert("Please use college email ID (@nith.ac.in) only.");
-    
     setErrorMessage(null);
     startTransition(async () => {
       try {
@@ -161,6 +213,13 @@ export default function LoginPage() {
         } else {
           setEmail(userEmail);
           setName(displayName || '');
+          
+          // Auto-parse roll number, department and study year
+          const parsed = parseNithEmail(userEmail);
+          setRollNo(parsed.rollNumber);
+          setDept(parsed.department);
+          setYearOfStudy(parsed.yearText);
+          
           setShowGoogleMock(true);
         }
       } catch (err: unknown) {
@@ -210,6 +269,17 @@ export default function LoginPage() {
                 Access mess menus, your student ID card, lost & found, blogs, and live chatrooms.
               </p>
 
+              {/* Beautiful college email alert notice integrated cleanly in UI */}
+              <div style={styles.warningBanner}>
+                <div style={styles.warningIndicator} />
+                <div style={styles.warningTextContainer}>
+                  <h4 style={styles.warningTitle}>Verified Enrollment Portal</h4>
+                  <p style={styles.warningDesc}>
+                    Access is restricted. Please sign in with your official <strong>@nith.ac.in</strong> account.
+                  </p>
+                </div>
+              </div>
+
               {/* Standard Google Login Button */}
               <button 
                 onClick={handleGoogleSignIn}
@@ -256,93 +326,41 @@ export default function LoginPage() {
               </div>
             </div>
           ) : (
-            /* Simulated Google Sign In Modal Form */
-            <form onSubmit={handleGoogleSimulate} style={styles.form}>
-              <h3 style={styles.formTitle}>Continue with Google</h3>
-              <p style={styles.formSubtitle}>Enter details matching your NITH email domain credentials.</p>
+            /* Auto-Parsed and Simplified Google Sign-In Form (Scrollable) */
+            <form onSubmit={handleGoogleSimulate} style={styles.formScrollable}>
+              <h3 style={styles.formTitle}>Complete Enrollment</h3>
+              <p style={styles.formSubtitle}>Verify your student identity to finalize registration.</p>
               
-              <div className="form-group">
-                <label className="form-label" htmlFor="email"><Mail size={12} style={{marginRight: 4}} /> Google Email Address</label>
-                <input 
-                  type="email" 
-                  id="email"
-                  placeholder="e.g. yourname.cse22@nith.ac.in" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="form-input"
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label" htmlFor="name"><User size={12} style={{marginRight: 4}} /> Full Name</label>
-                <input 
-                  type="text" 
-                  id="name"
-                  placeholder="e.g. Aarav Sharma" 
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="form-input"
-                  required
-                />
-              </div>
-
-              <div style={styles.formRow}>
-                <div className="form-group" style={{flex: 1}}>
-                  <label className="form-label" htmlFor="rollNo"><GraduationCap size={12} style={{marginRight: 4}} /> Roll Number</label>
-                  <input 
-                    type="text" 
-                    id="rollNo"
-                    placeholder="e.g. 22MI502" 
-                    value={rollNo}
-                    onChange={(e) => setRollNo(e.target.value)}
-                    className="form-input"
-                    required
-                  />
+              {/* Read-Only Verified Profile Details Card */}
+              <div style={styles.verifiedCard}>
+                <div style={styles.verifiedHeader}>
+                  <Sparkles size={14} color="var(--aqua-primary)" />
+                  <span style={styles.verifiedTitle}>Auto-Verified Details</span>
                 </div>
-
-                <div className="form-group" style={{flex: 1}}>
-                  <label className="form-label" htmlFor="bloodGroup"><Activity size={12} style={{marginRight: 4}} /> Blood Group</label>
-                  <select 
-                    id="bloodGroup"
-                    value={bloodGroup}
-                    onChange={(e) => setBloodGroup(e.target.value)}
-                    className="form-input"
-                    style={{padding: '11px 16px'}}
-                  >
-                    <option value="A+">A+</option>
-                    <option value="A-">A-</option>
-                    <option value="B+">B+</option>
-                    <option value="B-">B-</option>
-                    <option value="AB+">AB+</option>
-                    <option value="AB-">AB-</option>
-                    <option value="O+">O+</option>
-                    <option value="O-">O-</option>
-                  </select>
+                
+                <div style={styles.verifiedDetailItem}>
+                  <span style={styles.verifiedLabel}>Verified Name</span>
+                  <span style={styles.verifiedValue}>{name}</span>
+                </div>
+                <div style={styles.verifiedDetailItem}>
+                  <span style={styles.verifiedLabel}>Roll Number</span>
+                  <span style={styles.verifiedValue}>{rollNo}</span>
+                </div>
+                <div style={styles.verifiedDetailItem}>
+                  <span style={styles.verifiedLabel}>Department</span>
+                  <span style={styles.verifiedValue}>{dept}</span>
+                </div>
+                <div style={styles.verifiedDetailItem}>
+                  <span style={styles.verifiedLabel}>Current Year</span>
+                  <span style={styles.verifiedValue}>{yearOfStudy}</span>
                 </div>
               </div>
 
+              {/* User Selectable Variables */}
               <div className="form-group">
-                <label className="form-label" htmlFor="dept"><Building size={12} style={{marginRight: 4}} /> Academic Department</label>
-                <select 
-                  id="dept"
-                  value={dept}
-                  onChange={(e) => setDept(e.target.value)}
-                  className="form-input"
-                  style={{padding: '11px 16px'}}
-                >
-                  <option value="Computer Science & Engineering">Computer Science & Engineering</option>
-                  <option value="Electronics & Communication Engineering">Electronics & Communication Engineering</option>
-                  <option value="Electrical Engineering">Electrical Engineering</option>
-                  <option value="Mechanical Engineering">Mechanical Engineering</option>
-                  <option value="Civil Engineering">Civil Engineering</option>
-                  <option value="Chemical Engineering">Chemical Engineering</option>
-                  <option value="Material Science & Engineering">Material Science & Engineering</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label" htmlFor="hostel"><Home size={12} style={{marginRight: 4}} /> Campus Hostel</label>
+                <label className="form-label" htmlFor="hostel">
+                  <Home size={12} style={{marginRight: 4}} /> Select Hostel / Day Scholar
+                </label>
                 <select 
                   id="hostel"
                   value={hostel}
@@ -350,12 +368,47 @@ export default function LoginPage() {
                   className="form-input"
                   style={{padding: '11px 16px'}}
                 >
-                  <option value="Kailash Hostel">Kailash Hostel (M)</option>
-                  <option value="Himadri Hostel">Himadri Hostel (F)</option>
-                  <option value="Shivalik Hostel">Shivalik Hostel (M)</option>
-                  <option value="Dhauladhar Hostel">Dhauladhar Hostel (M)</option>
-                  <option value="Mani Mahesh Hostel">Mani Mahesh Hostel (Mega)</option>
-                  <option value="Parvati Hostel">Parvati Hostel (F)</option>
+                  <optgroup label="Boys Hostels">
+                    <option value="Kailash Boys Hostel (est. 1989)">Kailash Boys Hostel (est. 1989)</option>
+                    <option value="Himgiri Boys Hostel (2015)">Himgiri Boys Hostel (2015)</option>
+                    <option value="Udaygiri Boys Hostel (2019)">Udaygiri Boys Hostel (2019)</option>
+                    <option value="Neelkanth Boys Hostel (2008)">Neelkanth Boys Hostel (2008)</option>
+                    <option value="Dhauladhar Boys Hostel (1998)">Dhauladhar Boys Hostel (1998)</option>
+                    <option value="Vindhyachal Boys Hostel (2006)">Vindhyachal Boys Hostel (2006)</option>
+                    <option value="Shivalik Boys Hostel (1987)">Shivalik Boys Hostel (1987)</option>
+                  </optgroup>
+                  <optgroup label="Girls Hostels">
+                    <option value="Ambika Girls Hostel (2012)">Ambika Girls Hostel (2012)</option>
+                    <option value="Parvati Girls Hostel (1998)">Parvati Girls Hostel (1998)</option>
+                    <option value="Mani-Mahesh Girls Hostel (2003)">Mani-Mahesh Girls Hostel (2003)</option>
+                    <option value="Aravali Girls Hostel (2017)">Aravali Girls Hostel (2017)</option>
+                  </optgroup>
+                  <optgroup label="Other Options">
+                    <option value="Satpura Hostel">Satpura Hostel (Attached Baths)</option>
+                    <option value="Day Scholar">Day Scholar</option>
+                  </optgroup>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="bloodGroup">
+                  <Activity size={12} style={{marginRight: 4}} /> Blood Group
+                </label>
+                <select 
+                  id="bloodGroup"
+                  value={bloodGroup}
+                  onChange={(e) => setBloodGroup(e.target.value)}
+                  className="form-input"
+                  style={{padding: '11px 16px'}}
+                >
+                  <option value="A+">A+</option>
+                  <option value="A-">A-</option>
+                  <option value="B+">B+</option>
+                  <option value="B-">B-</option>
+                  <option value="AB+">AB+</option>
+                  <option value="AB-">AB-</option>
+                  <option value="O+">O+</option>
+                  <option value="O-">O-</option>
                 </select>
               </div>
 
@@ -367,7 +420,7 @@ export default function LoginPage() {
                   disabled={isPending}
                   className="touch-feedback"
                 >
-                  Back
+                  Cancel
                 </button>
                 <button 
                   type="submit" 
@@ -376,7 +429,7 @@ export default function LoginPage() {
                   style={{padding: '10px 20px', flex: 1}}
                 >
                   <LogIn size={16} />
-                  <span>{isPending ? 'Connecting...' : 'Verify & Continue'}</span>
+                  <span>{isPending ? 'Syncing...' : 'Verify & Launch'}</span>
                 </button>
               </div>
             </form>
@@ -493,6 +546,38 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: '1.5',
     margin: 0,
   },
+  warningBanner: {
+    display: 'flex',
+    gap: '12px',
+    padding: '12px 14px',
+    borderRadius: 'var(--radius-md)',
+    backgroundColor: 'rgba(244, 162, 97, 0.08)',
+    border: '1px solid rgba(244, 162, 97, 0.22)',
+    textAlign: 'left',
+  },
+  warningIndicator: {
+    width: '3.5px',
+    alignSelf: 'stretch',
+    backgroundColor: 'var(--aqua-primary)',
+    borderRadius: '2px',
+  },
+  warningTextContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '2px',
+  },
+  warningTitle: {
+    fontSize: '12px',
+    fontWeight: '700',
+    color: 'var(--pine-deep)',
+    margin: 0,
+  },
+  warningDesc: {
+    fontSize: '11.5px',
+    color: 'var(--text-muted)',
+    margin: 0,
+    lineHeight: '1.4',
+  },
   googleBtn: {
     display: 'flex',
     alignItems: 'center',
@@ -566,10 +651,13 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: '20px',
     lineHeight: '1.4',
   },
-  form: {
+  formScrollable: {
     display: 'flex',
     flexDirection: 'column',
     gap: '14px',
+    maxHeight: '68vh',
+    overflowY: 'auto',
+    paddingRight: '4px',
   },
   formTitle: {
     fontSize: '16px',
@@ -584,10 +672,41 @@ const styles: Record<string, React.CSSProperties> = {
     textAlign: 'center',
     marginBottom: '10px',
   },
-  formRow: {
+  verifiedCard: {
+    backgroundColor: 'var(--bg-hover)',
+    border: '1px dashed var(--border-subtle)',
+    borderRadius: 'var(--radius-md)',
+    padding: '12px 14px',
     display: 'flex',
-    gap: '14px',
-    width: '100%',
+    flexDirection: 'column',
+    gap: '8px',
+  },
+  verifiedHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    borderBottom: '1px solid var(--border-subtle)',
+    paddingBottom: '6px',
+    marginBottom: '2px',
+  },
+  verifiedTitle: {
+    fontSize: '11px',
+    fontWeight: '800',
+    color: 'var(--pine-deep)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.4px',
+  },
+  verifiedDetailItem: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    fontSize: '12px',
+  },
+  verifiedLabel: {
+    color: 'var(--text-muted)',
+  },
+  verifiedValue: {
+    fontWeight: '700',
+    color: 'var(--text-main)',
   },
   formActions: {
     display: 'flex',
