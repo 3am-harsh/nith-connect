@@ -7,17 +7,16 @@ import { signInWithPopup, signInWithCredential, GoogleAuthProvider } from 'fireb
 import { auth } from '@/lib/firebase';
 import { Capacitor } from '@capacitor/core';
 
-// Premium full-screen anticipation loader
+// Premium full-screen white loader with expanding dot wave
 function LoadingOverlay() {
   const [loadingStep, setLoadingStep] = useState(0);
 
   useEffect(() => {
     const steps = [
-      'Establishing secure portal connection...',
-      'Authorizing student directory credentials...',
-      'Verifying academic department profile...',
-      'Synchronizing hostel data databases...',
-      'Ready! Loading NITH Connect...'
+      'Establishing secure connection...',
+      'Checking portal database...',
+      'Loading your workspace...',
+      'Ready! Launching...'
     ];
     
     const interval = setInterval(() => {
@@ -28,24 +27,26 @@ function LoadingOverlay() {
   }, []);
 
   const steps = [
-    'Establishing secure portal connection...',
-    'Authorizing student credentials...',
-    'Verifying academic department...',
-    'Synchronizing hostel database...',
-    'Ready! Loading NITH Connect...'
+    'Establishing secure connection...',
+    'Checking portal database...',
+    'Loading your workspace...',
+    'Ready! Launching...'
   ];
 
   return (
     <div style={styles.loaderOverlay} className="animate-fade-in">
       <div style={styles.loaderContainer}>
         {/* Glowing Logo */}
-        <div style={styles.glowingLogoWrapper}>
-          <div style={styles.glowRing} />
-          <Mountain size={44} color="var(--pine-primary)" style={styles.loaderLogo} />
+        <div style={styles.logoWrapper}>
+          <Mountain size={44} color="var(--pine-primary)" />
         </div>
         
-        {/* Spinner */}
-        <div style={styles.spinner} />
+        {/* Expanding Dot Wave */}
+        <div className="dot-pulse" style={{ margin: '10px 0' }}>
+          <div className="dot" />
+          <div className="dot" />
+          <div className="dot" />
+        </div>
         
         {/* Animated text */}
         <p style={styles.loaderText}>{steps[loadingStep]}</p>
@@ -105,6 +106,9 @@ export default function LoginPage() {
   };
 
   const handleGoogleSignIn = () => {
+    // Alert prompting user to use their college email
+    alert("Please use college email ID (@nith.ac.in) only.");
+    
     setErrorMessage(null);
     startTransition(async () => {
       try {
@@ -616,7 +620,7 @@ const styles: Record<string, React.CSSProperties> = {
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#0e3d2f',
+    backgroundColor: '#ffffff',
     zIndex: 9999,
     display: 'flex',
     alignItems: 'center',
@@ -627,57 +631,37 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    gap: '24px',
+    gap: '20px',
     textAlign: 'center',
   },
-  glowingLogoWrapper: {
-    position: 'relative',
-    width: '120px',
-    height: '120px',
+  logoWrapper: {
+    width: '80px',
+    height: '80px',
+    borderRadius: '50%',
+    backgroundColor: 'var(--bg-app)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: '10px',
-  },
-  glowRing: {
-    position: 'absolute',
-    width: '100px',
-    height: '100px',
-    borderRadius: '50%',
-    border: '2px solid rgba(255, 255, 255, 0.05)',
-    borderTopColor: 'var(--aqua-primary)',
-    animation: 'spin 1.5s linear infinite',
-  },
-  loaderLogo: {
-    zIndex: 2,
-    filter: 'drop-shadow(0 0 15px rgba(45, 168, 170, 0.5))',
-    animation: 'pulse-subtle 2s infinite ease-in-out',
-  },
-  spinner: {
-    width: '32px',
-    height: '32px',
-    border: '3px solid rgba(255, 255, 255, 0.05)',
-    borderTopColor: 'var(--aqua-primary)',
-    borderRadius: '50%',
-    animation: 'spin 0.8s linear infinite',
+    boxShadow: 'var(--shadow-sm)',
+    border: '1px solid var(--border-subtle)',
+    marginBottom: '8px',
   },
   loaderText: {
-    color: '#ffffff',
-    fontSize: '15px',
-    fontWeight: '500',
+    color: 'var(--pine-deep)',
+    fontSize: '14px',
+    fontWeight: '600',
     margin: 0,
-    letterSpacing: '0.3px',
-    opacity: 0.9,
-    minHeight: '22px',
+    letterSpacing: '0.2px',
+    minHeight: '20px',
     transition: 'all 0.3s ease',
   },
   loaderBrand: {
-    color: 'var(--aqua-primary)',
-    fontSize: '11px',
+    color: 'var(--pine-primary)',
+    fontSize: '10px',
     fontWeight: '800',
-    letterSpacing: '4px',
+    letterSpacing: '5px',
     textTransform: 'uppercase',
-    marginTop: '8px',
-    opacity: 0.7,
+    marginTop: '6px',
+    opacity: 0.8,
   }
 };
