@@ -7,6 +7,54 @@ import { signInWithPopup, signInWithCredential, GoogleAuthProvider } from 'fireb
 import { auth } from '@/lib/firebase';
 import { Capacitor } from '@capacitor/core';
 
+// Premium full-screen anticipation loader
+function LoadingOverlay() {
+  const [loadingStep, setLoadingStep] = useState(0);
+
+  useEffect(() => {
+    const steps = [
+      'Establishing secure portal connection...',
+      'Authorizing student directory credentials...',
+      'Verifying academic department profile...',
+      'Synchronizing hostel data databases...',
+      'Ready! Loading NITH Connect...'
+    ];
+    
+    const interval = setInterval(() => {
+      setLoadingStep((prev) => (prev < steps.length - 1 ? prev + 1 : prev));
+    }, 450);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const steps = [
+    'Establishing secure portal connection...',
+    'Authorizing student credentials...',
+    'Verifying academic department...',
+    'Synchronizing hostel database...',
+    'Ready! Loading NITH Connect...'
+  ];
+
+  return (
+    <div style={styles.loaderOverlay} className="animate-fade-in">
+      <div style={styles.loaderContainer}>
+        {/* Glowing Logo */}
+        <div style={styles.glowingLogoWrapper}>
+          <div style={styles.glowRing} />
+          <Mountain size={44} color="var(--pine-primary)" style={styles.loaderLogo} />
+        </div>
+        
+        {/* Spinner */}
+        <div style={styles.spinner} />
+        
+        {/* Animated text */}
+        <p style={styles.loaderText}>{steps[loadingStep]}</p>
+        <span style={styles.loaderBrand}>NITH CONNECT</span>
+      </div>
+    </div>
+  );
+}
+
 export default function LoginPage() {
   const [isPending, startTransition] = useTransition();
   const [showGoogleMock, setShowGoogleMock] = useState(false);
@@ -121,6 +169,9 @@ export default function LoginPage() {
 
   return (
     <main style={styles.container}>
+      {/* Dynamic anticipation loader screen */}
+      {isPending && <LoadingOverlay />}
+
       {/* Background patterns */}
       <div style={styles.bgGlow1} />
       <div style={styles.bgGlow2} />
@@ -160,6 +211,7 @@ export default function LoginPage() {
                 onClick={handleGoogleSignIn}
                 style={styles.googleBtn}
                 disabled={isPending}
+                className="touch-feedback"
               >
                 {/* SVG for Google Logo */}
                 <svg width="18" height="18" viewBox="0 0 24 24" style={styles.googleIcon}>
@@ -183,6 +235,7 @@ export default function LoginPage() {
                   onClick={() => handleDevLogin('student')}
                   style={styles.devBtn}
                   disabled={isPending}
+                  className="touch-feedback"
                 >
                   <User size={16} />
                   <span>Student Access (Aarav)</span>
@@ -191,6 +244,7 @@ export default function LoginPage() {
                   onClick={() => handleDevLogin('guest')}
                   style={styles.devBtn}
                   disabled={isPending}
+                  className="touch-feedback"
                 >
                   <User size={16} />
                   <span>Continue as Guest</span>
@@ -307,12 +361,13 @@ export default function LoginPage() {
                   onClick={() => setShowGoogleMock(false)}
                   style={styles.cancelBtn}
                   disabled={isPending}
+                  className="touch-feedback"
                 >
                   Back
                 </button>
                 <button 
                   type="submit" 
-                  className="btn-primary"
+                  className="btn-primary touch-feedback"
                   disabled={isPending}
                   style={{padding: '10px 20px', flex: 1}}
                 >
@@ -554,5 +609,75 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--text-placeholder)',
     lineHeight: '1.4',
     margin: 0,
+  },
+  loaderOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#0e3d2f',
+    zIndex: 9999,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'column',
+  },
+  loaderContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '24px',
+    textAlign: 'center',
+  },
+  glowingLogoWrapper: {
+    position: 'relative',
+    width: '120px',
+    height: '120px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: '10px',
+  },
+  glowRing: {
+    position: 'absolute',
+    width: '100px',
+    height: '100px',
+    borderRadius: '50%',
+    border: '2px solid rgba(255, 255, 255, 0.05)',
+    borderTopColor: 'var(--aqua-primary)',
+    animation: 'spin 1.5s linear infinite',
+  },
+  loaderLogo: {
+    zIndex: 2,
+    filter: 'drop-shadow(0 0 15px rgba(45, 168, 170, 0.5))',
+    animation: 'pulse-subtle 2s infinite ease-in-out',
+  },
+  spinner: {
+    width: '32px',
+    height: '32px',
+    border: '3px solid rgba(255, 255, 255, 0.05)',
+    borderTopColor: 'var(--aqua-primary)',
+    borderRadius: '50%',
+    animation: 'spin 0.8s linear infinite',
+  },
+  loaderText: {
+    color: '#ffffff',
+    fontSize: '15px',
+    fontWeight: '500',
+    margin: 0,
+    letterSpacing: '0.3px',
+    opacity: 0.9,
+    minHeight: '22px',
+    transition: 'all 0.3s ease',
+  },
+  loaderBrand: {
+    color: 'var(--aqua-primary)',
+    fontSize: '11px',
+    fontWeight: '800',
+    letterSpacing: '4px',
+    textTransform: 'uppercase',
+    marginTop: '8px',
+    opacity: 0.7,
   }
 };

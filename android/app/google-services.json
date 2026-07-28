@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "89838818244",
+    "project_id": "nith-connect",
+    "storage_bucket": "nith-connect.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:89838818244:android:6a20b46e69e7faabdcca91",
+        "android_client_info": {
+          "package_name": "com.nith.connect"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "89838818244-kqa5cell9f22b87kv0q8r59k9ch3fs4d.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBuOGLC5-SBJygqUpoKcOvRVv3K0FJ9FGo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "89838818244-kqa5cell9f22b87kv0q8r59k9ch3fs4d.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
