@@ -59,7 +59,8 @@ export async function loginWithEmail(formData: FormData): Promise<LoginResult> {
     }
 
     // Set the cookie session
-    const devEmails = ['sharmaharsh.exe@gmail.com', '25bec047@gmail.com'];
+    const devEmailsEnv = process.env.DEVELOPER_EMAILS || '';
+    const devEmails = devEmailsEnv.split(',').map(e => e.trim().toLowerCase());
     const finalRole = devEmails.includes(email.toLowerCase()) ? 'developer' : (user.role || 'student');
     await setSession({
       id: userId,
@@ -88,40 +89,16 @@ export async function loginDeveloper(type: 'student' | 'guest' | 'developer'): P
     return { success: false, error: 'Unauthorized bypass attempt.' };
   }
 
-  const mockProfiles = {
-    student: {
-      id: 'dev_student',
-      email: 'aarav.sharma.cse22@nith.ac.in',
-      name: 'Aarav Sharma',
-      roll_number: '22MI502',
-      department: 'Computer Science & Engineering',
-      hostel: 'Kailash Hostel',
-      blood_group: 'B+',
-      role: 'student'
-    },
-    guest: {
-      id: 'dev_guest',
-      email: 'guest@nith.ac.in',
-      name: 'Campus Guest',
-      roll_number: 'GUEST-001',
-      department: 'Visitor',
-      hostel: 'NITH Guest House',
-      blood_group: 'N/A',
-      role: 'guest'
-    },
-    developer: {
-      id: '25bec047',
-      email: '25bec047@nith.ac.in',
-      name: 'Harsh (Developer)',
-      roll_number: '25BEC047',
-      department: 'Electronics & Communication',
-      hostel: 'Himadri Hostel',
-      blood_group: 'O+',
-      role: 'developer'
-    }
+  const profile = {
+    id: 'dev_guest',
+    email: 'guest@nith.ac.in',
+    name: 'Campus Guest',
+    roll_number: 'GUEST-001',
+    department: 'Visitor',
+    hostel: 'NITH Guest House',
+    blood_group: 'N/A',
+    role: 'guest'
   };
-
-  const profile = mockProfiles.guest;
 
   try {
     // Seed Firestore in the background
@@ -168,7 +145,8 @@ export async function loginWithFirebaseUserAction(email: string): Promise<LoginR
     }
     
     // Set the cookie session
-    const devEmails = ['sharmaharsh.exe@gmail.com', '25bec047@gmail.com'];
+    const devEmailsEnv = process.env.DEVELOPER_EMAILS || '';
+    const devEmails = devEmailsEnv.split(',').map(e => e.trim().toLowerCase());
     const finalRole = devEmails.includes(email.toLowerCase()) ? 'developer' : (user.role || 'student');
     await setSession({
       id: userId,
@@ -186,4 +164,10 @@ export async function loginWithFirebaseUserAction(email: string): Promise<LoginR
   }
   redirect('/');
   return { success: true };
+}
+
+export async function validateEmailAction(email: string): Promise<boolean> {
+  const devEmailsEnv = process.env.DEVELOPER_EMAILS || '';
+  const devEmails = devEmailsEnv.split(',').map(e => e.trim().toLowerCase());
+  return email.endsWith('@nith.ac.in') || devEmails.includes(email.toLowerCase());
 }

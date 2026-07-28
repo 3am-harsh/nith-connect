@@ -15,6 +15,7 @@ import {
   addBlockedWord,
   removeBlockedWord
 } from '@/lib/firestore';
+import { getSession } from '@/lib/auth';
 
 export async function fetchChatrooms() {
   return getFirestoreChatrooms();
@@ -64,18 +65,34 @@ export async function reportMessageAction(messageId: string, userId: string) {
 }
 
 export async function fetchReportedMessagesAction() {
+  const session = await getSession();
+  if (!session || (session.role !== 'developer' && session.role !== 'cr')) {
+    throw new Error('Unauthorized');
+  }
   return getReportedFirestoreMessages();
 }
 
 export async function dismissReportsAction(messageId: string) {
+  const session = await getSession();
+  if (!session || (session.role !== 'developer' && session.role !== 'cr')) {
+    throw new Error('Unauthorized');
+  }
   return dismissFirestoreMessageReports(messageId);
 }
 
 export async function deleteMessageAction(messageId: string) {
+  const session = await getSession();
+  if (!session || (session.role !== 'developer' && session.role !== 'cr')) {
+    throw new Error('Unauthorized');
+  }
   return deleteFirestoreMessage(messageId);
 }
 
 export async function banUserAction(userId: string, durationHours: number, reason?: string) {
+  const session = await getSession();
+  if (!session || session.role !== 'developer') {
+    throw new Error('Unauthorized');
+  }
   // If durationHours is -1, it's a permanent ban (100 years in future)
   const durationMs = durationHours === -1 
     ? 100 * 365 * 24 * 60 * 60 * 1000 
@@ -85,6 +102,10 @@ export async function banUserAction(userId: string, durationHours: number, reaso
 }
 
 export async function unbanUserAction(userId: string) {
+  const session = await getSession();
+  if (!session || session.role !== 'developer') {
+    throw new Error('Unauthorized');
+  }
   return unbanFirestoreUser(userId);
 }
 
@@ -97,9 +118,17 @@ export async function fetchBlockedWordsAction() {
 }
 
 export async function addBlockedWordAction(word: string) {
+  const session = await getSession();
+  if (!session || session.role !== 'developer') {
+    throw new Error('Unauthorized');
+  }
   return addBlockedWord(word);
 }
 
 export async function removeBlockedWordAction(word: string) {
+  const session = await getSession();
+  if (!session || session.role !== 'developer') {
+    throw new Error('Unauthorized');
+  }
   return removeBlockedWord(word);
 }

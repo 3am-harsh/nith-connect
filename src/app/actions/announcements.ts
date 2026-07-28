@@ -7,6 +7,7 @@ import {
   addCommentToAnnouncement,
   type FirestoreComment
 } from '@/lib/firestore';
+import { getSession } from '@/lib/auth';
 
 export async function fetchAnnouncements() {
   return getFirestoreAnnouncements();
@@ -87,6 +88,10 @@ export async function createAnnouncementAction(
 }
 
 export async function approveAnnouncementAction(announcementId: string): Promise<boolean> {
+  const session = await getSession();
+  if (!session || (session.role !== 'developer' && session.role !== 'cr')) {
+    throw new Error('Unauthorized');
+  }
   try {
     const { updateAnnouncementApprovalStatus } = await import('@/lib/firestore');
     return await updateAnnouncementApprovalStatus(announcementId, true);
@@ -97,6 +102,10 @@ export async function approveAnnouncementAction(announcementId: string): Promise
 }
 
 export async function rejectAnnouncementAction(announcementId: string): Promise<boolean> {
+  const session = await getSession();
+  if (!session || (session.role !== 'developer' && session.role !== 'cr')) {
+    throw new Error('Unauthorized');
+  }
   try {
     const { deleteFirestoreAnnouncement } = await import('@/lib/firestore');
     return await deleteFirestoreAnnouncement(announcementId);

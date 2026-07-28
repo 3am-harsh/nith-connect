@@ -7,6 +7,7 @@ import {
   getUserAchievements,
   type FeedbackSubmission
 } from '@/lib/firestore';
+import { getSession } from '@/lib/auth';
 
 export async function submitFeedbackAction(suggestion: string, userName: string, userEmail: string) {
   try {
@@ -27,6 +28,10 @@ export async function fetchFeedbackSubmissionsAction() {
 }
 
 export async function awardVisionaryBadgeAction(submissionId: string, award: boolean) {
+  const session = await getSession();
+  if (!session || session.role !== 'developer') {
+    throw new Error('Unauthorized');
+  }
   try {
     return await awardVisionaryBadge(submissionId, award);
   } catch (error) {

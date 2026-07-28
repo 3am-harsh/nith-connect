@@ -8,6 +8,7 @@ import {
   rejectTimetableSubmission,
   type TimetableSubmission
 } from '@/lib/firestore';
+import { getSession } from '@/lib/auth';
 
 export async function submitTimetableAction(
   year: string,
@@ -59,6 +60,10 @@ export async function approveTimetableAction(
   branch: string,
   fileData: string
 ) {
+  const session = await getSession();
+  if (!session || (session.role !== 'developer' && session.role !== 'cr')) {
+    throw new Error('Unauthorized');
+  }
   try {
     return await approveTimetableSubmission(submissionId, year, section, branch, fileData);
   } catch (error) {
@@ -68,6 +73,10 @@ export async function approveTimetableAction(
 }
 
 export async function rejectTimetableAction(submissionId: string) {
+  const session = await getSession();
+  if (!session || (session.role !== 'developer' && session.role !== 'cr')) {
+    throw new Error('Unauthorized');
+  }
   try {
     return await rejectTimetableSubmission(submissionId);
   } catch (error) {

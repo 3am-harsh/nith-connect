@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useTransition, useEffect } from 'react';
-import { loginWithEmail, loginDeveloper, checkUserRegisteredAction, loginWithFirebaseUserAction } from './actions';
+import { loginWithEmail, loginDeveloper, checkUserRegisteredAction, loginWithFirebaseUserAction, validateEmailAction } from './actions';
 import { Mountain, LogIn, ShieldAlert, Sparkles, User, Mail, GraduationCap, Building, Home, Activity } from 'lucide-react';
 import { signInWithPopup, signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
@@ -196,10 +196,8 @@ export default function LoginPage() {
           return;
         }
 
-        const isValidDomain = userEmail.endsWith('@nith.ac.in') || 
-                              userEmail.toLowerCase() === 'sharmaharsh.exe@gmail.com' ||
-                              userEmail.toLowerCase() === '25bec047@gmail.com';
-        if (!isValidDomain) {
+        const isValid = await validateEmailAction(userEmail);
+        if (!isValid) {
           await auth.signOut();
           setErrorMessage('Access Denied: Only @nith.ac.in Google accounts are allowed.');
           return;

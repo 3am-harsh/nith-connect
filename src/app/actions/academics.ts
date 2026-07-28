@@ -8,6 +8,7 @@ import {
   type AcademicFile,
   type AcademicTab,
 } from '@/lib/firestore';
+import { getSession } from '@/lib/auth';
 
 export async function addAcademicFileAction(
   data: Omit<AcademicFile, 'id' | 'uploaded_at'>
@@ -39,6 +40,10 @@ export async function fetchAllAcademicFilesAction(): Promise<AcademicFile[]> {
 }
 
 export async function deleteAcademicFileAction(fileId: string): Promise<boolean> {
+  const session = await getSession();
+  if (!session || (session.role !== 'developer' && session.role !== 'cr')) {
+    throw new Error('Unauthorized');
+  }
   try {
     return await deleteAcademicFile(fileId);
   } catch (error) {

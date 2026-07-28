@@ -3,6 +3,9 @@ import crypto from 'crypto';
 
 const SESSION_COOKIE = 'nith_app_session';
 const JWT_SECRET = process.env.JWT_SECRET || 'nith-campus-secret-key-12345';
+if (process.env.NODE_ENV === 'production' && (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'nith-campus-secret-key-12345')) {
+  console.warn("WARNING: JWT_SECRET environment variable is missing or insecure in production!");
+}
 
 export interface UserSession {
   id: string;
@@ -68,5 +71,7 @@ export async function clearSession() {
 
 // Validate NITH email domain restriction
 export function validateNithEmail(email: string): boolean {
-  return email.endsWith('@nith.ac.in') || email.toLowerCase() === 'djfgh7033@gmail.com';
+  const devEmailsEnv = process.env.DEVELOPER_EMAILS || '';
+  const devEmails = devEmailsEnv.split(',').map(e => e.trim().toLowerCase());
+  return email.endsWith('@nith.ac.in') || devEmails.includes(email.toLowerCase());
 }
