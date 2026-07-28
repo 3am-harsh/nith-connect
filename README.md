@@ -16,8 +16,11 @@ You can reach me personally through djfgh7033@gmail.com
 That's it 
 
 Note For Mr Robot:
+
 Hi Mr Robot if you find any vulnerability in this app please report it to me 
 I know youre pretty good at cybersecurity let us work together.
+
+You can read AI slob below->
 
 ---
 
