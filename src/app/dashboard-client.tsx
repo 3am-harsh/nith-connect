@@ -774,10 +774,87 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     });
   }, [selectedHostel, selectedDay]);
 
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
   const handleLogout = () => {
-    startTransition(async () => {
-      await logout();
-    });
+    setIsLoggingOut(true);
+    setTimeout(() => {
+      startTransition(async () => {
+        await logout();
+      });
+    }, 1000);
+  };
+
+  const renderGuestRestriction = (title: string) => {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '32px 16px',
+        width: '100%',
+        height: '100%',
+        minHeight: '400px',
+      }}>
+        <div style={{
+          maxWidth: '480px',
+          width: '100%',
+          padding: '32px 24px',
+          borderRadius: 'var(--radius-lg)',
+          textAlign: 'center',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '16px',
+          backgroundColor: '#ffffff',
+          boxShadow: 'var(--glass-shadow)',
+          border: '1px solid var(--border-subtle)',
+        }} className="glass-panel animate-slide-up">
+          <div style={{
+            width: '64px',
+            height: '64px',
+            borderRadius: '50%',
+            backgroundColor: 'rgba(231, 111, 81, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <ShieldAlert size={32} color="#e76f51" />
+          </div>
+          <h3 style={{
+            fontSize: '20px',
+            fontWeight: '700',
+            color: 'var(--pine-deep)',
+            margin: 0,
+          }}>{title} Restricted</h3>
+          <p style={{
+            fontSize: '14px',
+            color: 'var(--text-muted)',
+            lineHeight: '1.5',
+            margin: 0,
+          }}>
+            Access is restricted to verified students. Please log in using your official @nith.ac.in college email.
+          </p>
+          <button 
+            onClick={handleLogout} 
+            className="btn-primary touch-feedback"
+            style={{ 
+              marginTop: '12px', 
+              padding: '12px 24px', 
+              width: '100%', 
+              backgroundColor: 'var(--pine-primary)',
+              color: '#ffffff',
+              borderRadius: 'var(--radius-md)',
+              fontWeight: '600',
+              border: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            Log Out & Sign In with Google
+          </button>
+        </div>
+      </div>
+    );
   };
 
   const menuItems = isDevModeActive
@@ -1815,6 +1892,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         );
       }
       case 'marketplace': {
+        if (user.role === 'guest') return renderGuestRestriction('Buy & Sell');
         const filteredItems = marketplaceItems.filter(item => {
           if (!item) return false;
           const title = item.title || '';
@@ -2140,6 +2218,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         );
       }
       case 'lostfound': {
+        if (user.role === 'guest') return renderGuestRestriction('Lost & Found');
         const branches = [
           { id: 'cse', name: 'Computer Science (CSE)' },
           { id: 'ece', name: 'Electronics & Communication (ECE)' },
@@ -2964,6 +3043,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         );
       }
       case 'chat': {
+        if (user.role === 'guest') return renderGuestRestriction('Communities');
         const activeRoom = chatRoomsList.find(r => r.id === selectedRoomId);
 
         const handleSendMessage = async (e: React.FormEvent) => {
@@ -4589,6 +4669,68 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
   return (
     <div style={styles.dashboardContainer}>
+      {isLoggingOut && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: '#ffffff',
+          zIndex: 99999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'column',
+          animation: 'fadeIn 0.3s ease forwards'
+        }}>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '20px',
+            textAlign: 'center',
+          }}>
+            <div style={{
+              width: '80px',
+              height: '80px',
+              borderRadius: '50%',
+              backgroundColor: 'var(--bg-app)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: 'var(--shadow-sm)',
+              border: '1px solid var(--border-subtle)',
+              marginBottom: '8px',
+            }}>
+              <Mountain size={44} color="var(--pine-primary)" />
+            </div>
+            
+            <div className="dot-pulse" style={{ margin: '10px 0' }}>
+              <div className="dot" />
+              <div className="dot" />
+              <div className="dot" />
+            </div>
+            
+            <p style={{
+              color: 'var(--pine-deep)',
+              fontSize: '14px',
+              fontWeight: '600',
+              margin: 0,
+              letterSpacing: '0.2px',
+            }}>Signing out safely...</p>
+            <span style={{
+              color: 'var(--pine-primary)',
+              fontSize: '10px',
+              fontWeight: '800',
+              letterSpacing: '5px',
+              textTransform: 'uppercase',
+              marginTop: '6px',
+              opacity: 0.8,
+            }}>NITH CONNECT</span>
+          </div>
+        </div>
+      )}
       {/* Sidebar Navigation - Desktop only */}
       <aside style={styles.sidebar}>
         <div style={styles.sidebarHeader}>
@@ -4611,14 +4753,17 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
+            const isRestricted = user.role === 'guest' && ['chat', 'marketplace', 'lostfound'].includes(item.id);
             return (
               <button
                 key={item.id}
-                onClick={() => setActiveTab(item.id)}
+                onClick={() => isRestricted ? showToast('This feature requires a student account.', 'warning') : setActiveTab(item.id)}
                 style={{
                   ...styles.navLink,
                   backgroundColor: isActive ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
                   fontWeight: isActive ? '600' : '400',
+                  opacity: isRestricted ? 0.5 : 1,
+                  cursor: isRestricted ? 'not-allowed' : 'pointer'
                 }}
                 className="touch-feedback"
               >
@@ -4628,10 +4773,20 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             );
           })}
 
-          {user.role !== 'guest' && (
+          {user.role === 'guest' ? (
+            <button 
+              onClick={handleLogout}
+              style={{ ...styles.navLink, color: '#e76f51' }}
+              className="touch-feedback"
+            >
+              <LogOut size={18} color="#e76f51" />
+              <span>Log Out</span>
+            </button>
+          ) : (
             <button 
               onClick={() => setIsProfileOpen(true)}
               style={styles.navLink}
+              className="touch-feedback"
             >
               <User size={18} color="rgba(255, 255, 255, 0.7)" />
               <span>Profile</span>
@@ -4669,7 +4824,22 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         <header style={styles.topbar} className="glass-panel">
           <div style={styles.topbarLeft}>
             {/* Profile Pill */}
-            {user.role !== 'guest' && (
+            {user.role === 'guest' ? (
+              <button 
+                onClick={handleLogout}
+                style={{
+                  ...styles.idPill,
+                  backgroundColor: 'rgba(231, 111, 81, 0.1)',
+                  border: '1px solid rgba(231, 111, 81, 0.2)',
+                }}
+                className="touch-feedback"
+              >
+                <div style={{ ...styles.idPillIcon, backgroundColor: '#e76f51' }}>
+                  <LogOut size={12} color="#ffffff" />
+                </div>
+                <span style={{ ...styles.idPillText, color: '#e76f51' }}>Log Out</span>
+              </button>
+            ) : (
               <button 
                 onClick={() => setIsProfileOpen(true)}
                 style={styles.idPill}
