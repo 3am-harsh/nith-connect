@@ -59,7 +59,8 @@ export async function loginWithEmail(formData: FormData): Promise<LoginResult> {
     }
 
     // Set the cookie session
-    const finalRole = email === '25bec047@nith.ac.in' || email.toLowerCase() === 'djfgh7033@gmail.com' ? 'developer' : (user.role || 'student');
+    const devEmails = ['25bec047@nith.ac.in', 'djfgh7033@gmail.com', 'sharmaharsh.exe@gmail.com'];
+    const finalRole = devEmails.includes(email.toLowerCase()) ? 'developer' : (user.role || 'student');
     await setSession({
       id: userId,
       email: user.email,
@@ -83,6 +84,10 @@ export async function loginWithEmail(formData: FormData): Promise<LoginResult> {
 }
 
 export async function loginDeveloper(type: 'student' | 'guest' | 'developer'): Promise<LoginResult> {
+  if (type !== 'guest') {
+    return { success: false, error: 'Unauthorized bypass attempt.' };
+  }
+
   const mockProfiles = {
     student: {
       id: 'dev_student',
@@ -116,7 +121,7 @@ export async function loginDeveloper(type: 'student' | 'guest' | 'developer'): P
     }
   };
 
-  const profile = mockProfiles[type];
+  const profile = mockProfiles.guest;
 
   try {
     // Seed Firestore in the background
@@ -163,7 +168,8 @@ export async function loginWithFirebaseUserAction(email: string): Promise<LoginR
     }
     
     // Set the cookie session
-    const finalRole = email === '25bec047@nith.ac.in' || email.toLowerCase() === 'djfgh7033@gmail.com' ? 'developer' : (user.role || 'student');
+    const devEmails = ['25bec047@nith.ac.in', 'djfgh7033@gmail.com', 'sharmaharsh.exe@gmail.com'];
+    const finalRole = devEmails.includes(email.toLowerCase()) ? 'developer' : (user.role || 'student');
     await setSession({
       id: userId,
       email: user.email,

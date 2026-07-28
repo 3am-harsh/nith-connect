@@ -196,7 +196,9 @@ export default function LoginPage() {
           return;
         }
 
-        const isValidDomain = userEmail.endsWith('@nith.ac.in') || userEmail.toLowerCase() === 'djfgh7033@gmail.com';
+        const isValidDomain = userEmail.endsWith('@nith.ac.in') || 
+                              userEmail.toLowerCase() === 'djfgh7033@gmail.com' ||
+                              userEmail.toLowerCase() === 'sharmaharsh.exe@gmail.com';
         if (!isValidDomain) {
           await auth.signOut();
           setErrorMessage('Access Denied: Only @nith.ac.in Google accounts are allowed.');
@@ -299,31 +301,20 @@ export default function LoginPage() {
  
               <div style={styles.divider}>
                 <div style={styles.dividerLine} />
-                <span style={styles.dividerText}>or bypass with Developer Mode</span>
+                <span style={styles.dividerText}>or</span>
                 <div style={styles.dividerLine} />
               </div>
  
-              {/* Dev mode options */}
-              <div style={styles.devButtons}>
-                <button 
-                  onClick={() => handleDevLogin('student')}
-                  style={styles.devBtn}
-                  disabled={isPending}
-                  className="touch-feedback"
-                >
-                  <User size={16} />
-                  <span>Student Access (Aarav)</span>
-                </button>
-                <button 
-                  onClick={() => handleDevLogin('guest')}
-                  style={styles.devBtn}
-                  disabled={isPending}
-                  className="touch-feedback"
-                >
-                  <User size={16} />
-                  <span>Continue as Guest</span>
-                </button>
-              </div>
+              {/* Explore as Guest Option */}
+              <button 
+                onClick={() => handleDevLogin('guest')}
+                style={styles.devBtn}
+                disabled={isPending}
+                className="touch-feedback"
+              >
+                <User size={16} />
+                <span>Continue as Guest</span>
+              </button>
             </div>
           ) : (
             /* Auto-Parsed and Simplified Google Sign-In Form (Scrollable) */
