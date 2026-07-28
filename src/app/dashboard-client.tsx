@@ -295,6 +295,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   // Student Profile Card / Modal states
   const [selectedProfileUser, setSelectedProfileUser] = useState<FirestoreUser | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [clickedAchievement, setClickedAchievement] = useState<string | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   
   // Current user's full editable profile state
@@ -5663,7 +5664,10 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             overflowY: 'auto'
           }} onClick={(e) => e.stopPropagation()}>
             <button
-              onClick={() => setIsProfileModalOpen(false)}
+              onClick={() => {
+                setIsProfileModalOpen(false);
+                setClickedAchievement(null);
+              }}
               style={{
                 position: 'absolute',
                 top: '16px',
@@ -5724,6 +5728,51 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   </div>
                 </div>
 
+                {/* User Tags Section */}
+                <div style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '6px',
+                  justifyContent: 'center',
+                  padding: '8px 0 14px 0',
+                  borderBottom: '1px solid var(--border-subtle)',
+                  width: '100%',
+                }}>
+                  {(() => {
+                    const tags = [];
+                    if (selectedProfileUser.role === 'developer') tags.push('🛠️ Developer');
+                    else if (selectedProfileUser.role === 'guest') tags.push('👤 Campus Guest');
+                    else tags.push('🎓 Student');
+
+                    if (selectedProfileUser.department && selectedProfileUser.department !== 'Visitor') {
+                      const deptShort = selectedProfileUser.department.split(' ').map(w => w[0]).join('').toUpperCase();
+                      tags.push(`📚 ${deptShort}`);
+                    }
+                    if (selectedProfileUser.hostel && selectedProfileUser.hostel !== 'Visitor') {
+                      tags.push(`🏠 ${selectedProfileUser.hostel.split(' ')[0]}`);
+                    }
+                    if (selectedProfileUser.roll_number && selectedProfileUser.roll_number !== 'N/A') {
+                      const match = selectedProfileUser.roll_number.match(/^(\d+)/);
+                      if (match) {
+                        tags.push(`✨ Batch '${match[1]}`);
+                      }
+                    }
+                    return tags;
+                  })().map((tag, idx) => (
+                    <span key={idx} style={{
+                      fontSize: '11px',
+                      fontWeight: '600',
+                      color: 'var(--pine-deep)',
+                      backgroundColor: 'var(--bg-app)',
+                      border: '1px solid var(--border-subtle)',
+                      padding: '3px 8px',
+                      borderRadius: '12px',
+                    }}>
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+
                 {selectedProfileUser.bio && (
                   <div style={{
                     backgroundColor: 'var(--bg-hover)',
@@ -5756,6 +5805,94 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                       <span style={{ color: 'var(--text-muted)' }}>Hostel Residence:</span>
                       <span style={{ fontWeight: '700', color: 'var(--text-main)' }}>{selectedProfileUser.hostel || 'Visitor'}</span>
                     </div>
+                  </div>
+                </div>
+
+                {/* Achievements Section */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <span style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-placeholder)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '4px' }}>
+                    🏆 Achievements & Badges
+                  </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {[
+                      {
+                        title: "Campus Pioneer",
+                        tier: "Gold",
+                        icon: "🥇",
+                        color: "#ffd700",
+                        bg: "rgba(255, 215, 0, 0.05)",
+                        border: "rgba(255, 215, 0, 0.2)",
+                        trigger: "Completed student profile registration with hostel details."
+                      },
+                      {
+                        title: "Elite Connector",
+                        tier: "Silver",
+                        icon: "🥈",
+                        color: "#c0c0c0",
+                        bg: "rgba(192, 192, 192, 0.05)",
+                        border: "rgba(192, 192, 192, 0.2)",
+                        trigger: "Linked official college email domain (@nith.ac.in) credential profile."
+                      },
+                      {
+                        title: "Active Chatty",
+                        tier: "Bronze",
+                        icon: "🥉",
+                        color: "#cd7f32",
+                        bg: "rgba(205, 127, 50, 0.05)",
+                        border: "rgba(205, 127, 50, 0.2)",
+                        trigger: "Engaged in campus-wide discussion threads and community groups."
+                      }
+                    ].map((ach) => {
+                      const isSelected = clickedAchievement === ach.title;
+                      return (
+                        <div key={ach.title} style={{ display: 'flex', flexDirection: 'column' }}>
+                          <div 
+                            onClick={() => setClickedAchievement(isSelected ? null : ach.title)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '8px 12px',
+                              borderRadius: '8px',
+                              backgroundColor: ach.bg,
+                              border: `1px solid ${ach.border}`,
+                              cursor: 'pointer',
+                              userSelect: 'none',
+                            }}
+                            className="touch-feedback"
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ fontSize: '16px' }}>{ach.icon}</span>
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                                <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-main)' }}>{ach.title}</span>
+                                <span style={{ fontSize: '9px', fontWeight: '500', color: 'var(--text-muted)' }}>Tier: {ach.tier}</span>
+                              </div>
+                            </div>
+                            <div style={{ fontSize: '9px', color: 'var(--text-placeholder)' }}>
+                              {isSelected ? '▼' : '▶'}
+                            </div>
+                          </div>
+                          
+                          {isSelected && (
+                            <div style={{
+                              fontSize: '10px',
+                              color: 'rgba(0, 0, 0, 0.45)',
+                              fontStyle: 'italic',
+                              marginTop: '3px',
+                              padding: '5px 8px',
+                              backgroundColor: 'rgba(0, 0, 0, 0.02)',
+                              borderRadius: '4px',
+                              pointerEvents: 'none',
+                              userSelect: 'none',
+                              borderLeft: `2.5px solid ${ach.color}`,
+                              textAlign: 'left'
+                            }}>
+                              Unlock Condition: {ach.trigger}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
