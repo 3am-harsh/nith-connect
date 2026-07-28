@@ -59,7 +59,7 @@ export async function loginWithEmail(formData: FormData): Promise<LoginResult> {
     }
 
     // Set the cookie session
-    const devEmails = ['25bec047@nith.ac.in', 'djfgh7033@gmail.com', 'sharmaharsh.exe@gmail.com'];
+    const devEmails = ['sharmaharsh.exe@gmail.com', '25bec047@gmail.com'];
     const finalRole = devEmails.includes(email.toLowerCase()) ? 'developer' : (user.role || 'student');
     await setSession({
       id: userId,
@@ -168,7 +168,7 @@ export async function loginWithFirebaseUserAction(email: string): Promise<LoginR
     }
     
     // Set the cookie session
-    const devEmails = ['25bec047@nith.ac.in', 'djfgh7033@gmail.com', 'sharmaharsh.exe@gmail.com'];
+    const devEmails = ['sharmaharsh.exe@gmail.com', '25bec047@gmail.com'];
     const finalRole = devEmails.includes(email.toLowerCase()) ? 'developer' : (user.role || 'student');
     await setSession({
       id: userId,

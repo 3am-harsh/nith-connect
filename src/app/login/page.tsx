@@ -197,8 +197,8 @@ export default function LoginPage() {
         }
 
         const isValidDomain = userEmail.endsWith('@nith.ac.in') || 
-                              userEmail.toLowerCase() === 'djfgh7033@gmail.com' ||
-                              userEmail.toLowerCase() === 'sharmaharsh.exe@gmail.com';
+                              userEmail.toLowerCase() === 'sharmaharsh.exe@gmail.com' ||
+                              userEmail.toLowerCase() === '25bec047@gmail.com';
         if (!isValidDomain) {
           await auth.signOut();
           setErrorMessage('Access Denied: Only @nith.ac.in Google accounts are allowed.');
