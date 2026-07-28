@@ -79,8 +79,9 @@ import {
   type AcademicFile,
   type AcademicTab,
   type FirestoreUser,
-  type DirectoryContact
 } from '@/lib/firestore';
+import { collection, query as fsQuery, where as fsWhere, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { 
   Mountain, 
   Home, 
@@ -543,18 +544,52 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     }
   }, []);
 
-  // Polling for new messages
+  // Real-time listener for chat messages (No polling delay!)
   useEffect(() => {
     if (activeTab !== 'chat') return;
 
     loadChatrooms();
-    loadMessages(selectedRoomId);
 
-    const interval = setInterval(() => {
-      loadMessages(selectedRoomId);
-    }, 3000);
+    const q = fsQuery(
+      collection(db, 'messages'),
+      fsWhere('chatroom_id', '==', selectedRoomId)
+    );
 
-    return () => clearInterval(interval);
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const msgs = snapshot.docs.map(doc => {
+        const data = doc.data();
+        const createdAt = data.created_at;
+        let serializableCreatedAt = null;
+        if (createdAt && typeof createdAt === 'object') {
+          const ts = createdAt as { toDate?: () => { toISOString: () => string }; seconds?: number };
+          if (typeof ts.toDate === 'function') {
+            serializableCreatedAt = ts.toDate().toISOString();
+          } else if (typeof ts.seconds === 'number') {
+            serializableCreatedAt = new Date(ts.seconds * 1000).toISOString();
+          }
+        } else if (createdAt) {
+          serializableCreatedAt = String(createdAt);
+        }
+        return {
+          id: doc.id,
+          ...data,
+          created_at: serializableCreatedAt
+        };
+      }) as FirestoreMessage[];
+
+      // Sort client-side
+      msgs.sort((a, b) => {
+        const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return timeA - timeB;
+      });
+
+      setChatMessages(msgs);
+    }, (err) => {
+      console.error('Real-time messages listener error:', err);
+    });
+
+    return () => unsubscribe();
   }, [activeTab, selectedRoomId]);
 
   // Fetch lost & found items helper
@@ -3286,16 +3321,34 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           if (!newMsgText.trim()) return;
           const textToSend = newMsgText;
           setNewMsgText('');
+
+          // Optimistically add message to the chat list instantly (0ms delay)
+          const tempId = 'optimistic-' + Date.now();
+          const optimisticMsg = {
+            id: tempId,
+            chatroom_id: selectedRoomId,
+            user_id: user.id,
+            user_name: user.name,
+            text: textToSend,
+            created_at: new Date().toISOString()
+          };
+          setChatMessages(prev => [...prev, optimisticMsg]);
+
           const res = await sendChatMessage(selectedRoomId, activeRoom?.name || 'Chat', user.id, user.name, textToSend);
           if (res.success) {
-            loadMessages(selectedRoomId);
-          } else if (res.banned) {
-            const dateStr = new Date(res.bannedUntil!).toLocaleString();
-            showToast(`Banned from chatroom: expires on ${dateStr}. Reason: ${res.reason}`, 'error');
-          } else if (res.containsProfanity) {
-            showToast('Message blocked: Contains prohibited language/profanity.', 'error');
+            // Handled automatically: the live snapshot listener will fetch the real message
           } else {
-            showToast('Failed to send message.', 'error');
+            // Remove optimistic message if sending fails
+            setChatMessages(prev => prev.filter(m => m.id !== tempId));
+
+            if (res.banned) {
+              const dateStr = new Date(res.bannedUntil!).toLocaleString();
+              showToast(`Banned from chatroom: expires on ${dateStr}. Reason: ${res.reason}`, 'error');
+            } else if (res.containsProfanity) {
+              showToast('Message blocked: Contains prohibited language/profanity.', 'error');
+            } else {
+              showToast('Failed to send message.', 'error');
+            }
           }
         };
 
@@ -7365,7 +7418,7 @@ const styles: Record<string, React.CSSProperties> = {
     transition: 'var(--transition-smooth)',
   },
   sidebarHeader: {
-    padding: '24px',
+    padding: 'calc(24px + env(safe-area-inset-top, 0px)) 24px 24px 24px',
     borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
   },
   sidebarLogo: {
@@ -7460,7 +7513,10 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: 'column',
     height: '100vh',
     overflowY: 'auto',
-    paddingBottom: '80px', // spacing for mobile bottom bar
+    paddingTop: 'env(safe-area-inset-top, 0px)',
+    paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))', // spacing for mobile bottom bar
+    paddingLeft: 'env(safe-area-inset-left, 0px)',
+    paddingRight: 'env(safe-area-inset-right, 0px)',
   },
   topbar: {
     display: 'flex',
