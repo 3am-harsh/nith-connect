@@ -79,6 +79,7 @@ import {
   type AcademicFile,
   type AcademicTab,
   type FirestoreUser,
+  type DirectoryContact
 } from '@/lib/firestore';
 import { collection, query as fsQuery, where as fsWhere, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -3704,6 +3705,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             "Today",
             "+919816012345",
             "",
+            [],
             user.id,
             user.name
           );
@@ -5045,7 +5047,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             return (
               <button
                 key={item.id}
-                onClick={() => isRestricted ? showToast('This feature requires a student account.', 'warning') : setActiveTab(item.id)}
+                onClick={() => isRestricted ? showToast('This feature requires a student account.', 'error') : setActiveTab(item.id)}
                 style={{
                   ...styles.navLink,
                   backgroundColor: isActive ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
