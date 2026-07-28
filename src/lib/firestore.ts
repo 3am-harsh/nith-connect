@@ -417,6 +417,7 @@ export interface FirestoreLostFoundItem {
   date: string;
   contact: string;
   image?: string;
+  images?: string[];
   user_id: string;
   user_name: string;
   created_at?: unknown;

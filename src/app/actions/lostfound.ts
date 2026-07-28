@@ -33,6 +33,7 @@ export async function createLostFoundItemAction(
   date: string,
   contact: string,
   image: string,
+  images: string[],
   userId: string,
   userName: string
 ) {
@@ -45,6 +46,7 @@ export async function createLostFoundItemAction(
       date,
       contact,
       image: image || '',
+      images: images || [],
       user_id: userId,
       user_name: userName
     });

@@ -455,6 +455,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const [newItemDate, setNewItemDate] = useState('');
   const [newItemContact, setNewItemContact] = useState('');
   const [newItemImage, setNewItemImage] = useState('');
+  const [newItemImages, setNewItemImages] = useState<string[]>([]);
+  const [selectedLightboxItem, setSelectedLightboxItem] = useState<FirestoreLostFoundItem | null>(null);
+  const [activeLightboxImageIdx, setActiveLightboxImageIdx] = useState<number>(0);
 
   // Report to CR Wizard States
   const [lostFoundSubView, setLostFoundSubView] = useState<'bulletin' | 'report_cr'>('bulletin');
@@ -2627,6 +2630,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             newItemDate,
             newItemContact,
             newItemImage,
+            newItemImages,
             user.id,
             user.name
           );
@@ -2638,6 +2642,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             setNewItemDate('');
             setNewItemContact('');
             setNewItemImage('');
+            setNewItemImages([]);
             setIsReportLostFoundOpen(false);
             loadLostFoundItems();
             showToast('Success! Item logged in bulletin.', 'success');
@@ -2647,16 +2652,37 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         };
 
         const handleItemImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-          const file = e.target.files?.[0];
-          if (file) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-              if (event.target?.result) {
-                setNewItemImage(event.target.result as string);
-              }
-            };
-            reader.readAsDataURL(file);
+          const files = e.target.files;
+          if (files) {
+            Array.from(files).forEach((file) => {
+              const reader = new FileReader();
+              reader.onload = (event) => {
+                if (event.target?.result) {
+                  const dataUrl = event.target.result as string;
+                  setNewItemImages(prev => {
+                    const updated = [...prev, dataUrl];
+                    if (updated.length === 1) {
+                      setNewItemImage(dataUrl);
+                    }
+                    return updated;
+                  });
+                }
+              };
+              reader.readAsDataURL(file);
+            });
           }
+        };
+
+        const handleRemoveUploadedImage = (index: number) => {
+          setNewItemImages(prev => {
+            const updated = prev.filter((_, i) => i !== index);
+            if (updated.length > 0) {
+              setNewItemImage(updated[0]);
+            } else {
+              setNewItemImage('');
+            }
+            return updated;
+          });
         };
 
         return (
@@ -2791,8 +2817,46 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   return (
                     <div key={item.id} style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)', backgroundColor: '#ffffff', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }} className="glass-panel-hover">
                       {/* Item Image or Placeholder */}
-                      <div style={{ height: '160px', width: '100%', position: 'relative', overflow: 'hidden', backgroundColor: 'var(--bg-input)' }}>
-                        {item.image ? (
+                      <div 
+                        onClick={() => {
+                          const imgs = item.images && item.images.length > 0 ? item.images : (item.image ? [item.image] : []);
+                          if (imgs.length > 0) {
+                            setSelectedLightboxItem(item);
+                            setActiveLightboxImageIdx(0);
+                          }
+                        }}
+                        style={{ 
+                          height: '160px', 
+                          width: '100%', 
+                          position: 'relative', 
+                          overflow: 'hidden', 
+                          backgroundColor: 'var(--bg-input)',
+                          cursor: (item.image || (item.images && item.images.length > 0)) ? 'pointer' : 'default'
+                        }}
+                      >
+                        {item.images && item.images.length > 0 ? (
+                          <>
+                            <img src={item.images[0]} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            {item.images.length > 1 && (
+                              <span style={{
+                                position: 'absolute',
+                                bottom: '12px',
+                                right: '12px',
+                                padding: '3px 8px',
+                                borderRadius: '4px',
+                                fontSize: '10px',
+                                fontWeight: '700',
+                                color: '#ffffff',
+                                backgroundColor: 'rgba(0,0,0,0.65)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                              }}>
+                                🖼️ +{item.images.length - 1}
+                              </span>
+                            )}
+                          </>
+                        ) : item.image ? (
                           <img src={item.image} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%', color: 'var(--text-muted)' }}>
@@ -3014,16 +3078,43 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     </div>
 
                     <div>
-                      <label style={styles.formLabel}>Attach Photo (Optional)</label>
+                      <label style={styles.formLabel}>Attach Photo(s) (Optional)</label>
                       <input 
                         type="file" 
                         accept="image/*" 
+                        multiple
                         onChange={handleItemImageUpload} 
                         style={styles.formInput} 
                       />
-                      {newItemImage && (
-                        <div style={{ marginTop: '8px', height: '100px', width: '100%', borderRadius: '4px', overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
-                          <img src={newItemImage} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      {newItemImages.length > 0 && (
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '10px' }}>
+                          {newItemImages.map((img, idx) => (
+                            <div key={idx} style={{ position: 'relative', width: '80px', height: '60px', borderRadius: '4px', overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
+                              <img src={img} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              <button 
+                                type="button"
+                                onClick={() => handleRemoveUploadedImage(idx)}
+                                style={{
+                                  position: 'absolute',
+                                  top: '2px',
+                                  right: '2px',
+                                  background: 'rgba(0, 0, 0, 0.7)',
+                                  border: 'none',
+                                  borderRadius: '50%',
+                                  width: '16px',
+                                  height: '16px',
+                                  color: '#ffffff',
+                                  fontSize: '10px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
                         </div>
                       )}
                     </div>
@@ -3038,6 +3129,149 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     </div>
                   </form>
                 </div>
+              </div>
+            )}
+
+            {/* Lightbox Modal */}
+            {selectedLightboxItem && (
+              <div 
+                style={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'rgba(0, 0, 0, 0.95)',
+                  zIndex: 999999,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexDirection: 'column',
+                }}
+                onClick={() => setSelectedLightboxItem(null)}
+              >
+                {/* Close button */}
+                <button 
+                  onClick={() => setSelectedLightboxItem(null)}
+                  style={{
+                    position: 'absolute',
+                    top: '20px',
+                    right: '20px',
+                    background: 'rgba(255, 255, 255, 0.15)',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '40px',
+                    height: '40px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: '#ffffff',
+                  }}
+                  className="touch-feedback"
+                >
+                  <X size={20} />
+                </button>
+
+                {/* Images wrapper */}
+                {(() => {
+                  const imgs = selectedLightboxItem.images && selectedLightboxItem.images.length > 0 
+                    ? selectedLightboxItem.images 
+                    : (selectedLightboxItem.image ? [selectedLightboxItem.image] : []);
+                  
+                  const hasMultiple = imgs.length > 1;
+
+                  return (
+                    <div style={{ position: 'relative', width: '90%', maxWidth: '800px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }} onClick={(e) => e.stopPropagation()}>
+                      {/* Main Image */}
+                      <div style={{ position: 'relative', width: '100%', height: '55vh', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderRadius: '8px' }}>
+                        <img 
+                          src={imgs[activeLightboxImageIdx]} 
+                          alt={selectedLightboxItem.title} 
+                          style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: '8px' }} 
+                        />
+                        
+                        {/* Left Button */}
+                        {hasMultiple && (
+                          <button 
+                            onClick={() => setActiveLightboxImageIdx(prev => (prev === 0 ? imgs.length - 1 : prev - 1))}
+                            style={{
+                              position: 'absolute',
+                              left: '12px',
+                              background: 'rgba(0, 0, 0, 0.6)',
+                              color: '#ffffff',
+                              border: 'none',
+                              borderRadius: '50%',
+                              width: '44px',
+                              height: '44px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                            }}
+                            className="touch-feedback"
+                          >
+                            ◀
+                          </button>
+                        )}
+
+                        {/* Right Button */}
+                        {hasMultiple && (
+                          <button 
+                            onClick={() => setActiveLightboxImageIdx(prev => (prev === imgs.length - 1 ? 0 : prev + 1))}
+                            style={{
+                              position: 'absolute',
+                              right: '12px',
+                              background: 'rgba(0, 0, 0, 0.6)',
+                              color: '#ffffff',
+                              border: 'none',
+                              borderRadius: '50%',
+                              width: '44px',
+                              height: '44px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                            }}
+                            className="touch-feedback"
+                          >
+                            ▶
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Dots Indicator / Thumbnail list */}
+                      {hasMultiple && (
+                        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', padding: '4px', maxWidth: '100%' }}>
+                          {imgs.map((img, idx) => (
+                            <div 
+                              key={idx} 
+                              onClick={() => setActiveLightboxImageIdx(idx)}
+                              style={{
+                                width: '56px',
+                                height: '42px',
+                                borderRadius: '4px',
+                                overflow: 'hidden',
+                                cursor: 'pointer',
+                                border: idx === activeLightboxImageIdx ? '2px solid var(--aqua-primary)' : '2px solid transparent',
+                                opacity: idx === activeLightboxImageIdx ? 1 : 0.5,
+                                transition: 'all 0.2s ease',
+                              }}
+                            >
+                              <img src={img} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Details */}
+                      <div style={{ textAlign: 'center', color: '#ffffff' }}>
+                        <h4 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: '700' }}>{selectedLightboxItem.title}</h4>
+                        <p style={{ margin: 0, fontSize: '12px', opacity: 0.75 }}>Image {activeLightboxImageIdx + 1} of {imgs.length}</p>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>
