@@ -692,6 +692,14 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
     loadChatrooms();
 
+    if (!selectedRoomId) {
+      setChatMessages([]);
+      return;
+    }
+
+    // Load instantly from server action first
+    loadMessages(selectedRoomId);
+
     const q = fsQuery(
       collection(db, 'messages'),
       fsWhere('chatroom_id', '==', selectedRoomId)
@@ -743,6 +751,54 @@ export default function DashboardClient({ user }: DashboardClientProps) {
       console.error('Failed to load lost & found items:', err);
     }
   };
+
+  // Real-time listener for Lost & Found items
+  useEffect(() => {
+    if (activeTab !== 'lostfound') return;
+
+    // Load instantly from server action first
+    loadLostFoundItems();
+
+    const q = fsQuery(
+      collection(db, 'lost_found')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        const createdAt = data.created_at;
+        let serializableCreatedAt = null;
+        if (createdAt && typeof createdAt === 'object') {
+          const ts = createdAt as { toDate?: () => { toISOString: () => string }; seconds?: number };
+          if (typeof ts.toDate === 'function') {
+            serializableCreatedAt = ts.toDate().toISOString();
+          } else if (typeof ts.seconds === 'number') {
+            serializableCreatedAt = new Date(ts.seconds * 1000).toISOString();
+          }
+        } else if (createdAt) {
+          serializableCreatedAt = String(createdAt);
+        }
+        return {
+          id: doc.id,
+          ...data,
+          created_at: serializableCreatedAt
+        };
+      });
+
+      // Sort client-side: newest first
+      items.sort((a, b) => {
+        const timeA = a.created_at ? new Date(a.created_at).getTime() : Date.now();
+        const timeB = b.created_at ? new Date(b.created_at).getTime() : Date.now();
+        return timeB - timeA;
+      });
+
+      setLostFoundItems(items as FirestoreLostFoundItem[]);
+    }, (err) => {
+      console.error('Real-time lost & found listener error:', err);
+    });
+
+    return () => unsubscribe();
+  }, [activeTab]);
 
   // Fetch announcements helper
   const loadAnnouncements = async () => {
