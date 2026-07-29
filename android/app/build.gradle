@@ -3,6 +3,16 @@ apply plugin: 'com.android.application'
 android {
     namespace = "com.nith.connect"
     compileSdk = rootProject.ext.compileSdkVersion
+    
+    signingConfigs {
+        release {
+            storeFile file("nith-connect.keystore")
+            storePassword "nithconnect123"
+            keyAlias "nith-key"
+            keyPassword "nithconnect123"
+        }
+    }
+
     defaultConfig {
         applicationId "com.nith.connect"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -20,6 +30,7 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
     }
 }
