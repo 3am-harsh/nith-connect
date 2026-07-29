@@ -10,8 +10,8 @@ const config: CapacitorConfig = {
   },
   plugins: {
     Keyboard: {
-      resize: 'body',
-      style: 'dark'
+      resize: 'body' as any,
+      style: 'dark' as any
     },
     CapacitorCookies: {
       enabled: true

@@ -83,6 +83,7 @@ import {
 } from '@/lib/firestore';
 import { collection, query as fsQuery, where as fsWhere, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { Capacitor } from '@capacitor/core';
 import { 
   Mountain, 
   Home, 
@@ -299,6 +300,12 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [clickedAchievement, setClickedAchievement] = useState<string | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+
+  // Swipe and Keyboard state listeners for Capacitor mobile layout fixes
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+  const [swipeStartX, setSwipeStartX] = useState(0);
+  const [swipeTranslateX, setSwipeTranslateX] = useState(0);
+  const [isSwiping, setIsSwiping] = useState(false);
   
   // Current user's full editable profile state
   const [currentUserProfile, setCurrentUserProfile] = useState<FirestoreUser | null>(null);
@@ -545,6 +552,140 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     }
   }, []);
 
+  // Listen for native software keyboard state (Capacitor)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
+      const initKeyboardListeners = async () => {
+        const { Keyboard } = await import('@capacitor/keyboard');
+        const showListener = await Keyboard.addListener('keyboardWillShow', () => {
+          setIsKeyboardOpen(true);
+        });
+        const hideListener = await Keyboard.addListener('keyboardWillHide', () => {
+          setIsKeyboardOpen(false);
+        });
+        return { showListener, hideListener };
+      };
+      
+      let keyboardListeners: { showListener: { remove: () => void }, hideListener: { remove: () => void } } | null = null;
+      initKeyboardListeners().then(listeners => {
+        keyboardListeners = listeners;
+      });
+      
+      return () => {
+        if (keyboardListeners) {
+          keyboardListeners.showListener.remove();
+          keyboardListeners.hideListener.remove();
+        }
+      };
+    }
+  }, []);
+
+  // Hardware Back Button integration for Android
+  useEffect(() => {
+    if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
+      const initBackButton = async () => {
+        const { App } = await import('@capacitor/app');
+        
+        const listener = await App.addListener('backButton', () => {
+          // 1. Close profile modal if open
+          if (isProfileModalOpen) {
+            setIsProfileModalOpen(false);
+            setClickedAchievement(null);
+            return;
+          }
+          
+          // 2. Close Lost & Found Lightbox if open
+          if (selectedLightboxItem) {
+            setSelectedLightboxItem(null);
+            return;
+          }
+          
+          // 3. Close Report Lost/Found Modal if open
+          if (isReportLostFoundOpen) {
+            setIsReportLostFoundOpen(false);
+            return;
+          }
+          
+          // 4. Close quick links if open
+          if (isQuickLinksOpen) {
+            setIsQuickLinksOpen(false);
+            return;
+          }
+          
+          // 5. Close timetable modal if open
+          if (isTimetableModalOpen) {
+            setIsTimetableModalOpen(false);
+            return;
+          }
+          
+          // 6. Close upload timetable modal if open
+          if (isUploadTimetableOpen) {
+            setIsUploadTimetableOpen(false);
+            return;
+          }
+          
+          // 7. Close club registration if open
+          if (isRegisterClubOpen) {
+            setIsRegisterClubOpen(false);
+            return;
+          }
+
+          // 8. Close profile edit panel if open
+          if (isProfileOpen) {
+            setIsProfileOpen(false);
+            return;
+          }
+
+          // 9. Close marketplace listing if open
+          if (isAddListingOpen) {
+            setIsAddListingOpen(false);
+            return;
+          }
+
+          // 10. If in sub-view of Lost & Found (like report_cr), go back to bulletin
+          if (activeTab === 'lostfound' && lostFoundSubView === 'report_cr') {
+            setLostFoundSubView('bulletin');
+            return;
+          }
+
+          // 11. If in a tab other than Home, navigate back to Home
+          if (activeTab !== 'home') {
+            setActiveTab('home');
+            return;
+          }
+          
+          // If already on home screen and no modals are open, minimize/exit the app
+          App.minimizeApp();
+        });
+        
+        return listener;
+      };
+      
+      let backBtnListener: { remove: () => void } | null = null;
+      initBackButton().then(l => {
+        backBtnListener = l;
+      });
+      
+      return () => {
+        if (backBtnListener) {
+          backBtnListener.remove();
+        }
+      };
+    }
+  }, [
+    isProfileModalOpen,
+    selectedLightboxItem,
+    isReportLostFoundOpen,
+    isQuickLinksOpen,
+    isTimetableModalOpen,
+    isUploadTimetableOpen,
+    isRegisterClubOpen,
+    isProfileOpen,
+    isAddListingOpen,
+    activeTab,
+    lostFoundSubView
+  ]);
+
   // Real-time listener for chat messages (No polling delay!)
   useEffect(() => {
     if (activeTab !== 'chat') return;
@@ -580,8 +721,8 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
       // Sort client-side
       msgs.sort((a, b) => {
-        const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
-        const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        const timeA = a.created_at ? new Date(a.created_at).getTime() : Date.now();
+        const timeB = b.created_at ? new Date(b.created_at).getTime() : Date.now();
         return timeA - timeB;
       });
 
@@ -922,7 +1063,80 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     }
   };
 
+  const handleReportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newItemTitle || !newItemDesc || !newItemLocation || !newItemDate || !newItemContact) {
+      showToast('Please fill in all required fields.', 'error');
+      return;
+    }
 
+    if (newItemContact.replace(/\D/g, '').length !== 10) {
+      showToast('Please enter a valid 10-digit phone number.', 'error');
+      return;
+    }
+
+    const success = await createLostFoundItemAction(
+      newItemTitle,
+      newItemDesc,
+      newItemType,
+      newItemLocation,
+      newItemDate,
+      newItemContact,
+      newItemImage,
+      newItemImages,
+      user.id,
+      user.name
+    );
+
+    if (success) {
+      setNewItemTitle('');
+      setNewItemDesc('');
+      setNewItemLocation('');
+      setNewItemDate('');
+      setNewItemContact('');
+      setNewItemImage('');
+      setNewItemImages([]);
+      setIsReportLostFoundOpen(false);
+      loadLostFoundItems();
+      showToast('Success! Item logged in bulletin.', 'success');
+    } else {
+      showToast('Failed to report item. Please try again.', 'error');
+    }
+  };
+
+  const handleItemImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      Array.from(files).forEach((file) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          if (event.target?.result) {
+            const dataUrl = event.target.result as string;
+            setNewItemImages(prev => {
+              const updated = [...prev, dataUrl];
+              if (updated.length === 1) {
+                setNewItemImage(dataUrl);
+              }
+              return updated;
+            });
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  };
+
+  const handleRemoveUploadedImage = (index: number) => {
+    setNewItemImages(prev => {
+      const updated = prev.filter((_, i) => i !== index);
+      if (updated.length > 0) {
+        setNewItemImage(updated[0]);
+      } else {
+        setNewItemImage('');
+      }
+      return updated;
+    });
+  };
 
   const renderActiveTabContent = () => {
     switch (activeTab) {
@@ -2645,81 +2859,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                                item.location.toLowerCase().includes(searchQuery.toLowerCase());
           return matchesType && matchesQuery;
         });
-
-        const handleReportSubmit = async (e: React.FormEvent) => {
-          e.preventDefault();
-          if (!newItemTitle || !newItemDesc || !newItemLocation || !newItemDate || !newItemContact) {
-            showToast('Please fill in all required fields.', 'error');
-            return;
-          }
-
-          if (newItemContact.replace(/\D/g, '').length !== 10) {
-            showToast('Please enter a valid 10-digit phone number.', 'error');
-            return;
-          }
-
-          const success = await createLostFoundItemAction(
-            newItemTitle,
-            newItemDesc,
-            newItemType,
-            newItemLocation,
-            newItemDate,
-            newItemContact,
-            newItemImage,
-            newItemImages,
-            user.id,
-            user.name
-          );
-
-          if (success) {
-            setNewItemTitle('');
-            setNewItemDesc('');
-            setNewItemLocation('');
-            setNewItemDate('');
-            setNewItemContact('');
-            setNewItemImage('');
-            setNewItemImages([]);
-            setIsReportLostFoundOpen(false);
-            loadLostFoundItems();
-            showToast('Success! Item logged in bulletin.', 'success');
-          } else {
-            showToast('Failed to report item. Please try again.', 'error');
-          }
-        };
-
-        const handleItemImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-          const files = e.target.files;
-          if (files) {
-            Array.from(files).forEach((file) => {
-              const reader = new FileReader();
-              reader.onload = (event) => {
-                if (event.target?.result) {
-                  const dataUrl = event.target.result as string;
-                  setNewItemImages(prev => {
-                    const updated = [...prev, dataUrl];
-                    if (updated.length === 1) {
-                      setNewItemImage(dataUrl);
-                    }
-                    return updated;
-                  });
-                }
-              };
-              reader.readAsDataURL(file);
-            });
-          }
-        };
-
-        const handleRemoveUploadedImage = (index: number) => {
-          setNewItemImages(prev => {
-            const updated = prev.filter((_, i) => i !== index);
-            if (updated.length > 0) {
-              setNewItemImage(updated[0]);
-            } else {
-              setNewItemImage('');
-            }
-            return updated;
-          });
-        };
+        // Relocated helper functions to root level
 
         return (
           <div style={styles.exploreTabContainer} className="animate-fade-in">
@@ -3023,293 +3163,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               </div>
             )}
 
-            {/* Report Item Modal */}
-            {isReportLostFoundOpen && (
-              <div style={styles.modalOverlay} onClick={() => setIsReportLostFoundOpen(false)}>
-                <div 
-                  style={{ ...styles.idCardModal, maxWidth: '480px' }} 
-                  className="glass-panel animate-slide-up"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div style={styles.modalHeader}>
-                    <h3 style={styles.modalTitle}>Report Lost/Found Item</h3>
-                    <button onClick={() => setIsReportLostFoundOpen(false)} style={styles.modalCloseBtn}>
-                      <X size={20} />
-                    </button>
-                  </div>
-
-                  <form onSubmit={handleReportSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '70vh', overflowY: 'auto', paddingRight: '4px' }}>
-                    <div>
-                      <label style={styles.formLabel}>Item Name *</label>
-                      <input 
-                        type="text" 
-                        required
-                        placeholder="e.g. Black leather wallet, keys..." 
-                        value={newItemTitle} 
-                        onChange={(e) => setNewItemTitle(e.target.value)} 
-                        style={styles.formInput} 
-                      />
-                    </div>
-
-                    <div>
-                      <label style={styles.formLabel}>Report Type *</label>
-                      <select 
-                        value={newItemType} 
-                        onChange={(e) => setNewItemType(e.target.value as 'lost' | 'found')} 
-                        style={styles.formInput}
-                      >
-                        <option value="lost">Lost Item</option>
-                        <option value="found">Found Item</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label style={styles.formLabel}>Description *</label>
-                      <textarea 
-                        required
-                        placeholder="Describe the item (color, contents, identifying marks)..." 
-                        value={newItemDesc} 
-                        onChange={(e) => setNewItemDesc(e.target.value)} 
-                        style={{ ...styles.formInput, minHeight: '80px', resize: 'vertical' }} 
-                      />
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '10px' }}>
-                      <div style={{ flex: 1 }}>
-                        <label style={styles.formLabel}>Location *</label>
-                        <input 
-                          type="text" 
-                          required
-                          placeholder="e.g. Audi Hall, library..." 
-                          value={newItemLocation} 
-                          onChange={(e) => setNewItemLocation(e.target.value)} 
-                          style={styles.formInput} 
-                        />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <label style={styles.formLabel}>Date *</label>
-                        <input 
-                          type="text" 
-                          required
-                          placeholder="e.g. 30 Jun, Yesterday..." 
-                          value={newItemDate} 
-                          onChange={(e) => setNewItemDate(e.target.value)} 
-                          style={styles.formInput} 
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label style={styles.formLabel}>Contact Details (10-Digit Phone Number) *</label>
-                      <input 
-                        type="tel" 
-                        required
-                        maxLength={10}
-                        pattern="[0-9]{10}"
-                        placeholder="e.g. 9816012345" 
-                        value={newItemContact} 
-                        onChange={(e) => setNewItemContact(e.target.value.replace(/\D/g, ''))} 
-                        style={styles.formInput} 
-                      />
-                    </div>
-
-                    <div>
-                      <label style={styles.formLabel}>Attach Photo(s) (Optional)</label>
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        multiple
-                        onChange={handleItemImageUpload} 
-                        style={styles.formInput} 
-                      />
-                      {newItemImages.length > 0 && (
-                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '10px' }}>
-                          {newItemImages.map((img, idx) => (
-                            <div key={idx} style={{ position: 'relative', width: '80px', height: '60px', borderRadius: '4px', overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
-                              <img src={img} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                              <button 
-                                type="button"
-                                onClick={() => handleRemoveUploadedImage(idx)}
-                                style={{
-                                  position: 'absolute',
-                                  top: '2px',
-                                  right: '2px',
-                                  background: 'rgba(0, 0, 0, 0.7)',
-                                  border: 'none',
-                                  borderRadius: '50%',
-                                  width: '16px',
-                                  height: '16px',
-                                  color: '#ffffff',
-                                  fontSize: '10px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                ×
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    <div style={{ ...styles.idCardActions, marginTop: '16px' }}>
-                      <button type="submit" className="btn-primary" style={{ flex: 1, padding: '12px', backgroundColor: 'var(--aqua-primary)' }}>
-                        Submit Report
-                      </button>
-                      <button type="button" onClick={() => setIsReportLostFoundOpen(false)} className="btn-secondary" style={{ flex: 1, padding: '12px' }}>
-                        Cancel
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              </div>
-            )}
-
-            {/* Lightbox Modal */}
-            {selectedLightboxItem && (
-              <div 
-                style={{
-                  position: 'fixed',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  backgroundColor: 'rgba(0, 0, 0, 0.95)',
-                  zIndex: 999999,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexDirection: 'column',
-                }}
-                onClick={() => setSelectedLightboxItem(null)}
-              >
-                {/* Close button */}
-                <button 
-                  onClick={() => setSelectedLightboxItem(null)}
-                  style={{
-                    position: 'absolute',
-                    top: '20px',
-                    right: '20px',
-                    background: 'rgba(255, 255, 255, 0.15)',
-                    border: 'none',
-                    borderRadius: '50%',
-                    width: '40px',
-                    height: '40px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    color: '#ffffff',
-                  }}
-                  className="touch-feedback"
-                >
-                  <X size={20} />
-                </button>
-
-                {/* Images wrapper */}
-                {(() => {
-                  const imgs = selectedLightboxItem.images && selectedLightboxItem.images.length > 0 
-                    ? selectedLightboxItem.images 
-                    : (selectedLightboxItem.image ? [selectedLightboxItem.image] : []);
-                  
-                  const hasMultiple = imgs.length > 1;
-
-                  return (
-                    <div style={{ position: 'relative', width: '90%', maxWidth: '800px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }} onClick={(e) => e.stopPropagation()}>
-                      {/* Main Image */}
-                      <div style={{ position: 'relative', width: '100%', height: '55vh', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderRadius: '8px' }}>
-                        <img 
-                          src={imgs[activeLightboxImageIdx]} 
-                          alt={selectedLightboxItem.title} 
-                          style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: '8px' }} 
-                        />
-                        
-                        {/* Left Button */}
-                        {hasMultiple && (
-                          <button 
-                            onClick={() => setActiveLightboxImageIdx(prev => (prev === 0 ? imgs.length - 1 : prev - 1))}
-                            style={{
-                              position: 'absolute',
-                              left: '12px',
-                              background: 'rgba(0, 0, 0, 0.6)',
-                              color: '#ffffff',
-                              border: 'none',
-                              borderRadius: '50%',
-                              width: '44px',
-                              height: '44px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              cursor: 'pointer',
-                            }}
-                            className="touch-feedback"
-                          >
-                            ◀
-                          </button>
-                        )}
-
-                        {/* Right Button */}
-                        {hasMultiple && (
-                          <button 
-                            onClick={() => setActiveLightboxImageIdx(prev => (prev === imgs.length - 1 ? 0 : prev + 1))}
-                            style={{
-                              position: 'absolute',
-                              right: '12px',
-                              background: 'rgba(0, 0, 0, 0.6)',
-                              color: '#ffffff',
-                              border: 'none',
-                              borderRadius: '50%',
-                              width: '44px',
-                              height: '44px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              cursor: 'pointer',
-                            }}
-                            className="touch-feedback"
-                          >
-                            ▶
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Dots Indicator / Thumbnail list */}
-                      {hasMultiple && (
-                        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', padding: '4px', maxWidth: '100%' }}>
-                          {imgs.map((img, idx) => (
-                            <div 
-                              key={idx} 
-                              onClick={() => setActiveLightboxImageIdx(idx)}
-                              style={{
-                                width: '56px',
-                                height: '42px',
-                                borderRadius: '4px',
-                                overflow: 'hidden',
-                                cursor: 'pointer',
-                                border: idx === activeLightboxImageIdx ? '2px solid var(--aqua-primary)' : '2px solid transparent',
-                                opacity: idx === activeLightboxImageIdx ? 1 : 0.5,
-                                transition: 'all 0.2s ease',
-                              }}
-                            >
-                              <img src={img} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Details */}
-                      <div style={{ textAlign: 'center', color: '#ffffff' }}>
-                        <h4 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: '700' }}>{selectedLightboxItem.title}</h4>
-                        <p style={{ margin: 0, fontSize: '12px', opacity: 0.75 }}>Image {activeLightboxImageIdx + 1} of {imgs.length}</p>
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-            )}
+            {/* Modals relocated to root layout level */}
           </div>
         );
       }
@@ -5170,35 +5024,37 @@ export default function DashboardClient({ user }: DashboardClientProps) {
       </div>
 
       {/* Dynamic Sticky Bottom Navigation Bar - Mobile only */}
-      <nav style={styles.bottomNav} className="glass-panel nith-bottom-nav">
-        {menuItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeTab === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              style={styles.bottomNavBtn}
-              className="touch-feedback"
-            >
-              <div style={{
-                ...styles.bottomNavIconWrapper,
-                backgroundColor: isActive ? 'var(--pine-primary)' : 'transparent',
-                color: isActive ? '#ffffff' : 'var(--text-muted)',
-              }}>
-                <Icon size={20} />
-              </div>
-              <span style={{
-                ...styles.bottomNavLabel,
-                color: isActive ? 'var(--pine-deep)' : 'var(--text-muted)',
-                fontWeight: isActive ? '600' : '400',
-              }}>
-                {item.label}
-              </span>
-            </button>
-          );
-        })}
-      </nav>
+      {!isKeyboardOpen && (
+        <nav style={styles.bottomNav} className="glass-panel nith-bottom-nav">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                style={styles.bottomNavBtn}
+                className="touch-feedback"
+              >
+                <div style={{
+                  ...styles.bottomNavIconWrapper,
+                  backgroundColor: isActive ? 'var(--pine-primary)' : 'transparent',
+                  color: isActive ? '#ffffff' : 'var(--text-muted)',
+                }}>
+                  <Icon size={20} />
+                </div>
+                <span style={{
+                  ...styles.bottomNavLabel,
+                  color: isActive ? 'var(--pine-deep)' : 'var(--text-muted)',
+                  fontWeight: isActive ? '600' : '400',
+                }}>
+                  {item.label}
+                </span>
+              </button>
+            );
+          })}
+        </nav>
+      )}
 
       {/* Profile Sidebar Drawer (Slides left-to-right smoothly) */}
       <div 
@@ -5936,22 +5792,49 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           justifyContent: 'center',
           zIndex: 9999,
           padding: '20px'
-        }} onClick={() => setIsProfileModalOpen(false)}>
-          <div style={{
-            width: '100%',
-            maxWidth: '420px',
-            backgroundColor: '#ffffff',
-            borderRadius: '16px',
-            border: '1px solid var(--border-subtle)',
-            boxShadow: '0 12px 32px rgba(0,0,0,0.15)',
-            padding: '24px',
-            position: 'relative',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '16px',
-            maxHeight: '90vh',
-            overflowY: 'auto'
-          }} onClick={(e) => e.stopPropagation()}>
+        }} onClick={() => {
+          setIsProfileModalOpen(false);
+          setClickedAchievement(null);
+        }}>
+          <div 
+            onTouchStart={(e) => {
+              setSwipeStartX(e.touches[0].clientX);
+              setIsSwiping(true);
+            }}
+            onTouchMove={(e) => {
+              if (!isSwiping) return;
+              const deltaX = e.touches[0].clientX - swipeStartX;
+              if (deltaX > 0) {
+                setSwipeTranslateX(deltaX);
+              }
+            }}
+            onTouchEnd={() => {
+              setIsSwiping(false);
+              if (swipeTranslateX > 120) {
+                setIsProfileModalOpen(false);
+                setClickedAchievement(null);
+              }
+              setSwipeTranslateX(0);
+            }}
+            style={{
+              width: '100%',
+              maxWidth: '420px',
+              backgroundColor: '#ffffff',
+              borderRadius: '16px',
+              border: '1px solid var(--border-subtle)',
+              boxShadow: '0 12px 32px rgba(0,0,0,0.15)',
+              padding: '24px',
+              position: 'relative',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              transform: `translateX(${swipeTranslateX}px)`,
+              transition: isSwiping ? 'none' : 'transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)'
+            }} 
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
               onClick={() => {
                 setIsProfileModalOpen(false);
@@ -7396,6 +7279,316 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             <Info size={16} color="#ffffff" />
           )}
           <span>{toast.message}</span>
+        </div>
+      )}
+
+      {/* Relocated Report Item Modal (Root Level) */}
+      {isReportLostFoundOpen && (
+        <div style={styles.modalOverlay} onClick={() => setIsReportLostFoundOpen(false)}>
+          <div 
+            style={{ ...styles.idCardModal, maxWidth: '480px' }} 
+            className="glass-panel animate-slide-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={styles.modalHeader}>
+              <h3 style={styles.modalTitle}>Report Lost/Found Item</h3>
+              <button onClick={() => setIsReportLostFoundOpen(false)} style={styles.modalCloseBtn}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleReportSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '70vh', overflowY: 'auto', paddingRight: '4px' }}>
+              <div>
+                <label style={styles.formLabel}>Item Name *</label>
+                <input 
+                  type="text" 
+                  required
+                  placeholder="e.g. Black leather wallet, keys..." 
+                  value={newItemTitle} 
+                  onChange={(e) => setNewItemTitle(e.target.value)} 
+                  style={styles.formInput} 
+                />
+              </div>
+
+              <div>
+                <label style={styles.formLabel}>Report Type *</label>
+                <select 
+                  value={newItemType} 
+                  onChange={(e) => setNewItemType(e.target.value as 'lost' | 'found')} 
+                  style={styles.formInput}
+                >
+                  <option value="lost">Lost Item</option>
+                  <option value="found">Found Item</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={styles.formLabel}>Description *</label>
+                <textarea 
+                  required
+                  placeholder="Describe the item (color, contents, identifying marks)..." 
+                  value={newItemDesc} 
+                  onChange={(e) => setNewItemDesc(e.target.value)} 
+                  style={{ ...styles.formInput, minHeight: '80px', resize: 'vertical' }} 
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={styles.formLabel}>Location *</label>
+                  <input 
+                    type="text" 
+                    required
+                    placeholder="e.g. Audi Hall, library..." 
+                    value={newItemLocation} 
+                    onChange={(e) => setNewItemLocation(e.target.value)} 
+                    style={styles.formInput} 
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={styles.formLabel}>Date *</label>
+                  <input 
+                    type="text" 
+                    required
+                    placeholder="e.g. 30 Jun, Yesterday..." 
+                    value={newItemDate} 
+                    onChange={(e) => setNewItemDate(e.target.value)} 
+                    style={styles.formInput} 
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={styles.formLabel}>Contact Details (10-Digit Phone Number) *</label>
+                <input 
+                  type="tel" 
+                  required
+                  maxLength={10}
+                  pattern="[0-9]{10}"
+                  placeholder="e.g. 9816012345" 
+                  value={newItemContact} 
+                  onChange={(e) => setNewItemContact(e.target.value.replace(/\D/g, ''))} 
+                  style={styles.formInput} 
+                />
+              </div>
+
+              <div>
+                <label style={styles.formLabel}>Attach Photo(s) (Optional)</label>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  multiple
+                  onChange={handleItemImageUpload} 
+                  style={styles.formInput} 
+                />
+                {newItemImages.length > 0 && (
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '10px' }}>
+                    {newItemImages.map((img, idx) => (
+                      <div key={idx} style={{ position: 'relative', width: '80px', height: '60px', borderRadius: '4px', overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
+                        <img src={img} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <button 
+                          type="button"
+                          onClick={() => handleRemoveUploadedImage(idx)}
+                          style={{
+                            position: 'absolute',
+                            top: '2px',
+                            right: '2px',
+                            background: 'rgba(0, 0, 0, 0.7)',
+                            border: 'none',
+                            borderRadius: '50%',
+                            width: '16px',
+                            height: '16px',
+                            color: '#ffffff',
+                            fontSize: '10px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ ...styles.idCardActions, marginTop: '16px' }}>
+                <button type="submit" className="btn-primary" style={{ flex: 1, padding: '12px', backgroundColor: 'var(--aqua-primary)' }}>
+                  Submit Report
+                </button>
+                <button type="button" onClick={() => setIsReportLostFoundOpen(false)} className="btn-secondary" style={{ flex: 1, padding: '12px' }}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Relocated and Centered Square Image Lightbox Modal (Root Level) */}
+      {selectedLightboxItem && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 999999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+          }}
+          onClick={() => setSelectedLightboxItem(null)}
+        >
+          <div 
+            style={{
+              width: '100%',
+              maxWidth: '440px',
+              backgroundColor: '#ffffff',
+              borderRadius: '16px',
+              border: '1px solid var(--border-subtle)',
+              boxShadow: '0 12px 32px rgba(0,0,0,0.15)',
+              padding: '16px',
+              position: 'relative',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="animate-slide-up"
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '10px' }}>
+              <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '800', color: 'var(--pine-deep)', maxWidth: '85%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedLightboxItem.title}</h4>
+              <button 
+                onClick={() => setSelectedLightboxItem(null)}
+                style={{
+                  background: 'rgba(0,0,0,0.03)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '28px',
+                  height: '28px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: 'var(--text-muted)'
+                }}
+                className="touch-feedback"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            {/* Square Image Block */}
+            {(() => {
+              const imgs = selectedLightboxItem.images && selectedLightboxItem.images.length > 0 
+                ? selectedLightboxItem.images 
+                : (selectedLightboxItem.image ? [selectedLightboxItem.image] : []);
+              
+              const hasMultiple = imgs.length > 1;
+
+              return (
+                <>
+                  <div style={{ position: 'relative', width: '100%', aspectRatio: '1/1', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-input)', borderRadius: '12px', overflow: 'hidden' }}>
+                    <img 
+                      src={imgs[activeLightboxImageIdx]} 
+                      alt={selectedLightboxItem.title} 
+                      style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} 
+                    />
+                    
+                    {/* Left Button */}
+                    {hasMultiple && (
+                      <button 
+                        onClick={() => setActiveLightboxImageIdx(prev => (prev === 0 ? imgs.length - 1 : prev - 1))}
+                        style={{
+                          position: 'absolute',
+                          left: '10px',
+                          background: 'rgba(255, 255, 255, 0.85)',
+                          color: 'var(--pine-deep)',
+                          border: '1px solid var(--border-subtle)',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                          borderRadius: '50%',
+                          width: '36px',
+                          height: '36px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          fontWeight: 'bold',
+                        }}
+                        className="touch-feedback"
+                      >
+                        ◀
+                      </button>
+                    )}
+
+                    {/* Right Button */}
+                    {hasMultiple && (
+                      <button 
+                        onClick={() => setActiveLightboxImageIdx(prev => (prev === imgs.length - 1 ? 0 : prev + 1))}
+                        style={{
+                          position: 'absolute',
+                          right: '10px',
+                          background: 'rgba(255, 255, 255, 0.85)',
+                          color: 'var(--pine-deep)',
+                          border: '1px solid var(--border-subtle)',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                          borderRadius: '50%',
+                          width: '36px',
+                          height: '36px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          fontWeight: 'bold',
+                        }}
+                        className="touch-feedback"
+                      >
+                        ▶
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Thumbnail pagination list */}
+                  {hasMultiple && (
+                    <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', padding: '2px 0', width: '100%', scrollbarWidth: 'none' }}>
+                      {imgs.map((img, idx) => (
+                        <div 
+                          key={idx} 
+                          onClick={() => setActiveLightboxImageIdx(idx)}
+                          style={{
+                            width: '48px',
+                            height: '36px',
+                            borderRadius: '4px',
+                            overflow: 'hidden',
+                            cursor: 'pointer',
+                            flexShrink: 0,
+                            border: idx === activeLightboxImageIdx ? '2px solid var(--aqua-primary)' : '2px solid transparent',
+                            opacity: idx === activeLightboxImageIdx ? 1 : 0.6,
+                            transition: 'all 0.2s ease',
+                          }}
+                        >
+                          <img src={img} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Page indicator */}
+                  <div style={{ textAlign: 'center', fontSize: '11px', color: 'var(--text-muted)', fontWeight: '500' }}>
+                    Photo {activeLightboxImageIdx + 1} of {imgs.length}
+                  </div>
+                </>
+              );
+            })()}
+          </div>
         </div>
       )}
     </div>
