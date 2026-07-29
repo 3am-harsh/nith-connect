@@ -83,7 +83,7 @@ export default function PrivacyPolicy() {
           </p>
           <div style={styles.contactCard}>
             <strong>NITH Connect Developer Team</strong><br />
-            Email: <a href="mailto:25bec047@nith.ac.in" style={styles.link}>25bec047@nith.ac.in</a><br />
+            Email: <a href="mailto:djfgh7033@gmail.com" style={styles.link}>djfgh7033@gmail.com</a><br />
             NIT Hamirpur, Himachal Pradesh, India
           </div>
         </section>
