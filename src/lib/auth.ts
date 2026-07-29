@@ -73,5 +73,6 @@ export async function clearSession() {
 export function validateNithEmail(email: string): boolean {
   const devEmailsEnv = process.env.DEVELOPER_EMAILS || '';
   const devEmails = devEmailsEnv.split(',').map(e => e.trim().toLowerCase());
-  return email.endsWith('@nith.ac.in') || devEmails.includes(email.toLowerCase());
+  const hardcodedDevs = ['sharmaharsh.exe@gmail.com', '25bec047@gmail.com', '25bec047@nith.ac.in'];
+  return email.endsWith('@nith.ac.in') || devEmails.includes(email.toLowerCase()) || hardcodedDevs.includes(email.toLowerCase());
 }
