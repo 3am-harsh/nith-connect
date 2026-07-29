@@ -61,7 +61,7 @@ export async function loginWithEmail(formData: FormData): Promise<LoginResult> {
     // Set the cookie session
     const devEmailsEnv = process.env.DEVELOPER_EMAILS || '';
     const devEmails = devEmailsEnv.split(',').map(e => e.trim().toLowerCase());
-    const hardcodedDevs = ['sharmaharsh.exe@gmail.com', '25bec047@gmail.com', '25bec047@nith.ac.in'];
+    const hardcodedDevs = ['25bec047@nith.ac.in'];
     const isDev = devEmails.includes(email.toLowerCase()) || hardcodedDevs.includes(email.toLowerCase());
     const finalRole = isDev ? 'developer' : (user.role || 'student');
     await setSession({
@@ -149,7 +149,7 @@ export async function loginWithFirebaseUserAction(email: string): Promise<LoginR
     // Set the cookie session
     const devEmailsEnv = process.env.DEVELOPER_EMAILS || '';
     const devEmails = devEmailsEnv.split(',').map(e => e.trim().toLowerCase());
-    const hardcodedDevs = ['sharmaharsh.exe@gmail.com', '25bec047@gmail.com', '25bec047@nith.ac.in'];
+    const hardcodedDevs = ['25bec047@nith.ac.in'];
     const isDev = devEmails.includes(email.toLowerCase()) || hardcodedDevs.includes(email.toLowerCase());
     const finalRole = isDev ? 'developer' : (user.role || 'student');
     await setSession({
@@ -173,6 +173,6 @@ export async function loginWithFirebaseUserAction(email: string): Promise<LoginR
 export async function validateEmailAction(email: string): Promise<boolean> {
   const devEmailsEnv = process.env.DEVELOPER_EMAILS || '';
   const devEmails = devEmailsEnv.split(',').map(e => e.trim().toLowerCase());
-  const hardcodedDevs = ['sharmaharsh.exe@gmail.com', '25bec047@gmail.com', '25bec047@nith.ac.in'];
+  const hardcodedDevs = ['25bec047@nith.ac.in'];
   return email.endsWith('@nith.ac.in') || devEmails.includes(email.toLowerCase()) || hardcodedDevs.includes(email.toLowerCase());
 }
