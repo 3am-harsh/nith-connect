@@ -309,7 +309,17 @@ export default function LoginPage() {
       } catch (err: unknown) {
         console.error('Google Auth error:', err);
         const errMsg = err instanceof Error ? err.message : String(err);
-        setErrorMessage(errMsg || 'Google authentication closed or failed.');
+        if (
+          errMsg.includes('internal-error') || 
+          errMsg.includes('unexpected response') || 
+          errMsg.includes('DEVELOPER_ERROR') || 
+          errMsg.includes('10:') ||
+          errMsg.includes('[object Event]')
+        ) {
+          setErrorMessage('Firebase/Google Config Error: Make sure your release APK signing key SHA-1 fingerprint (BE:71:1C:EB:96:56:6C:0B:68:8A:6F:74:5A:FF:2A:A0:86:71:7D:F7) is added to your Firebase project under Project Settings -> Android app -> SHA certificate fingerprints.');
+        } else {
+          setErrorMessage(errMsg || 'Google authentication closed or failed.');
+        }
       }
     });
   };
