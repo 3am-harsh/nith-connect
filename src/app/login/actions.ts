@@ -23,7 +23,8 @@ export async function loginWithEmail(formData: FormData): Promise<LoginResult> {
   }
 
   // Validate email domain restriction
-  if (!validateNithEmail(email)) {
+  const isFirstYear = formData.get('isFirstYear') === 'true';
+  if (!isFirstYear && !validateNithEmail(email)) {
     return { 
       success: false, 
       error: 'Access Denied: Only @nith.ac.in Google accounts are allowed to access NITH Connect.' 
@@ -170,7 +171,8 @@ export async function loginWithFirebaseUserAction(email: string): Promise<LoginR
   return { success: true };
 }
 
-export async function validateEmailAction(email: string): Promise<boolean> {
+export async function validateEmailAction(email: string, isFirstYear: boolean = false): Promise<boolean> {
+  if (isFirstYear) return true;
   const devEmailsEnv = process.env.DEVELOPER_EMAILS || '';
   const devEmails = devEmailsEnv.split(',').map(e => e.trim().toLowerCase());
   const hardcodedDevs = ['25bec047@nith.ac.in'];

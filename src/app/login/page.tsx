@@ -60,6 +60,7 @@ export default function LoginPage() {
   const [isPending, startTransition] = useTransition();
   const [showGoogleMock, setShowGoogleMock] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isFirstYear, setIsFirstYear] = useState(false);
 
   // Form states for registration
   const [email, setEmail] = useState('');
@@ -128,7 +129,9 @@ export default function LoginPage() {
     e.preventDefault();
     setErrorMessage(null);
 
-    if (!email.endsWith('@nith.ac.in')) {
+    const isFirstYearFlow = isFirstYear || yearOfStudy.includes('1st Year');
+
+    if (!isFirstYearFlow && !email.endsWith('@nith.ac.in')) {
       setErrorMessage('Access Denied: Only @nith.ac.in Google accounts are allowed.');
       return;
     }
@@ -142,6 +145,7 @@ export default function LoginPage() {
       formData.append('hostel', hostel);
       formData.append('bloodGroup', bloodGroup);
       formData.append('role', 'student');
+      formData.append('isFirstYear', isFirstYearFlow ? 'true' : 'false');
 
       const result = await loginWithEmail(formData);
       if (!result.success) {
@@ -160,8 +164,9 @@ export default function LoginPage() {
     });
   };
 
-  const handleGoogleSignIn = () => {
+  const handleGoogleSignIn = (forFirstYear: boolean = false) => {
     setErrorMessage(null);
+    setIsFirstYear(forFirstYear);
     startTransition(async () => {
       try {
         let userEmail = '';
@@ -181,10 +186,16 @@ export default function LoginPage() {
         } else {
           // Standard browser auth
           const provider = new GoogleAuthProvider();
-          provider.setCustomParameters({
-            hd: 'nith.ac.in',
-            prompt: 'select_account'
-          });
+          if (!forFirstYear) {
+            provider.setCustomParameters({
+              hd: 'nith.ac.in',
+              prompt: 'select_account'
+            });
+          } else {
+            provider.setCustomParameters({
+              prompt: 'select_account'
+            });
+          }
           
           const result = await signInWithPopup(auth, provider);
           userEmail = result.user.email || '';
@@ -196,7 +207,7 @@ export default function LoginPage() {
           return;
         }
 
-        const isValid = await validateEmailAction(userEmail);
+        const isValid = await validateEmailAction(userEmail, forFirstYear);
         if (!isValid) {
           await auth.signOut();
           setErrorMessage('Access Denied: Only @nith.ac.in Google accounts are allowed.');
@@ -216,9 +227,16 @@ export default function LoginPage() {
           
           // Auto-parse roll number, department and study year
           const parsed = parseNithEmail(userEmail);
-          setRollNo(parsed.rollNumber);
-          setDept(parsed.department);
-          setYearOfStudy(parsed.yearText);
+          
+          if (forFirstYear) {
+            setYearOfStudy('1st Year');
+            setDept('Computer Science & Engineering');
+            setRollNo(userEmail.endsWith('@nith.ac.in') ? parsed.rollNumber : '');
+          } else {
+            setRollNo(parsed.rollNumber);
+            setDept(parsed.department);
+            setYearOfStudy(parsed.yearText);
+          }
           
           setShowGoogleMock(true);
         }
@@ -282,7 +300,7 @@ export default function LoginPage() {
 
               {/* Standard Google Login Button */}
               <button 
-                onClick={handleGoogleSignIn}
+                onClick={() => handleGoogleSignIn(false)}
                 style={styles.googleBtn}
                 disabled={isPending}
                 className="touch-feedback"
@@ -296,6 +314,38 @@ export default function LoginPage() {
                 </svg>
                 <span>Continue with Google</span>
               </button>
+
+              {/* First year Login Option */}
+              <div style={{ marginTop: '12px', textAlign: 'center' }}>
+                <button
+                  type="button"
+                  onClick={() => handleGoogleSignIn(true)}
+                  style={{
+                    ...styles.devBtn,
+                    border: '1px solid rgba(42, 157, 143, 0.4)',
+                    backgroundColor: 'rgba(42, 157, 143, 0.04)',
+                    color: 'var(--pine-deep)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '12px',
+                    gap: '4px',
+                    height: 'auto',
+                    width: '100%',
+                  }}
+                  disabled={isPending}
+                  className="touch-feedback"
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '700' }}>
+                    <GraduationCap size={16} />
+                    <span>First Year Login</span>
+                  </div>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '500' }}>
+                    *Valid until official @nith.ac.in email is not assigned
+                  </span>
+                </button>
+              </div>
  
               <div style={styles.divider}>
                 <div style={styles.dividerLine} />
@@ -333,11 +383,60 @@ export default function LoginPage() {
                 </div>
                 <div style={styles.verifiedDetailItem}>
                   <span style={styles.verifiedLabel}>Roll Number</span>
-                  <span style={styles.verifiedValue}>{rollNo}</span>
+                  {isFirstYear ? (
+                    <input
+                      type="text"
+                      placeholder="e.g. 26BCS081"
+                      value={rollNo}
+                      onChange={(e) => setRollNo(e.target.value.toUpperCase())}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid var(--border-subtle)',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        color: 'var(--text-main)',
+                        backgroundColor: '#ffffff',
+                        width: '180px',
+                        textAlign: 'right'
+                      }}
+                      required
+                    />
+                  ) : (
+                    <span style={styles.verifiedValue}>{rollNo}</span>
+                  )}
                 </div>
                 <div style={styles.verifiedDetailItem}>
                   <span style={styles.verifiedLabel}>Department</span>
-                  <span style={styles.verifiedValue}>{dept}</span>
+                  {isFirstYear ? (
+                    <select
+                      value={dept}
+                      onChange={(e) => setDept(e.target.value)}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid var(--border-subtle)',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        color: 'var(--text-main)',
+                        backgroundColor: '#ffffff',
+                        maxWidth: '220px',
+                        textAlign: 'right'
+                      }}
+                    >
+                      <option value="Computer Science & Engineering">Computer Science & Engineering</option>
+                      <option value="Electronics & Communication Engineering">Electronics & Communication Engineering</option>
+                      <option value="Electrical Engineering">Electrical Engineering</option>
+                      <option value="Mechanical Engineering">Mechanical Engineering</option>
+                      <option value="Chemical Engineering">Chemical Engineering</option>
+                      <option value="Civil Engineering">Civil Engineering</option>
+                      <option value="Mathematics & Computing">Mathematics & Computing</option>
+                      <option value="Materials Science & Engineering">Materials Science & Engineering</option>
+                      <option value="Architecture">Architecture</option>
+                    </select>
+                  ) : (
+                    <span style={styles.verifiedValue}>{dept}</span>
+                  )}
                 </div>
                 <div style={styles.verifiedDetailItem}>
                   <span style={styles.verifiedLabel}>Current Year</span>

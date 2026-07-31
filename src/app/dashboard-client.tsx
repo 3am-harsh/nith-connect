@@ -64,6 +64,18 @@ import {
   fetchAllAcademicFilesAction,
   deleteAcademicFileAction
 } from './actions/academics';
+import {
+  createBreaditPostAction,
+  createBreaditCommentAction,
+  reportBreaditPostAction,
+  reportBreaditCommentAction,
+  deleteBreaditPostAction,
+  deleteBreaditCommentAction
+} from './actions/breadit';
+import {
+  type FirestoreBreaditPost,
+  type FirestoreBreaditComment
+} from '@/lib/firestore';
 import { 
   type FirestoreAnnouncement, 
   type FirestoreComment, 
@@ -81,7 +93,7 @@ import {
   type FirestoreUser,
   type DirectoryContact
 } from '@/lib/firestore';
-import { collection, query as fsQuery, where as fsWhere, onSnapshot } from 'firebase/firestore';
+import { collection, query as fsQuery, where as fsWhere, onSnapshot, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Capacitor } from '@capacitor/core';
 import { 
@@ -117,7 +129,10 @@ import {
   Phone,
   ShieldAlert,
   Lock,
-  Trash2
+  Trash2,
+  ArrowLeft,
+  ChevronLeft,
+  Flag
 } from 'lucide-react';
 
 interface ClassSlot {
@@ -490,6 +505,17 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const [chatMessages, setChatMessages] = useState<FirestoreMessage[]>([]);
   const [newMsgText, setNewMsgText] = useState<string>('');
   const [isChatSidebarOpen, setIsChatSidebarOpen] = useState<boolean>(true);
+  
+  // Breadit & Communities Landing States
+  const [selectedCommunityTab, setSelectedCommunityTab] = useState<'chatrooms' | 'breadit' | null>(null);
+  const [breaditPosts, setBreaditPosts] = useState<FirestoreBreaditPost[]>([]);
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [postComments, setPostComments] = useState<FirestoreBreaditComment[]>([]);
+  const [isCreatePostOpen, setIsCreatePostOpen] = useState<boolean>(false);
+  const [newBreaditPostTitle, setNewBreaditPostTitle] = useState<string>('');
+  const [newBreaditPostContent, setNewBreaditPostContent] = useState<string>('');
+  const [newBreaditCommentContent, setNewBreaditCommentContent] = useState<string>('');
+  const [hoveredCard, setHoveredCard] = useState<'chatrooms' | 'breadit' | null>(null);
 
   // Timetable States
   const [isTimetableModalOpen, setIsTimetableModalOpen] = useState<boolean>(false);
@@ -544,6 +570,52 @@ export default function DashboardClient({ user }: DashboardClientProps) {
       scrollToBottom();
     }
   }, [chatMessages, activeTab]);
+
+  // Reset selected community tab when switching main tabs
+  useEffect(() => {
+    if (activeTab === 'chat') {
+      setSelectedCommunityTab(null);
+      setSelectedPostId(null);
+    }
+  }, [activeTab]);
+
+  // Real-time listener for Breadit posts
+  useEffect(() => {
+    if (activeTab === 'chat' && selectedCommunityTab === 'breadit') {
+      const q = fsQuery(collection(db, 'breadit_posts'), orderBy('created_at', 'desc'));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const postsList = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as FirestoreBreaditPost[];
+        setBreaditPosts(postsList);
+      }, (err) => {
+        console.error('Failed to listen to Breadit posts:', err);
+      });
+      return () => unsubscribe();
+    }
+  }, [activeTab, selectedCommunityTab]);
+
+  // Real-time listener for Breadit comments on selected post
+  useEffect(() => {
+    if (activeTab === 'chat' && selectedCommunityTab === 'breadit' && selectedPostId) {
+      const q = fsQuery(
+        collection(db, 'breadit_comments'), 
+        fsWhere('post_id', '==', selectedPostId), 
+        orderBy('created_at', 'asc')
+      );
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const commentsList = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as FirestoreBreaditComment[];
+        setPostComments(commentsList);
+      }, (err) => {
+        console.error('Failed to listen to comments:', err);
+      });
+      return () => unsubscribe();
+    }
+  }, [activeTab, selectedCommunityTab, selectedPostId]);
 
   // Collapse sidebar on mobile initial load
   useEffect(() => {
@@ -1636,7 +1708,10 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             {/* My QR Banner - Replicating screenshot */}
             <div 
               style={styles.qrBanner} 
-              onClick={() => setActiveTab('chat')}
+              onClick={() => {
+                setActiveTab('chat');
+                setSelectedCommunityTab('chatrooms');
+              }}
               className="glass-panel-hover"
             >
               <div style={styles.qrBannerGlow} />
@@ -3225,6 +3300,823 @@ export default function DashboardClient({ user }: DashboardClientProps) {
       }
       case 'chat': {
         if (user.role === 'guest') return renderGuestRestriction('Communities');
+
+        const getBreaditTimeAgo = (dateStr: string) => {
+          try {
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diffMs = now.getTime() - date.getTime();
+            const diffMins = Math.floor(diffMs / 60000);
+            if (diffMins < 1) return 'just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            const diffHours = Math.floor(diffMins / 60);
+            if (diffHours < 24) return `${diffHours}h ago`;
+            return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+          } catch {
+            return '';
+          }
+        };
+
+        const handleCreatePost = async (e: React.FormEvent) => {
+          e.preventDefault();
+          if (!newBreaditPostTitle.trim() || !newBreaditPostContent.trim()) return;
+
+          const res = await createBreaditPostAction(newBreaditPostTitle, newBreaditPostContent, user.id, user.name);
+          if (res) {
+            setNewBreaditPostTitle('');
+            setNewBreaditPostContent('');
+            setIsCreatePostOpen(false);
+            showToast('Post published successfully!', 'success');
+          } else {
+            showToast('Failed to publish post.', 'error');
+          }
+        };
+
+        const handleCreateComment = async (e: React.FormEvent) => {
+          e.preventDefault();
+          if (!newBreaditCommentContent.trim() || !selectedPostId) return;
+
+          const success = await createBreaditCommentAction(selectedPostId, newBreaditCommentContent, user.id, user.name);
+          if (success) {
+            setNewBreaditCommentContent('');
+            showToast('Comment posted!', 'success');
+          } else {
+            showToast('Failed to post comment.', 'error');
+          }
+        };
+
+        const handleReportPost = async (postId: string) => {
+          const success = await reportBreaditPostAction(postId, user.id);
+          if (success) {
+            showToast('Post flagged for review.', 'info');
+          } else {
+            showToast('Failed to report post.', 'error');
+          }
+        };
+
+        const handleReportComment = async (commentId: string) => {
+          const success = await reportBreaditCommentAction(commentId, user.id);
+          if (success) {
+            showToast('Comment flagged for review.', 'info');
+          } else {
+            showToast('Failed to report comment.', 'error');
+          }
+        };
+
+        const handleDeletePost = async (postId: string) => {
+          if (!confirm('Are you sure you want to delete this post and all its comments?')) return;
+          const success = await deleteBreaditPostAction(postId);
+          if (success) {
+            showToast('Post deleted successfully.', 'success');
+            if (selectedPostId === postId) {
+              setSelectedPostId(null);
+            }
+          } else {
+            showToast('Failed to delete post.', 'error');
+          }
+        };
+
+        const handleDeleteComment = async (commentId: string, postId: string) => {
+          if (!confirm('Are you sure you want to delete this comment?')) return;
+          const success = await deleteBreaditCommentAction(commentId, postId);
+          if (success) {
+            showToast('Comment deleted.', 'success');
+          } else {
+            showToast('Failed to delete comment.', 'error');
+          }
+        };
+
+        const renderCommunitiesLanding = () => {
+          return (
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: 'calc(100vh - 120px)',
+              width: '100%',
+              padding: '24px',
+              gap: '24px',
+              overflowY: 'auto'
+            }} className="animate-fade-in">
+              <div style={{ textAlign: 'center', marginBottom: '12px' }}>
+                <h2 style={{ fontSize: '26px', fontWeight: '850', color: 'var(--pine-deep)', margin: '0 0 8px 0', letterSpacing: '-0.5px' }}>
+                  NITH Hubs
+                </h2>
+                <p style={{ fontSize: '13.5px', color: 'var(--text-muted)', margin: 0, fontWeight: '500' }}>
+                  Select a campus community channel to begin
+                </p>
+              </div>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))',
+                width: '100%',
+                maxWidth: '740px',
+                gap: '24px',
+              }}>
+                {/* Chatrooms Option Card */}
+                <div
+                  onMouseEnter={() => setHoveredCard('chatrooms')}
+                  onMouseLeave={() => setHoveredCard(null)}
+                  onClick={() => {
+                    setSelectedCommunityTab('chatrooms');
+                    setSelectedRoomId('chat-gen');
+                    loadMessages('chat-gen');
+                  }}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.45)',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
+                    border: '1px solid rgba(255, 255, 255, 0.6)',
+                    borderRadius: '24px',
+                    padding: '28px 24px',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    boxShadow: hoveredCard === 'chatrooms'
+                      ? '0 12px 40px rgba(18, 91, 68, 0.12), inset 0 0 0 1px rgba(255,255,255,0.8)'
+                      : '0 8px 32px rgba(18, 91, 68, 0.05)',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    transform: hoveredCard === 'chatrooms' ? 'translateY(-6px) scale(1.02)' : 'translateY(0) scale(1)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <div style={{ zIndex: 2 }}>
+                    <div style={{
+                      width: '52px',
+                      height: '52px',
+                      borderRadius: '14px',
+                      background: 'linear-gradient(135deg, rgba(42, 157, 143, 0.2) 0%, rgba(18, 91, 68, 0.2) 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginBottom: '20px',
+                      border: '1px solid rgba(255, 255, 255, 0.4)'
+                    }}>
+                      <MessageSquare size={24} color="var(--pine-primary)" />
+                    </div>
+                    <h3 style={{ fontSize: '20px', fontWeight: '800', color: 'var(--pine-deep)', margin: '0 0 8px 0' }}>
+                      Chatrooms
+                    </h3>
+                    <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', lineHeight: '1.6', margin: 0 }}>
+                      Join real-time discussion groups with NITH students. Chat about hostel updates, placements, fests, and casual campus life.
+                    </p>
+                  </div>
+                  <div style={{
+                    marginTop: '24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '13px',
+                    fontWeight: '700',
+                    color: 'var(--pine-primary)',
+                    zIndex: 2
+                  }}>
+                    <span>Open Channels</span>
+                    <ArrowRight size={14} />
+                  </div>
+                </div>
+
+                {/* Bread it Option Card */}
+                <div
+                  onMouseEnter={() => setHoveredCard('breadit')}
+                  onMouseLeave={() => setHoveredCard(null)}
+                  onClick={() => {
+                    setSelectedCommunityTab('breadit');
+                    setSelectedPostId(null);
+                  }}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.45)',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
+                    border: '1px solid rgba(255, 255, 255, 0.6)',
+                    borderRadius: '24px',
+                    padding: '28px 24px',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    boxShadow: hoveredCard === 'breadit'
+                      ? '0 12px 40px rgba(18, 91, 68, 0.12), inset 0 0 0 1px rgba(255,255,255,0.8)'
+                      : '0 8px 32px rgba(18, 91, 68, 0.05)',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    transform: hoveredCard === 'breadit' ? 'translateY(-6px) scale(1.02)' : 'translateY(0) scale(1)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <div style={{ zIndex: 2 }}>
+                    <div style={{
+                      width: '52px',
+                      height: '52px',
+                      borderRadius: '14px',
+                      background: 'linear-gradient(135deg, rgba(230, 92, 0, 0.15) 0%, rgba(255, 153, 51, 0.15) 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginBottom: '20px',
+                      border: '1px solid rgba(255, 255, 255, 0.4)',
+                      fontSize: '24px'
+                    }}>
+                      🍞
+                    </div>
+                    <h3 style={{ fontSize: '20px', fontWeight: '800', color: 'var(--text-main)', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      Bread it
+                    </h3>
+                    <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', lineHeight: '1.6', margin: 0 }}>
+                      A campus bulletin forum. Post campus problems, share student updates, write comments, discuss issues, and report concerns.
+                    </p>
+                  </div>
+                  <div style={{
+                    marginTop: '24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '13px',
+                    fontWeight: '700',
+                    color: '#e65c00',
+                    zIndex: 2
+                  }}>
+                    <span>Open Forum</span>
+                    <ArrowRight size={14} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        };
+
+        // Breadit Feed & Detailed Post rendering
+        const renderBreaditFeed = () => {
+          if (selectedPostId) {
+            const activePost = breaditPosts.find(p => p.id === selectedPostId);
+            return (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                height: 'calc(100vh - 120px)',
+                width: '100%',
+                backgroundColor: 'var(--bg-card)',
+                borderRadius: 'var(--radius-lg)',
+                border: '1px solid var(--border-subtle)',
+                overflow: 'hidden'
+              }} className="glass-panel animate-fade-in">
+                <div style={{
+                  padding: '14px 20px',
+                  borderBottom: '1px solid var(--border-subtle)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px'
+                }}>
+                  <button
+                    onClick={() => setSelectedPostId(null)}
+                    style={{
+                      background: 'none',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: '6px',
+                      padding: '6px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      color: 'var(--text-main)'
+                    }}
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                  <div>
+                    <h3 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--pine-deep)', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      🍞 Breadit Post
+                    </h3>
+                  </div>
+                </div>
+
+                <div style={{
+                  flex: 1,
+                  padding: '20px',
+                  overflowY: 'auto',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '20px'
+                }}>
+                  {activePost ? (
+                    <div style={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                      borderRadius: '16px',
+                      border: '1px solid var(--border-subtle)',
+                      padding: '20px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '12px'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600' }}>
+                          Posted by {activePost.user_name} • {getBreaditTimeAgo(activePost.created_at)}
+                        </span>
+                        
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button
+                            onClick={() => handleReportPost(activePost.id!)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: 'var(--text-muted)',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontSize: '11px',
+                              fontWeight: '600'
+                            }}
+                            title="Report post"
+                          >
+                            <Flag size={12} />
+                            <span>Report</span>
+                          </button>
+                          
+                          {(user.role === 'developer' || user.role === 'cr') && (
+                            <button
+                              onClick={() => handleDeletePost(activePost.id!)}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: 'var(--error)',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                fontSize: '11px',
+                                fontWeight: '600'
+                              }}
+                              title="Delete post"
+                            >
+                              <Trash2 size={12} />
+                              <span>Delete</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <h2 style={{ fontSize: '18px', fontWeight: '800', color: 'var(--text-main)', margin: 0 }}>
+                        {activePost.title}
+                      </h2>
+                      
+                      <p style={{ fontSize: '13px', color: 'var(--text-main)', lineHeight: '1.6', whiteSpace: 'pre-wrap', margin: 0 }}>
+                        {activePost.content}
+                      </p>
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Post not found or has been deleted.</p>
+                  )}
+
+                  <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '16px' }}>
+                    <h4 style={{ fontSize: '14px', fontWeight: '750', color: 'var(--pine-deep)', marginBottom: '12px' }}>
+                      Comments ({postComments.length})
+                    </h4>
+
+                    {postComments.length === 0 ? (
+                      <p style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                        No comments yet. Start the discussion!
+                      </p>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {postComments.map(comment => (
+                          <div key={comment.id} style={{
+                            backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                            borderRadius: '12px',
+                            border: '1px solid var(--border-subtle)',
+                            padding: '12px 16px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '6px'
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', fontWeight: '600' }}>
+                                {comment.user_name} • {getBreaditTimeAgo(comment.created_at)}
+                              </span>
+                              
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <button
+                                  onClick={() => handleReportComment(comment.id!)}
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: 'var(--text-muted)',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '2px',
+                                    fontSize: '10px',
+                                    fontWeight: '600'
+                                  }}
+                                  title="Report comment"
+                                >
+                                  <Flag size={10} />
+                                </button>
+                                
+                                {(user.role === 'developer' || user.role === 'cr') && (
+                                  <button
+                                    onClick={() => handleDeleteComment(comment.id!, selectedPostId)}
+                                    style={{
+                                      background: 'none',
+                                      border: 'none',
+                                      color: 'var(--error)',
+                                      cursor: 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '2px',
+                                      fontSize: '10px',
+                                      fontWeight: '600'
+                                    }}
+                                    title="Delete comment"
+                                  >
+                                    <Trash2 size={10} />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                            
+                            <p style={{ fontSize: '12.5px', color: 'var(--text-main)', margin: 0, whiteSpace: 'pre-wrap' }}>
+                              {comment.content}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <form onSubmit={handleCreateComment} style={{
+                  padding: '14px 20px',
+                  borderTop: '1px solid var(--border-subtle)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.4)',
+                  display: 'flex',
+                  gap: '12px'
+                }}>
+                  <input
+                    type="text"
+                    placeholder="Add a comment..."
+                    value={newBreaditCommentContent}
+                    onChange={(e) => setNewBreaditCommentContent(e.target.value)}
+                    style={{
+                      flex: 1,
+                      padding: '10px 16px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-subtle)',
+                      fontSize: '13px',
+                      backgroundColor: '#ffffff',
+                      color: 'var(--text-main)'
+                    }}
+                    required
+                  />
+                  <button
+                    type="submit"
+                    className="btn-primary"
+                    style={{ padding: '0 20px', borderRadius: '8px' }}
+                  >
+                    Post
+                  </button>
+                </form>
+              </div>
+            );
+          }
+
+          return (
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              height: 'calc(100vh - 120px)',
+              width: '100%',
+              backgroundColor: 'var(--bg-card)',
+              borderRadius: 'var(--radius-lg)',
+              border: '1px solid var(--border-subtle)',
+              overflow: 'hidden'
+            }} className="glass-panel animate-fade-in">
+              <div style={{
+                padding: '14px 20px',
+                borderBottom: '1px solid var(--border-subtle)',
+                backgroundColor: 'rgba(255, 255, 255, 0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '12px',
+                flexWrap: 'wrap'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <button
+                    onClick={() => setSelectedCommunityTab(null)}
+                    style={{
+                      background: 'none',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: '6px',
+                      padding: '6px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      color: 'var(--text-main)'
+                    }}
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                  <h3 style={{ fontSize: '18px', fontWeight: '855', color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    🍞 Bread it
+                  </h3>
+                </div>
+
+                <button
+                  onClick={() => setIsCreatePostOpen(true)}
+                  className="btn-primary"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    fontWeight: '700',
+                    fontSize: '12.5px',
+                    border: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Plus size={14} />
+                  <span>Create Post</span>
+                </button>
+              </div>
+
+              <div style={{
+                flex: 1,
+                padding: '20px',
+                overflowY: 'auto',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px'
+              }}>
+                {breaditPosts.length === 0 ? (
+                  <div style={{
+                    margin: 'auto',
+                    textAlign: 'center',
+                    color: 'var(--text-muted)',
+                    padding: '40px'
+                  }}>
+                    <div style={{ fontSize: '40px', marginBottom: '12px' }}>🍞</div>
+                    <p style={{ fontSize: '14px', fontWeight: '700', color: 'var(--pine-deep)' }}>The Breadit board is empty</p>
+                    <p style={{ fontSize: '12px', marginTop: '4px' }}>Be the first one to post a campus problem or update!</p>
+                  </div>
+                ) : (
+                  breaditPosts.map(post => (
+                    <div
+                      key={post.id}
+                      style={{
+                        backgroundColor: 'rgba(255, 255, 255, 0.45)',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: '16px',
+                        padding: '18px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '10px',
+                        cursor: 'pointer',
+                        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                      }}
+                      className="glass-panel-hover"
+                      onClick={() => setSelectedPostId(post.id!)}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', fontWeight: '600' }}>
+                          Posted by {post.user_name} • {getBreaditTimeAgo(post.created_at)}
+                        </span>
+                        
+                        {(user.role === 'developer' || user.role === 'cr') && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeletePost(post.id!);
+                            }}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: 'var(--error)',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              padding: '2px'
+                            }}
+                            title="Delete post"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        )}
+                      </div>
+
+                      <h4 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--text-main)', margin: 0 }}>
+                        {post.title}
+                      </h4>
+
+                      <p style={{
+                        fontSize: '12.5px',
+                        color: 'var(--text-muted)',
+                        lineHeight: '1.5',
+                        margin: 0,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: 'vertical'
+                      }}>
+                        {post.content}
+                      </p>
+
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '16px',
+                        borderTop: '1px solid rgba(0,0,0,0.05)',
+                        paddingTop: '10px',
+                        marginTop: '4px'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: '700', color: 'var(--pine-primary)' }}>
+                          <MessageSquare size={12} />
+                          <span>{post.comments_count || 0} Comments</span>
+                        </div>
+                        
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleReportPost(post.id!);
+                          }}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--text-muted)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '11px',
+                            fontWeight: '600',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Flag size={12} />
+                          <span>Report</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Create Post Modal rendered contextually */}
+              {isCreatePostOpen && (
+                <div style={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                  backdropFilter: 'blur(4px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 1000,
+                  padding: '20px'
+                }} className="animate-fade-in" onClick={() => setIsCreatePostOpen(false)}>
+                  <div style={{
+                    backgroundColor: '#ffffff',
+                    borderRadius: '20px',
+                    width: '100%',
+                    maxWidth: '500px',
+                    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                    border: '1px solid var(--border-subtle)',
+                    overflow: 'hidden'
+                  }} onClick={(e) => e.stopPropagation()}>
+                    <div style={{
+                      padding: '16px 20px',
+                      borderBottom: '1px solid var(--border-subtle)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      backgroundColor: 'var(--bg-app)'
+                    }}>
+                      <h3 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--pine-deep)', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        🍞 Create Breadit Post
+                      </h3>
+                      <button
+                        onClick={() => setIsCreatePostOpen(false)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: 'var(--text-muted)'
+                        }}
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleCreatePost} style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <label style={{ fontSize: '12px', fontWeight: '750', color: 'var(--text-muted)' }}>
+                          Title
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Describe the campus problem or title..."
+                          value={newBreaditPostTitle}
+                          onChange={(e) => setNewBreaditPostTitle(e.target.value)}
+                          style={{
+                            padding: '11px 14px',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border-subtle)',
+                            fontSize: '13px',
+                            backgroundColor: '#ffffff',
+                            color: 'var(--text-main)',
+                            fontWeight: '600'
+                          }}
+                          required
+                          maxLength={100}
+                        />
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <label style={{ fontSize: '12px', fontWeight: '750', color: 'var(--text-muted)' }}>
+                          Content
+                        </label>
+                        <textarea
+                          placeholder="Enter details about the issue or discussion thread..."
+                          value={newBreaditPostContent}
+                          onChange={(e) => setNewBreaditPostContent(e.target.value)}
+                          rows={6}
+                          style={{
+                            padding: '11px 14px',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border-subtle)',
+                            fontSize: '13px',
+                            backgroundColor: '#ffffff',
+                            color: 'var(--text-main)',
+                            fontFamily: 'inherit',
+                            resize: 'none',
+                            lineHeight: '1.5'
+                          }}
+                          required
+                        />
+                      </div>
+
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'flex-end',
+                        gap: '10px',
+                        marginTop: '8px'
+                      }}>
+                        <button
+                          type="button"
+                          onClick={() => setIsCreatePostOpen(false)}
+                          style={{
+                            padding: '10px 16px',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border-subtle)',
+                            fontSize: '12.5px',
+                            fontWeight: '600',
+                            backgroundColor: 'transparent',
+                            cursor: 'pointer',
+                            color: 'var(--text-muted)'
+                          }}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className="btn-primary"
+                          style={{
+                            padding: '10px 20px',
+                            borderRadius: '8px',
+                            fontSize: '12.5px',
+                            fontWeight: '700',
+                            border: 'none',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Publish Post
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        };
+
+        if (selectedCommunityTab === null) {
+          return renderCommunitiesLanding();
+        }
+
+        if (selectedCommunityTab === 'breadit') {
+          return renderBreaditFeed();
+        }
+
         const activeRoom = chatRoomsList.find(r => r.id === selectedRoomId);
 
         const handleSendMessage = async (e: React.FormEvent) => {
@@ -3247,9 +4139,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
           const res = await sendChatMessage(selectedRoomId, activeRoom?.name || 'Chat', user.id, user.name, textToSend);
           if (res.success) {
-            // Handled automatically: the live snapshot listener will fetch the real message
           } else {
-            // Remove optimistic message if sending fails
             setChatMessages(prev => prev.filter(m => m.id !== tempId));
 
             if (res.banned) {
@@ -3265,6 +4155,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
         const categories: Record<string, FirestoreChatroom[]> = {};
         chatRoomsList.forEach(room => {
+          if (room.category === 'Academics') return;
           const cat = room.category || 'Other';
           if (!categories[cat]) categories[cat] = [];
           categories[cat].push(room);
@@ -3302,6 +4193,26 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               padding: '16px',
               overflowY: 'auto'
             }} className="glass-panel">
+              <button
+                onClick={() => setSelectedCommunityTab(null)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--pine-primary)',
+                  fontWeight: '700',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  padding: '4px 0',
+                  marginBottom: '4px',
+                  textAlign: 'left'
+                }}
+              >
+                <ChevronLeft size={14} /> Back to Communities
+              </button>
+
               <h3 style={{ fontSize: '14px', fontWeight: '800', color: 'var(--pine-deep)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 NITH Channels
               </h3>
@@ -3383,6 +4294,28 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 flexWrap: 'wrap'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  {/* Back to selector hub */}
+                  <button
+                    onClick={() => setSelectedCommunityTab(null)}
+                    style={{
+                      background: 'none',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: '6px',
+                      padding: '6px 10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      cursor: 'pointer',
+                      backgroundColor: '#ffffff',
+                      color: 'var(--text-muted)',
+                      marginRight: '4px',
+                      gap: '4px',
+                    }}
+                    title="Back to Communities"
+                  >
+                    <ChevronLeft size={16} />
+                    <span style={{ fontSize: '11px', fontWeight: '700' }}>Hub</span>
+                  </button>
+
                   {/* Channels List Toggle Button */}
                   <button
                     onClick={() => setIsChatSidebarOpen(!isChatSidebarOpen)}

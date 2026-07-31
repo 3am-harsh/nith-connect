@@ -12,7 +12,9 @@ import {
   addDoc,
   orderBy,
   updateDoc,
-  deleteDoc
+  deleteDoc,
+  increment,
+  arrayUnion
 } from 'firebase/firestore';
 
 export interface FirestoreUser {
@@ -1450,6 +1452,174 @@ export async function deleteFirestoreDirectoryContact(contactId: string): Promis
     return true;
   } catch (error) {
     console.error('Error deleting directory contact:', error);
+    return false;
+  }
+}
+
+// ==========================================
+// Breadit Reddit Clone Firestore Operations
+// ==========================================
+
+export interface FirestoreBreaditPost {
+  id?: string;
+  title: string;
+  content: string;
+  user_id: string;
+  user_name: string;
+  created_at: string;
+  reports_count?: number;
+  reported_by?: string[];
+  comments_count?: number;
+}
+
+export interface FirestoreBreaditComment {
+  id?: string;
+  post_id: string;
+  content: string;
+  user_id: string;
+  user_name: string;
+  created_at: string;
+  reports_count?: number;
+  reported_by?: string[];
+}
+
+export async function getFirestoreBreaditPosts(): Promise<FirestoreBreaditPost[]> {
+  try {
+    const q = query(
+      collection(db, 'breadit_posts'),
+      orderBy('created_at', 'desc')
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as FirestoreBreaditPost[];
+  } catch (error) {
+    console.error('Error fetching Breadit posts:', error);
+    return [];
+  }
+}
+
+export async function createFirestoreBreaditPost(post: Omit<FirestoreBreaditPost, 'id' | 'created_at'>): Promise<string | null> {
+  try {
+    const newPost = {
+      ...post,
+      created_at: new Date().toISOString(),
+      reports_count: 0,
+      reported_by: [],
+      comments_count: 0
+    };
+    const docRef = await addDoc(collection(db, 'breadit_posts'), newPost);
+    return docRef.id;
+  } catch (error) {
+    console.error('Error creating Breadit post:', error);
+    return null;
+  }
+}
+
+export async function getFirestoreBreaditComments(postId: string): Promise<FirestoreBreaditComment[]> {
+  try {
+    const q = query(
+      collection(db, 'breadit_comments'),
+      where('post_id', '==', postId),
+      orderBy('created_at', 'asc')
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as FirestoreBreaditComment[];
+  } catch (error) {
+    console.error('Error fetching Breadit comments:', error);
+    return [];
+  }
+}
+
+export async function createFirestoreBreaditComment(comment: Omit<FirestoreBreaditComment, 'id' | 'created_at'>): Promise<boolean> {
+  try {
+    const newComment = {
+      ...comment,
+      created_at: new Date().toISOString(),
+      reports_count: 0,
+      reported_by: []
+    };
+    
+    // Add comment document
+    await addDoc(collection(db, 'breadit_comments'), newComment);
+    
+    // Increment comment count on the post
+    const postRef = doc(db, 'breadit_posts', comment.post_id);
+    await updateDoc(postRef, {
+      comments_count: increment(1)
+    });
+    
+    return true;
+  } catch (error) {
+    console.error('Error creating Breadit comment:', error);
+    return false;
+  }
+}
+
+export async function reportFirestoreBreaditPost(postId: string, userId: string): Promise<boolean> {
+  try {
+    const postRef = doc(db, 'breadit_posts', postId);
+    await updateDoc(postRef, {
+      reported_by: arrayUnion(userId),
+      reports_count: increment(1)
+    });
+    return true;
+  } catch (error) {
+    console.error('Error reporting Breadit post:', error);
+    return false;
+  }
+}
+
+export async function reportFirestoreBreaditComment(commentId: string, userId: string): Promise<boolean> {
+  try {
+    const commentRef = doc(db, 'breadit_comments', commentId);
+    await updateDoc(commentRef, {
+      reported_by: arrayUnion(userId),
+      reports_count: increment(1)
+    });
+    return true;
+  } catch (error) {
+    console.error('Error reporting Breadit comment:', error);
+    return false;
+  }
+}
+
+export async function deleteFirestoreBreaditPost(postId: string): Promise<boolean> {
+  try {
+    // Delete the post document
+    await deleteDoc(doc(db, 'breadit_posts', postId));
+    
+    // Delete associated comments
+    const q = query(collection(db, 'breadit_comments'), where('post_id', '==', postId));
+    const snap = await getDocs(q);
+    const deletePromises = snap.docs.map(d => deleteDoc(doc(db, 'breadit_comments', d.id)));
+    await Promise.all(deletePromises);
+    
+    return true;
+  } catch (error) {
+    console.error('Error deleting Breadit post:', error);
+    return false;
+  }
+}
+
+export async function deleteFirestoreBreaditComment(commentId: string, postId: string): Promise<boolean> {
+  try {
+    // Delete the comment document
+    await deleteDoc(doc(db, 'breadit_comments', commentId));
+    
+    // Decrement post comments count
+    const postRef = doc(db, 'breadit_posts', postId);
+    await updateDoc(postRef, {
+      comments_count: increment(-1)
+    });
+    
+    return true;
+  } catch (error) {
+    console.error('Error deleting Breadit comment:', error);
     return false;
   }
 }
