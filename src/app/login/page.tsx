@@ -3,7 +3,7 @@
 import React, { useState, useTransition, useEffect } from 'react';
 import { loginWithEmail, loginDeveloper, checkUserRegisteredAction, loginWithFirebaseUserAction, validateEmailAction } from './actions';
 import { Mountain, LogIn, ShieldAlert, Sparkles, User, Mail, GraduationCap, Building, Home, Activity } from 'lucide-react';
-import { signInWithPopup, signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
+import { signInWithPopup, signInWithRedirect, getRedirectResult, signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Capacitor } from '@capacitor/core';
 
@@ -55,6 +55,57 @@ function LoadingOverlay() {
     </div>
   );
 }
+const parseNithEmail = (userEmail: string) => {
+  const prefix = userEmail.split('@')[0].toUpperCase();
+  const match = prefix.match(/^(\d+)([A-Z]+)(\d+)/);
+  
+  if (!match) {
+    return {
+      rollNumber: prefix,
+      department: 'Computer Science & Engineering',
+      yearText: 'Student Scholar'
+    };
+  }
+  
+  const [_, yearStr, branchCode] = match;
+  const entryYear = parseInt(yearStr, 10); // e.g. 25
+  
+  // Calculate Year of Study (academic years change in July)
+  const today = new Date();
+  const currentYear = today.getFullYear() % 100; // e.g. 26
+  const currentMonth = today.getMonth() + 1; // 1-12
+  
+  let yearNum = currentYear - entryYear;
+  if (currentMonth >= 7) {
+    yearNum += 1;
+  }
+  
+  // Ensure we don't get negative/zero years
+  yearNum = Math.max(1, yearNum);
+  
+  const yearLabels = ['1st Year (Freshman)', '2nd Year (Sophomore)', '3rd Year (Junior)', '4th Year (Senior)', '5th Year (Senior+)'];
+  const yearText = yearLabels[yearNum - 1] || `${yearNum}th Year`;
+
+  const branchMap: Record<string, string> = {
+    'BCS': 'Computer Science & Engineering',
+    'BEC': 'Electronics & Communication Engineering',
+    'DCS': 'Computer Science & Engineering (Dual Degree)',
+    'DEC': 'Electronics & Communication Engineering (Dual Degree)',
+    'BEE': 'Electrical Engineering',
+    'BME': 'Mechanical Engineering',
+    'BCH': 'Chemical Engineering',
+    'BCE': 'Civil Engineering',
+    'BMA': 'Mathematics & Computing',
+    'BMS': 'Materials Science & Engineering',
+    'BAR': 'Architecture'
+  };
+
+  return {
+    rollNumber: prefix,
+    department: branchMap[branchCode] || 'Computer Science & Engineering',
+    yearText: yearText
+  };
+};
 
 export default function LoginPage() {
   const [isPending, startTransition] = useTransition();
@@ -73,57 +124,56 @@ export default function LoginPage() {
   const [hostel, setHostel] = useState('Kailash Boys Hostel (est. 1989)');
   const [bloodGroup, setBloodGroup] = useState('B+');
 
-  const parseNithEmail = (userEmail: string) => {
-    const prefix = userEmail.split('@')[0].toUpperCase();
-    const match = prefix.match(/^(\d+)([A-Z]+)(\d+)/);
-    
-    if (!match) {
-      return {
-        rollNumber: prefix,
-        department: 'Computer Science & Engineering',
-        yearText: 'Student Scholar'
-      };
-    }
-    
-    const [_, yearStr, branchCode] = match;
-    const entryYear = parseInt(yearStr, 10); // e.g. 25
-    
-    // Calculate Year of Study (academic years change in July)
-    const today = new Date();
-    const currentYear = today.getFullYear() % 100; // e.g. 26
-    const currentMonth = today.getMonth() + 1; // 1-12
-    
-    let yearNum = currentYear - entryYear;
-    if (currentMonth >= 7) {
-      yearNum += 1;
-    }
-    
-    // Ensure we don't get negative/zero years
-    yearNum = Math.max(1, yearNum);
-    
-    const yearLabels = ['1st Year (Freshman)', '2nd Year (Sophomore)', '3rd Year (Junior)', '4th Year (Senior)', '5th Year (Senior+)'];
-    const yearText = yearLabels[yearNum - 1] || `${yearNum}th Year`;
+  useEffect(() => {
+    const checkRedirect = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result && result.user) {
+          const userEmail = result.user.email || '';
+          const displayName = result.user.displayName || '';
+          const isFirstYearRedirect = localStorage.getItem('first_year_flow_pending') === 'true';
+          localStorage.removeItem('first_year_flow_pending');
 
-    const branchMap: Record<string, string> = {
-      'BCS': 'Computer Science & Engineering',
-      'BEC': 'Electronics & Communication Engineering',
-      'DCS': 'Computer Science & Engineering (Dual Degree)',
-      'DEC': 'Electronics & Communication Engineering (Dual Degree)',
-      'BEE': 'Electrical Engineering',
-      'BME': 'Mechanical Engineering',
-      'BCH': 'Chemical Engineering',
-      'BCE': 'Civil Engineering',
-      'BMA': 'Mathematics & Computing',
-      'BMS': 'Materials Science & Engineering',
-      'BAR': 'Architecture'
-    };
+          const isValid = await validateEmailAction(userEmail, isFirstYearRedirect);
+          if (!isValid) {
+            await auth.signOut();
+            setErrorMessage('Access Denied: Only @nith.ac.in Google accounts are allowed.');
+            return;
+          }
 
-    return {
-      rollNumber: prefix,
-      department: branchMap[branchCode] || 'Computer Science & Engineering',
-      yearText: yearText
+          const existingProfile = await checkUserRegisteredAction(userEmail);
+          if (existingProfile) {
+            const loginRes = await loginWithFirebaseUserAction(userEmail);
+            if (!loginRes.success) {
+              setErrorMessage(loginRes.error || 'Failed to establish session.');
+            }
+          } else {
+            setIsFirstYear(isFirstYearRedirect);
+            setEmail(userEmail);
+            setName(displayName || '');
+            
+            const parsed = parseNithEmail(userEmail);
+            if (isFirstYearRedirect) {
+              setYearOfStudy('1st Year');
+              setDept('Computer Science & Engineering');
+              setRollNo(userEmail.endsWith('@nith.ac.in') ? parsed.rollNumber : '');
+            } else {
+              setRollNo(parsed.rollNumber);
+              setDept(parsed.department);
+              setYearOfStudy(parsed.yearText);
+            }
+            setShowGoogleMock(true);
+          }
+        }
+      } catch (err: unknown) {
+        console.error('Redirect sign-in error:', err);
+        setErrorMessage((err as Error).message || 'Redirect authentication failed.');
+      }
     };
-  };
+    checkRedirect();
+  }, []);
+
+
 
   const handleGoogleSimulate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -197,9 +247,25 @@ export default function LoginPage() {
             });
           }
           
-          const result = await signInWithPopup(auth, provider);
-          userEmail = result.user.email || '';
-          displayName = result.user.displayName || '';
+          try {
+            const result = await signInWithPopup(auth, provider);
+            userEmail = result.user.email || '';
+            displayName = result.user.displayName || '';
+          } catch (popupErr: unknown) {
+            console.warn('signInWithPopup failed, falling back to redirect:', popupErr);
+            const errCode = (popupErr as { code?: string })?.code;
+            if (
+              errCode === 'auth/popup-blocked' ||
+              errCode === 'auth/internal-error' ||
+              /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+            ) {
+              localStorage.setItem('first_year_flow_pending', forFirstYear ? 'true' : 'false');
+              await signInWithRedirect(auth, provider);
+              return;
+            } else {
+              throw popupErr;
+            }
+          }
         }
         
         if (!userEmail) {
