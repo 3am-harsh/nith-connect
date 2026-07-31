@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "89838818244-csia7ssqki513en4jl6h7j20dgp6a2bc.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.nith.connect",
+            "certificate_hash": "a29e488bfc13c97c2f340155dd4e4eb50450d1d3"
+          }
+        },
+        {
           "client_id": "89838818244-kqa5cell9f22b87kv0q8r59k9ch3fs4d.apps.googleusercontent.com",
           "client_type": 3
         }
