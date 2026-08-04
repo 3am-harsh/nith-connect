@@ -1500,21 +1500,16 @@ export async function getFirestoreBreaditPosts(): Promise<FirestoreBreaditPost[]
   }
 }
 
-export async function createFirestoreBreaditPost(post: Omit<FirestoreBreaditPost, 'id' | 'created_at'>): Promise<string | null> {
-  try {
-    const newPost = {
-      ...post,
-      created_at: new Date().toISOString(),
-      reports_count: 0,
-      reported_by: [],
-      comments_count: 0
-    };
-    const docRef = await addDoc(collection(db, 'breadit_posts'), newPost);
-    return docRef.id;
-  } catch (error) {
-    console.error('Error creating Breadit post:', error);
-    return null;
-  }
+export async function createFirestoreBreaditPost(post: Omit<FirestoreBreaditPost, 'id' | 'created_at'>): Promise<string> {
+  const newPost = {
+    ...post,
+    created_at: new Date().toISOString(),
+    reports_count: 0,
+    reported_by: [],
+    comments_count: 0
+  };
+  const docRef = await addDoc(collection(db, 'breadit_posts'), newPost);
+  return docRef.id;
 }
 
 export async function getFirestoreBreaditComments(postId: string): Promise<FirestoreBreaditComment[]> {
@@ -1536,28 +1531,23 @@ export async function getFirestoreBreaditComments(postId: string): Promise<Fires
 }
 
 export async function createFirestoreBreaditComment(comment: Omit<FirestoreBreaditComment, 'id' | 'created_at'>): Promise<boolean> {
-  try {
-    const newComment = {
-      ...comment,
-      created_at: new Date().toISOString(),
-      reports_count: 0,
-      reported_by: []
-    };
-    
-    // Add comment document
-    await addDoc(collection(db, 'breadit_comments'), newComment);
-    
-    // Increment comment count on the post
-    const postRef = doc(db, 'breadit_posts', comment.post_id);
-    await updateDoc(postRef, {
-      comments_count: increment(1)
-    });
-    
-    return true;
-  } catch (error) {
-    console.error('Error creating Breadit comment:', error);
-    return false;
-  }
+  const newComment = {
+    ...comment,
+    created_at: new Date().toISOString(),
+    reports_count: 0,
+    reported_by: []
+  };
+  
+  // Add comment document
+  await addDoc(collection(db, 'breadit_comments'), newComment);
+  
+  // Increment comment count on the post
+  const postRef = doc(db, 'breadit_posts', comment.post_id);
+  await updateDoc(postRef, {
+    comments_count: increment(1)
+  });
+  
+  return true;
 }
 
 export async function reportFirestoreBreaditPost(postId: string, userId: string): Promise<boolean> {

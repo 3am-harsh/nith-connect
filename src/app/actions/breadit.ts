@@ -23,18 +23,22 @@ export async function fetchBreaditPostsAction(): Promise<FirestoreBreaditPost[]>
   }
 }
 
-export async function createBreaditPostAction(title: string, content: string, userId: string, userName: string): Promise<string | null> {
+export async function createBreaditPostAction(title: string, content: string, userId: string, userName: string): Promise<{ success: boolean; postId?: string; error?: string }> {
   try {
-    if (!title.trim() || !content.trim()) return null;
-    return await createFirestoreBreaditPost({
+    if (!title.trim() || !content.trim()) {
+      return { success: false, error: 'Title and content cannot be empty.' };
+    }
+    const postId = await createFirestoreBreaditPost({
       title: title.trim(),
       content: content.trim(),
       user_id: userId,
       user_name: userName
     });
-  } catch (error) {
+    return { success: true, postId };
+  } catch (error: unknown) {
     console.error('Action failed: createBreaditPostAction', error);
-    return null;
+    const err = error as { message?: string };
+    return { success: false, error: err?.message || String(error) };
   }
 }
 
@@ -48,18 +52,22 @@ export async function fetchBreaditCommentsAction(postId: string): Promise<Firest
   }
 }
 
-export async function createBreaditCommentAction(postId: string, content: string, userId: string, userName: string): Promise<boolean> {
+export async function createBreaditCommentAction(postId: string, content: string, userId: string, userName: string): Promise<{ success: boolean; error?: string }> {
   try {
-    if (!postId || !content.trim()) return false;
-    return await createFirestoreBreaditComment({
+    if (!postId || !content.trim()) {
+      return { success: false, error: 'Post ID and comment content cannot be empty.' };
+    }
+    const success = await createFirestoreBreaditComment({
       post_id: postId,
       content: content.trim(),
       user_id: userId,
       user_name: userName
     });
-  } catch (error) {
+    return { success };
+  } catch (error: unknown) {
     console.error('Action failed: createBreaditCommentAction', error);
-    return false;
+    const err = error as { message?: string };
+    return { success: false, error: err?.message || String(error) };
   }
 }
 

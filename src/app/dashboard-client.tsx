@@ -132,6 +132,7 @@ import {
   Trash2,
   ArrowLeft,
   ChevronLeft,
+  ChevronDown,
   Flag
 } from 'lucide-react';
 
@@ -392,6 +393,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const [selectedYear, setSelectedYear] = useState('1st Year');
   const [selectedSection, setSelectedSection] = useState('A');
   const [selectedBranch, setSelectedBranch] = useState('Computer Science & Engineering');
+  const [isTimetableEnrolled, setIsTimetableEnrolled] = useState<boolean>(false);
+  const [isEditingEnrollment, setIsEditingEnrollment] = useState<boolean>(false);
+  const [isMobile, setIsMobile] = useState<boolean>(false);
   const [approvedTimetables, setApprovedTimetables] = useState<ApprovedTimetable[]>([]);
   const [timetableSubmissions, setTimetableSubmissions] = useState<TimetableSubmission[]>([]);
   const [isUploadTimetableOpen, setIsUploadTimetableOpen] = useState(false);
@@ -527,6 +531,28 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   
   // Hostel details modal state
   const [activeHostelMenu, setActiveHostelMenu] = useState<string | null>(null);
+
+  // Load enrollment status on mount and resize handlers
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedYear = localStorage.getItem('nith_timetable_enrolled_year');
+      const savedBranch = localStorage.getItem('nith_timetable_enrolled_branch');
+      const savedSection = localStorage.getItem('nith_timetable_enrolled_section');
+      if (savedYear) {
+        setSelectedYear(savedYear);
+        if (savedBranch) setSelectedBranch(savedBranch);
+        if (savedSection) setSelectedSection(savedSection);
+        setIsTimetableEnrolled(true);
+      }
+      
+      const handleResize = () => {
+        setIsMobile(window.innerWidth < 768);
+      };
+      handleResize();
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
+  }, []);
 
   // Live timetable refresh tick
   const [timeTick, setTimeTick] = useState(0);
@@ -1278,12 +1304,13 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 display: 'flex', 
                 flexDirection: 'column', 
                 gap: '10px',
-                cursor: 'pointer',
+                cursor: isTimetableEnrolled ? 'pointer' : 'default',
                 height: 'auto',
                 minHeight: '410px'
               }} 
-              className="glass-panel glass-panel-hover"
+              className={`glass-panel ${isTimetableEnrolled ? 'glass-panel-hover' : ''}`}
               onClick={() => {
+                if (!isTimetableEnrolled) return;
                 const hasCustom = approvedTimetables.some(t => {
                   if (selectedYear === '1st Year') {
                     return t.year === selectedYear && t.section === selectedSection;
@@ -1299,410 +1326,701 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 setIsTimetableModalOpen(true);
               }}
             >
-              <div style={styles.messHeader}>
-                <div>
-                  <h3 style={styles.messTitle}>Today&apos;s Classes</h3>
-                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                    {currentDayName === 'Saturday' || currentDayName === 'Sunday' 
-                      ? 'Weekend (Holiday)' 
-                      : `${currentDayName}, ${new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`}
-                  </span>
+              {!isTimetableEnrolled ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', height: '100%', justifyContent: 'center', padding: '12px' }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <h3 style={{ ...styles.messTitle, fontSize: '18px', marginBottom: '4px' }}>Class Schedule 📅</h3>
+                    <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: 0 }}>Enroll to view your weekly academic timetable</p>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {/* Year Selector */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                      <label style={{ fontSize: '9px', fontWeight: '800', color: 'var(--text-placeholder)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Year</label>
+                      <div style={{ position: 'relative', width: '100%' }}>
+                        <select
+                          value={selectedYear}
+                          onChange={(e) => {
+                            setSelectedYear(e.target.value);
+                            if (e.target.value === '1st Year') {
+                              setSelectedSection('A');
+                            }
+                          }}
+                          style={{
+                            padding: '8px 30px 8px 12px',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border-subtle)',
+                            backgroundColor: '#ffffff',
+                            color: 'var(--text-main)',
+                            fontSize: '12.5px',
+                            fontWeight: '700',
+                            outline: 'none',
+                            cursor: 'pointer',
+                            width: '100%',
+                            appearance: 'none',
+                            WebkitAppearance: 'none',
+                            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
+                          }}
+                        >
+                          <option value="1st Year">1st Year</option>
+                          <option value="2nd Year">2nd Year</option>
+                          <option value="3rd Year">3rd Year</option>
+                          <option value="4th Year">4th Year</option>
+                        </select>
+                        <ChevronDown 
+                          size={16} 
+                          style={{ 
+                            position: 'absolute', 
+                            right: '10px', 
+                            top: '50%', 
+                            transform: 'translateY(-50%)', 
+                            pointerEvents: 'none', 
+                            color: 'var(--text-muted)' 
+                          }} 
+                        />
+                      </div>
+                    </div>
+
+                    {/* Branch Selector */}
+                    {selectedYear !== '1st Year' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                        <label style={{ fontSize: '9px', fontWeight: '800', color: 'var(--text-placeholder)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Branch</label>
+                        <div style={{ position: 'relative', width: '100%' }}>
+                          <select
+                            value={selectedBranch}
+                            onChange={(e) => setSelectedBranch(e.target.value)}
+                            style={{
+                              padding: '8px 30px 8px 12px',
+                              borderRadius: '8px',
+                              border: '1px solid var(--border-subtle)',
+                              backgroundColor: '#ffffff',
+                              color: 'var(--text-main)',
+                              fontSize: '12.5px',
+                              fontWeight: '700',
+                              outline: 'none',
+                              cursor: 'pointer',
+                              width: '100%',
+                              appearance: 'none',
+                              WebkitAppearance: 'none',
+                              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
+                            }}
+                          >
+                            <option value="Computer Science & Engineering">Computer Science</option>
+                            <option value="Electronics & Communication Engineering">ECE</option>
+                            <option value="Electrical Engineering">Electrical</option>
+                            <option value="Mechanical Engineering">Mechanical</option>
+                            <option value="Civil Engineering">Civil</option>
+                            <option value="Chemical Engineering">Chemical</option>
+                            <option value="Material Science & Engineering">Materials</option>
+                          </select>
+                          <ChevronDown 
+                            size={16} 
+                            style={{ 
+                              position: 'absolute', 
+                              right: '10px', 
+                              top: '50%', 
+                              transform: 'translateY(-50%)', 
+                              pointerEvents: 'none', 
+                              color: 'var(--text-muted)' 
+                            }} 
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Section Selector */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                      <label style={{ fontSize: '9px', fontWeight: '800', color: 'var(--text-placeholder)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Section</label>
+                      <div style={{ position: 'relative', width: '100%' }}>
+                        <select
+                          value={selectedSection}
+                          onChange={(e) => setSelectedSection(e.target.value)}
+                          style={{
+                            padding: '8px 30px 8px 12px',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border-subtle)',
+                            backgroundColor: '#ffffff',
+                            color: 'var(--text-main)',
+                            fontSize: '12.5px',
+                            fontWeight: '700',
+                            outline: 'none',
+                            cursor: 'pointer',
+                            width: '100%',
+                            appearance: 'none',
+                            WebkitAppearance: 'none',
+                            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
+                          }}
+                        >
+                          {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'].map(sec => (
+                            <option key={sec} value={sec}>Section {sec}</option>
+                          ))}
+                        </select>
+                        <ChevronDown 
+                          size={16} 
+                          style={{ 
+                            position: 'absolute', 
+                            right: '10px', 
+                            top: '50%', 
+                            transform: 'translateY(-50%)', 
+                            pointerEvents: 'none', 
+                            color: 'var(--text-muted)' 
+                          }} 
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      localStorage.setItem('nith_timetable_enrolled_year', selectedYear);
+                      localStorage.setItem('nith_timetable_enrolled_branch', selectedBranch);
+                      localStorage.setItem('nith_timetable_enrolled_section', selectedSection);
+                      setIsTimetableEnrolled(true);
+                      showToast(`Enrolled successfully in ${selectedYear}!`, 'success');
+                    }}
+                    style={{
+                      marginTop: '6px',
+                      padding: '10px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      backgroundColor: 'var(--pine-primary)',
+                      color: '#ffffff',
+                      fontSize: '13px',
+                      fontWeight: '800',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 10px rgba(18, 91, 68, 0.15)'
+                    }}
+                  >
+                    Enroll Class & View Timetable
+                  </button>
                 </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const hasCustom = approvedTimetables.some(t => {
+              ) : (
+                <>
+                  <div style={styles.messHeader}>
+                    <div>
+                      <h3 style={styles.messTitle}>Today&apos;s Classes</h3>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '2px' }}>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                          {currentDayName === 'Saturday' || currentDayName === 'Sunday' 
+                            ? 'Weekend (Holiday)' 
+                            : `${currentDayName}, ${new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`}
+                        </span>
+                        <span style={{ fontSize: '11px', color: 'var(--text-placeholder)' }}>•</span>
+                        <span style={{ fontSize: '11px', color: 'var(--pine-primary)', fontWeight: '700' }}>
+                          {selectedYear} ({selectedYear === '1st Year' ? `Sec ${selectedSection}` : `${selectedBranch.includes('Computer') ? 'CSE' : selectedBranch.includes('Electronics') ? 'ECE' : 'Class'} - Sec ${selectedSection}`})
+                        </span>
+                        {!isEditingEnrollment && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsEditingEnrollment(true);
+                            }}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: 'var(--pine-primary)',
+                              fontSize: '11px',
+                              fontWeight: '800',
+                              cursor: 'pointer',
+                              padding: '1px 5px',
+                              borderRadius: '4px',
+                              backgroundColor: 'rgba(18, 91, 68, 0.06)',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              marginLeft: '2px'
+                            }}
+                          >
+                            Change
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const hasCustom = approvedTimetables.some(t => {
+                          if (selectedYear === '1st Year') {
+                            return t.year === selectedYear && t.section === selectedSection;
+                          } else {
+                            return t.year === selectedYear && t.branch === selectedBranch && t.section === selectedSection;
+                          }
+                        });
+                        if (hasCustom) {
+                          setTimetableModalViewMode('image');
+                        } else {
+                          setTimetableModalViewMode('grid');
+                        }
+                        setIsTimetableModalOpen(true);
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--pine-primary)',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <span>View Full Week</span>
+                      <ArrowRight size={14} />
+                    </button>
+                  </div>
+
+                  {isEditingEnrollment && (
+                    <div 
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        display: 'flex',
+                        gap: '8px',
+                        marginTop: '4px',
+                        marginBottom: '8px',
+                        flexWrap: 'wrap',
+                        padding: '8px',
+                        border: '1px dashed var(--border-subtle)',
+                        borderRadius: '8px',
+                        backgroundColor: 'rgba(0,0,0,0.01)',
+                        width: '100%'
+                      }}
+                    >
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                        <label style={{ fontSize: '9px', fontWeight: '800', color: 'var(--text-placeholder)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Year</label>
+                        <div style={{ position: 'relative', width: '100%' }}>
+                          <select
+                            value={selectedYear}
+                            onChange={(e) => {
+                              setSelectedYear(e.target.value);
+                              localStorage.setItem('nith_timetable_enrolled_year', e.target.value);
+                              if (e.target.value === '1st Year') {
+                                setSelectedSection('A');
+                                localStorage.setItem('nith_timetable_enrolled_section', 'A');
+                              }
+                            }}
+                            style={{
+                              padding: '6px 24px 6px 10px',
+                              borderRadius: '8px',
+                              border: '1px solid var(--border-subtle)',
+                              backgroundColor: '#ffffff',
+                              color: 'var(--text-main)',
+                              fontSize: '12px',
+                              fontWeight: '700',
+                              outline: 'none',
+                              cursor: 'pointer',
+                              width: '100%',
+                              appearance: 'none',
+                              WebkitAppearance: 'none'
+                            }}
+                          >
+                            <option value="1st Year">1st Year</option>
+                            <option value="2nd Year">2nd Year</option>
+                            <option value="3rd Year">3rd Year</option>
+                            <option value="4th Year">4th Year</option>
+                          </select>
+                          <ChevronDown 
+                            size={14} 
+                            style={{ 
+                              position: 'absolute', 
+                              right: '8px', 
+                              top: '50%', 
+                              transform: 'translateY(-50%)', 
+                              pointerEvents: 'none', 
+                              color: 'var(--text-muted)' 
+                            }} 
+                          />
+                        </div>
+                      </div>
+
+                      {selectedYear !== '1st Year' && (
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                          <label style={{ fontSize: '9px', fontWeight: '800', color: 'var(--text-placeholder)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Branch</label>
+                          <div style={{ position: 'relative', width: '100%', maxWidth: '120px' }}>
+                            <select
+                              value={selectedBranch}
+                              onChange={(e) => {
+                                setSelectedBranch(e.target.value);
+                                localStorage.setItem('nith_timetable_enrolled_branch', e.target.value);
+                              }}
+                              style={{
+                                padding: '6px 24px 6px 10px',
+                                borderRadius: '8px',
+                                border: '1px solid var(--border-subtle)',
+                                backgroundColor: '#ffffff',
+                                color: 'var(--text-main)',
+                                fontSize: '12px',
+                                fontWeight: '700',
+                                outline: 'none',
+                                cursor: 'pointer',
+                                width: '100%',
+                                appearance: 'none',
+                                WebkitAppearance: 'none'
+                              }}
+                            >
+                              <option value="Computer Science & Engineering">Computer Science</option>
+                              <option value="Electronics & Communication Engineering">ECE</option>
+                              <option value="Electrical Engineering">Electrical</option>
+                              <option value="Mechanical Engineering">Mechanical</option>
+                              <option value="Civil Engineering">Civil</option>
+                              <option value="Chemical Engineering">Chemical</option>
+                              <option value="Material Science & Engineering">Materials</option>
+                            </select>
+                            <ChevronDown 
+                              size={14} 
+                              style={{ 
+                                position: 'absolute', 
+                                right: '8px', 
+                                top: '50%', 
+                                transform: 'translateY(-50%)', 
+                                pointerEvents: 'none', 
+                                color: 'var(--text-muted)' 
+                              }} 
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                        <label style={{ fontSize: '9px', fontWeight: '800', color: 'var(--text-placeholder)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Section</label>
+                        <div style={{ position: 'relative', width: '100%' }}>
+                          <select
+                            value={selectedSection}
+                            onChange={(e) => {
+                              setSelectedSection(e.target.value);
+                              localStorage.setItem('nith_timetable_enrolled_section', e.target.value);
+                            }}
+                            style={{
+                              padding: '6px 24px 6px 10px',
+                              borderRadius: '8px',
+                              border: '1px solid var(--border-subtle)',
+                              backgroundColor: '#ffffff',
+                              color: 'var(--text-main)',
+                              fontSize: '12px',
+                              fontWeight: '700',
+                              outline: 'none',
+                              cursor: 'pointer',
+                              width: '100%',
+                              appearance: 'none',
+                              WebkitAppearance: 'none'
+                            }}
+                          >
+                            {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'].map(sec => (
+                              <option key={sec} value={sec}>Section {sec}</option>
+                            ))}
+                          </select>
+                          <ChevronDown 
+                            size={14} 
+                            style={{ 
+                              position: 'absolute', 
+                              right: '8px', 
+                              top: '50%', 
+                              transform: 'translateY(-50%)', 
+                              pointerEvents: 'none', 
+                              color: 'var(--text-muted)' 
+                            }} 
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsEditingEnrollment(false);
+                            showToast('Enrolled class saved!', 'success');
+                          }}
+                          style={{
+                            padding: '6px 12px',
+                            borderRadius: '8px',
+                            border: 'none',
+                            backgroundColor: 'var(--pine-primary)',
+                            color: '#ffffff',
+                            fontSize: '11px',
+                            fontWeight: '800',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Done
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {(() => {
+                    const customTimetable = approvedTimetables.find(t => {
                       if (selectedYear === '1st Year') {
                         return t.year === selectedYear && t.section === selectedSection;
                       } else {
                         return t.year === selectedYear && t.branch === selectedBranch && t.section === selectedSection;
                       }
                     });
-                    if (hasCustom) {
-                      setTimetableModalViewMode('image');
-                    } else {
-                      setTimetableModalViewMode('grid');
-                    }
-                    setIsTimetableModalOpen(true);
-                  }}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--pine-primary)',
-                    fontSize: '12px',
-                    fontWeight: '700',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <span>View Full Week</span>
-                  <ArrowRight size={14} />
-                </button>
-              </div>
 
-              {/* Year & Section Selector Row */}
-              <div 
-                onClick={(e) => e.stopPropagation()}
-                style={{
-                  display: 'flex',
-                  gap: '8px',
-                  marginTop: '4px',
-                  marginBottom: '8px',
-                  flexWrap: 'wrap'
-                }}
-              >
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                  <label style={{ fontSize: '9px', fontWeight: '800', color: 'var(--text-placeholder)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Year</label>
-                  <select
-                    value={selectedYear}
-                    onChange={(e) => setSelectedYear(e.target.value)}
-                    style={{
-                      padding: '6px 10px',
-                      borderRadius: '8px',
-                      border: '1px solid var(--border-subtle)',
-                      backgroundColor: '#ffffff',
-                      color: 'var(--text-main)',
-                      fontSize: '12px',
-                      fontWeight: '700',
-                      outline: 'none',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <option value="1st Year">1st Year</option>
-                    <option value="2nd Year">2nd Year</option>
-                    <option value="3rd Year">3rd Year</option>
-                    <option value="4th Year">4th Year</option>
-                  </select>
-                </div>
-
-                {selectedYear !== '1st Year' && (
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                    <label style={{ fontSize: '9px', fontWeight: '800', color: 'var(--text-placeholder)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Branch</label>
-                    <select
-                      value={selectedBranch}
-                      onChange={(e) => setSelectedBranch(e.target.value)}
-                      style={{
-                        padding: '6px 10px',
-                        borderRadius: '8px',
-                        border: '1px solid var(--border-subtle)',
-                        backgroundColor: '#ffffff',
-                        color: 'var(--text-main)',
-                        fontSize: '12px',
-                        fontWeight: '700',
-                        outline: 'none',
-                        cursor: 'pointer',
-                        maxWidth: '120px'
-                      }}
-                    >
-                      <option value="Computer Science & Engineering">Computer Science</option>
-                      <option value="Electronics & Communication Engineering">ECE</option>
-                      <option value="Electrical Engineering">Electrical</option>
-                      <option value="Mechanical Engineering">Mechanical</option>
-                      <option value="Civil Engineering">Civil</option>
-                      <option value="Chemical Engineering">Chemical</option>
-                      <option value="Material Science & Engineering">Materials</option>
-                    </select>
-                  </div>
-                )}
-
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                  <label style={{ fontSize: '9px', fontWeight: '800', color: 'var(--text-placeholder)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Section</label>
-                  <select
-                    value={selectedSection}
-                    onChange={(e) => setSelectedSection(e.target.value)}
-                    style={{
-                      padding: '6px 10px',
-                      borderRadius: '8px',
-                      border: '1px solid var(--border-subtle)',
-                      backgroundColor: '#ffffff',
-                      color: 'var(--text-main)',
-                      fontSize: '12px',
-                      fontWeight: '700',
-                      outline: 'none',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'].map(sec => (
-                      <option key={sec} value={sec}>Section {sec}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {(() => {
-                const customTimetable = approvedTimetables.find(t => {
-                  if (selectedYear === '1st Year') {
-                    return t.year === selectedYear && t.section === selectedSection;
-                  } else {
-                    return t.year === selectedYear && t.branch === selectedBranch && t.section === selectedSection;
-                  }
-                });
-
-                if (customTimetable) {
-                  return (
-                    <div 
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: '10px',
-                        padding: '14px',
-                        borderRadius: '12px',
-                        border: '1px dashed var(--pine-primary)',
-                        backgroundColor: 'rgba(18, 91, 68, 0.02)',
-                        textAlign: 'center',
-                        marginTop: '4px'
-                      }}
-                    >
-                      <div style={{ position: 'relative', width: '100%', height: '150px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
-                        <img 
-                          src={customTimetable.file_data} 
-                          alt="Timetable Thumbnail" 
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
-                      </div>
-                      <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--pine-deep)' }}>
-                        Official Timetable Active
-                      </span>
-                    </div>
-                  );
-                }
-
-                const branchCode = selectedBranch.includes('Electronics') || selectedBranch === 'ECE' ? 'ECE' : 'CSE';
-                const key = selectedYear === '1st Year'
-                  ? `1st Year_${selectedSection}`
-                  : `${selectedYear}_${selectedSection}_${branchCode}`;
-                  
-                const isMockPrefilled = !!timetablesData[key];
-                
-                if (isMockPrefilled) {
-                  const isWeekend = currentDayName === 'Saturday' || currentDayName === 'Sunday';
-                  
-                  if (isWeekend) {
-                    return (
-                      <div 
-                        onClick={() => setIsTimetableModalOpen(true)}
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '12px',
-                          padding: '24px 16px',
-                          borderRadius: '12px',
-                          border: '1px solid var(--border-subtle)',
-                          background: 'linear-gradient(135deg, rgba(244, 162, 97, 0.08) 0%, rgba(42, 157, 143, 0.05) 100%)',
-                          textAlign: 'center',
-                          marginTop: '4px',
-                          cursor: 'pointer'
-                        }}
-                        className="glass-panel-hover"
-                      >
-                        <div style={{
-                          width: '48px',
-                          height: '48px',
-                          borderRadius: '50%',
-                          backgroundColor: 'rgba(244, 162, 97, 0.15)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#f4a261',
-                          fontSize: '22px'
-                        }}>
-                          🌴
+                    if (customTimetable) {
+                      return (
+                        <div 
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: '10px',
+                            padding: '14px',
+                            borderRadius: '12px',
+                            border: '1px dashed var(--pine-primary)',
+                            backgroundColor: 'rgba(18, 91, 68, 0.02)',
+                            textAlign: 'center',
+                            marginTop: '4px'
+                          }}
+                        >
+                          <div style={{ position: 'relative', width: '100%', height: '150px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
+                            <img 
+                              src={customTimetable.file_data} 
+                              alt="Timetable Thumbnail" 
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            />
+                          </div>
+                          <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--pine-deep)' }}>
+                            Official Timetable Active
+                          </span>
                         </div>
-                        <div>
-                          <h4 style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-main)', margin: '0 0 4px 0' }}>
-                            Weekend Holiday
-                          </h4>
-                          <p style={{ fontSize: '11.5px', color: 'var(--text-muted)', margin: 0 }}>
-                            No classes scheduled for today. Enjoy your weekend!
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  const timeSlots = ['9-10', '10-11', '11-12', '12-1', '1-2', '2-3', '3-4', '4-5', '5-6'];
-                  const activeDayName = currentDayName;
-                  const dayClasses = getActiveTimetableMap()[activeDayName] || [];
-
-                  const gridSlots = timeSlots.map(slotTime => {
-                    const found = dayClasses.find(c => c.time === slotTime);
-                    if (found) return found;
-                    if (slotTime === '1-2') {
-                      return { time: '1-2', subject: 'Lunch Break', code: 'LUNCH', room: 'Mess', isLunch: true };
+                      );
                     }
-                    return { time: slotTime, subject: 'Free Period', code: 'FREE', room: '-' };
-                  });
 
-                  return (
-                    <div 
-                      data-tick={timeTick}
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(3, 1fr)',
-                        gap: '10px',
-                        marginTop: '4px'
-                      }}
-                    >
-                      {gridSlots.map((slot, idx) => {
-                        const percent = getSlotFillPercentage(slot.time);
-                        const isActive = isCurrentSlot(slot.time);
-                        const isFree = slot.code === 'FREE';
-
-                        let bgFill = '';
-                        if (isFree) {
-                          bgFill = `linear-gradient(to top, rgba(140, 140, 140, 0.18) ${percent}%, rgba(255, 255, 255, 0.45) ${percent}%)`;
-                        } else if (slot.isLunch) {
-                          bgFill = `linear-gradient(to top, rgba(244, 162, 97, 0.35) ${percent}%, rgba(244, 162, 97, 0.08) ${percent}%)`;
-                        } else {
-                          bgFill = `linear-gradient(to top, rgba(42, 157, 143, 0.35) ${percent}%, rgba(42, 157, 143, 0.08) ${percent}%)`;
-                        }
-
+                    const branchCode = selectedBranch.includes('Electronics') || selectedBranch === 'ECE' ? 'ECE' : 'CSE';
+                    const key = selectedYear === '1st Year'
+                      ? `1st Year_${selectedSection}`
+                      : `${selectedYear}_${selectedSection}_${branchCode}`;
+                      
+                    const isMockPrefilled = !!timetablesData[key];
+                    
+                    if (isMockPrefilled) {
+                      const isWeekend = currentDayName === 'Saturday' || currentDayName === 'Sunday';
+                      
+                      if (isWeekend) {
                         return (
-                          <div
-                            key={idx}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setTimetableModalViewMode('grid');
-                              setIsTimetableModalOpen(true);
-                            }}
+                          <div 
+                            onClick={() => setIsTimetableModalOpen(true)}
                             style={{
-                              aspectRatio: '1',
-                              borderRadius: '12px',
-                              padding: '10px',
                               display: 'flex',
                               flexDirection: 'column',
-                              justifyContent: 'space-between',
-                              background: bgFill,
-                              border: isActive 
-                                ? '2.5px solid var(--pine-primary)' 
-                                : '1px solid var(--border-subtle)',
-                              boxShadow: isActive ? '0 0 12px rgba(42, 157, 143, 0.35)' : 'none',
-                              position: 'relative',
-                              overflow: 'hidden',
-                              transition: 'all 0.2s ease',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '12px',
+                              padding: '24px 16px',
+                              borderRadius: '12px',
+                              border: '1px solid var(--border-subtle)',
+                              background: 'linear-gradient(135deg, rgba(244, 162, 97, 0.08) 0%, rgba(42, 157, 143, 0.05) 100%)',
+                              textAlign: 'center',
+                              marginTop: '4px',
                               cursor: 'pointer'
                             }}
                             className="glass-panel-hover"
                           >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                              <span style={{ fontSize: '9px', fontWeight: '800', color: slot.isLunch ? '#e76f51' : 'var(--pine-deep)' }}>
-                                {slot.time}
-                              </span>
-                              {isActive && (
-                                <span style={{
-                                  width: '6px',
-                                  height: '6px',
-                                  borderRadius: '50%',
-                                  backgroundColor: '#e76f51',
-                                  boxShadow: '0 0 6px #e76f51'
-                                }} title="Current class hour" />
-                              )}
+                            <div style={{
+                              width: '48px',
+                              height: '48px',
+                              borderRadius: '50%',
+                              backgroundColor: 'rgba(244, 162, 97, 0.15)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#f4a261',
+                              fontSize: '22px'
+                            }}>
+                              🌴
                             </div>
-
-                            <div style={{ margin: 'auto 0' }}>
-                              <h4 style={{
-                                fontSize: '11px',
-                                fontWeight: '800',
-                                color: isFree ? 'var(--text-muted)' : 'var(--text-main)',
-                                margin: 0,
-                                lineHeight: '1.2',
-                                textAlign: 'center',
-                                display: '-webkit-box',
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: 'vertical',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis'
-                              }}>
-                                {slot.subject}
+                            <div>
+                              <h4 style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-main)', margin: '0 0 4px 0' }}>
+                                Weekend Holiday
                               </h4>
+                              <p style={{ fontSize: '11.5px', color: 'var(--text-muted)', margin: 0 }}>
+                                No classes scheduled for today. Enjoy your weekend!
+                              </p>
                             </div>
-
-                            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '8px', color: 'var(--text-muted)' }}>
-                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '55%' }}>
-                                {slot.code}
-                              </span>
-                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '45%' }}>
-                                {slot.room}
-                              </span>
-                            </div>
-
-                            {isActive && percent > 0 && percent < 100 && (
-                              <div style={{
-                                position: 'absolute',
-                                bottom: '2px',
-                                right: '4px',
-                                fontSize: '8px',
-                                color: 'var(--pine-deep)',
-                                fontWeight: '900',
-                                backgroundColor: 'rgba(255, 255, 255, 0.75)',
-                                padding: '1px 3px',
-                                borderRadius: '3px'
-                              }}>
-                                {percent}%
-                              </div>
-                            )}
                           </div>
                         );
-                      })}
-                    </div>
-                  );
-                }
+                      }
 
-                const selectionLabel = selectedYear === '1st Year' 
-                  ? `Section ${selectedSection}` 
-                  : selectedBranch;
+                      const timeSlots = ['9-10', '10-11', '11-12', '12-1', '1-2', '2-3', '3-4', '4-5', '5-6'];
+                      const activeDayName = currentDayName;
+                      const dayClasses = getActiveTimetableMap()[activeDayName] || [];
 
-                return (
-                  <div 
-                    onClick={(e) => e.stopPropagation()}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '12px',
-                      padding: '30px 16px',
-                      borderRadius: '12px',
-                      border: '1px dashed var(--border-subtle)',
-                      backgroundColor: 'rgba(0,0,0,0.01)',
-                      textAlign: 'center',
-                      marginTop: '4px',
-                      flex: 1,
-                      justifyContent: 'center'
-                    }}
-                  >
-                    <BookOpen size={32} style={{ color: 'var(--text-placeholder)', opacity: 0.7 }} />
-                    <div>
-                      <h4 style={{ fontSize: '13px', fontWeight: '800', color: 'var(--text-main)', margin: 0 }}>
-                        Timetable Not Available
-                      </h4>
-                      <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '4px 0 0', lineHeight: '1.4' }}>
-                        Timetable for {selectedYear} - {selectionLabel} has not been uploaded yet.
-                      </p>
-                    </div>
-                    {user.role !== 'guest' && (
-                      <button
-                        onClick={() => {
-                          setUploadTimetableYear(selectedYear);
-                          setUploadTimetableSec(selectedSection);
-                          setUploadTimetableBranch(selectedYear !== '1st Year' ? selectedBranch : '');
-                          setUploadTimetableFile('');
-                          setUploadTimetableFileName('');
-                          setIsUploadTimetableOpen(true);
+                      const gridSlots = timeSlots.map(slotTime => {
+                        const found = dayClasses.find(c => c.time === slotTime);
+                        if (found) return found;
+                        if (slotTime === '1-2') {
+                          return { time: '1-2', subject: 'Lunch Break', code: 'LUNCH', room: 'Mess', isLunch: true };
+                        }
+                        return { time: slotTime, subject: 'Free Period', code: 'FREE', room: '-' };
+                      });
+
+                      return (
+                        <div 
+                          data-tick={timeTick}
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(3, 1fr)',
+                            gap: '10px',
+                            marginTop: '4px'
+                          }}
+                        >
+                          {gridSlots.map((slot, idx) => {
+                            const percent = getSlotFillPercentage(slot.time);
+                            const isActive = isCurrentSlot(slot.time);
+                            const isFree = slot.code === 'FREE';
+
+                            let bgFill = '';
+                            if (isFree) {
+                              bgFill = `linear-gradient(to top, rgba(140, 140, 140, 0.18) ${percent}%, rgba(255, 255, 255, 0.45) ${percent}%)`;
+                            } else if (slot.isLunch) {
+                              bgFill = `linear-gradient(to top, rgba(244, 162, 97, 0.35) ${percent}%, rgba(244, 162, 97, 0.08) ${percent}%)`;
+                            } else {
+                              bgFill = `linear-gradient(to top, rgba(42, 157, 143, 0.35) ${percent}%, rgba(42, 157, 143, 0.08) ${percent}%)`;
+                            }
+
+                            return (
+                              <div
+                                key={idx}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setTimetableModalViewMode('grid');
+                                  setIsTimetableModalOpen(true);
+                                }}
+                                style={{
+                                  aspectRatio: '1',
+                                  borderRadius: '12px',
+                                  padding: '10px',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  justifyContent: 'space-between',
+                                  background: bgFill,
+                                  border: isActive 
+                                    ? '2.5px solid var(--pine-primary)' 
+                                    : '1px solid var(--border-subtle)',
+                                  boxShadow: isActive ? '0 0 12px rgba(42, 157, 143, 0.35)' : 'none',
+                                  position: 'relative',
+                                  overflow: 'hidden',
+                                  transition: 'all 0.2s ease',
+                                  cursor: 'pointer'
+                                }}
+                                className="glass-panel-hover"
+                              >
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                  <span style={{ fontSize: '9px', fontWeight: '800', color: slot.isLunch ? '#e76f51' : 'var(--pine-deep)' }}>
+                                    {slot.time}
+                                  </span>
+                                  {isActive && (
+                                    <span style={{
+                                      width: '6px',
+                                      height: '6px',
+                                      borderRadius: '50%',
+                                      backgroundColor: '#e76f51',
+                                      boxShadow: '0 0 6px #e76f51'
+                                    }} title="Current class hour" />
+                                  )}
+                                </div>
+
+                                <div style={{ margin: 'auto 0' }}>
+                                  <h4 style={{
+                                    fontSize: '11px',
+                                    fontWeight: '800',
+                                    color: isFree ? 'var(--text-muted)' : 'var(--text-main)',
+                                    margin: 0,
+                                    lineHeight: '1.2',
+                                    textAlign: 'center',
+                                    display: '-webkit-box',
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: 'vertical',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis'
+                                  }}>
+                                    {slot.subject}
+                                  </h4>
+                                </div>
+
+                                <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '8px', color: 'var(--text-muted)' }}>
+                                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '55%' }}>
+                                    {slot.code}
+                                  </span>
+                                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '45%' }}>
+                                    {slot.room}
+                                  </span>
+                                </div>
+
+                                {isActive && percent > 0 && percent < 100 && (
+                                  <div style={{
+                                    position: 'absolute',
+                                    bottom: '2px',
+                                    right: '4px',
+                                    fontSize: '8px',
+                                    color: 'var(--pine-deep)',
+                                    fontWeight: '900',
+                                    backgroundColor: 'rgba(255, 255, 255, 0.75)',
+                                    padding: '1px 3px',
+                                    borderRadius: '3px'
+                                  }}>
+                                    {percent}%
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    }
+
+                    const selectionLabel = selectedYear === '1st Year' 
+                      ? `Section ${selectedSection}` 
+                      : selectedBranch;
+
+                    return (
+                      <div 
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: '12px',
+                          padding: '30px 16px',
+                          borderRadius: '12px',
+                          border: '1px dashed var(--border-subtle)',
+                          backgroundColor: 'rgba(0,0,0,0.01)',
+                          textAlign: 'center',
+                          marginTop: '4px',
+                          flex: 1,
+                          justifyContent: 'center'
                         }}
-                        className="btn-primary"
-                        style={{ padding: '8px 16px', fontSize: '11px', fontWeight: '700' }}
                       >
-                        Upload Timetable
-                      </button>
-                    )}
-                  </div>
-                );
-              })()}
+                        <BookOpen size={32} style={{ color: 'var(--text-placeholder)', opacity: 0.7 }} />
+                        <div>
+                          <h4 style={{ fontSize: '13px', fontWeight: '800', color: 'var(--text-main)', margin: 0 }}>
+                            Timetable Not Available
+                          </h4>
+                          <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '4px 0 0', lineHeight: '1.4' }}>
+                            Timetable for {selectedYear} - {selectionLabel} has not been uploaded yet.
+                          </p>
+                        </div>
+                        {user.role !== 'guest' && (
+                          <button
+                            onClick={() => {
+                              setUploadTimetableYear(selectedYear);
+                              setUploadTimetableSec(selectedSection);
+                              setUploadTimetableBranch(selectedYear !== '1st Year' ? selectedBranch : '');
+                              setUploadTimetableFile('');
+                              setUploadTimetableFileName('');
+                              setIsUploadTimetableOpen(true);
+                            }}
+                            className="btn-primary"
+                            style={{ padding: '8px 16px', fontSize: '11px', fontWeight: '700' }}
+                          >
+                            Upload Timetable
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </>
+              )}
             </div>
 
             {/* My QR Banner - Replicating screenshot */}
@@ -3322,13 +3640,13 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           if (!newBreaditPostTitle.trim() || !newBreaditPostContent.trim()) return;
 
           const res = await createBreaditPostAction(newBreaditPostTitle, newBreaditPostContent, user.id, user.name);
-          if (res) {
+          if (res && res.success) {
             setNewBreaditPostTitle('');
             setNewBreaditPostContent('');
             setIsCreatePostOpen(false);
             showToast('Post published successfully!', 'success');
           } else {
-            showToast('Failed to publish post.', 'error');
+            showToast(res?.error || 'Failed to publish post.', 'error');
           }
         };
 
@@ -3336,12 +3654,12 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           e.preventDefault();
           if (!newBreaditCommentContent.trim() || !selectedPostId) return;
 
-          const success = await createBreaditCommentAction(selectedPostId, newBreaditCommentContent, user.id, user.name);
-          if (success) {
+          const res = await createBreaditCommentAction(selectedPostId, newBreaditCommentContent, user.id, user.name);
+          if (res && res.success) {
             setNewBreaditCommentContent('');
             showToast('Comment posted!', 'success');
           } else {
-            showToast('Failed to post comment.', 'error');
+            showToast(res?.error || 'Failed to post comment.', 'error');
           }
         };
 
@@ -3793,7 +4111,8 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               backgroundColor: 'var(--bg-card)',
               borderRadius: 'var(--radius-lg)',
               border: '1px solid var(--border-subtle)',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              position: 'relative'
             }} className="glass-panel animate-fade-in">
               <div style={{
                 padding: '14px 20px',
@@ -3830,7 +4149,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   onClick={() => setIsCreatePostOpen(true)}
                   className="btn-primary"
                   style={{
-                    display: 'flex',
+                    display: isMobile ? 'none' : 'flex',
                     alignItems: 'center',
                     gap: '6px',
                     padding: '8px 16px',
@@ -4105,6 +4424,33 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                   </div>
                 </div>
               )}
+
+              {/* Floating Action Button (FAB) for Mobile Create Post */}
+              {isMobile && (
+                <button
+                  onClick={() => setIsCreatePostOpen(true)}
+                  style={{
+                    position: 'absolute',
+                    bottom: '24px',
+                    right: '24px',
+                    width: '56px',
+                    height: '56px',
+                    borderRadius: '28px',
+                    backgroundColor: 'var(--pine-primary)',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 4px 16px rgba(18, 91, 68, 0.4)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    zIndex: 10
+                  }}
+                  className="btn-primary glass-panel-hover"
+                >
+                  <Plus size={24} />
+                </button>
+              )}
             </div>
           );
         };
@@ -4178,12 +4524,12 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           <div style={{
             display: 'flex',
             height: 'calc(100vh - 120px)',
-            gap: '16px',
+            gap: isMobile ? '0px' : '16px',
             overflow: 'hidden'
           }} className="animate-fade-in">
             {/* Left Column: Channels Selector */}
             <div style={{
-              width: '260px',
+              width: isMobile ? '100%' : '260px',
               display: isChatSidebarOpen ? 'flex' : 'none',
               flexDirection: 'column',
               gap: '12px',
@@ -4275,7 +4621,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             {/* Right Column: Chat window */}
             <div style={{
               flex: 1,
-              display: 'flex',
+              display: (!isMobile || !isChatSidebarOpen) ? 'flex' : 'none',
               flexDirection: 'column',
               backgroundColor: 'var(--bg-card)',
               borderRadius: 'var(--radius-lg)',
@@ -4333,10 +4679,19 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     }}
                     title="Toggle channels list"
                   >
-                    <MessageSquare size={14} />
-                    <span style={{ fontSize: '12px', marginLeft: '6px', fontWeight: '700' }}>
-                      {isChatSidebarOpen ? 'Hide Channels' : 'Channels'}
-                    </span>
+                    {isMobile ? (
+                      <>
+                        <ChevronLeft size={16} />
+                        <span style={{ fontSize: '12px', fontWeight: '700' }}>Channels</span>
+                      </>
+                    ) : (
+                      <>
+                        <MessageSquare size={14} />
+                        <span style={{ fontSize: '12px', marginLeft: '6px', fontWeight: '700' }}>
+                          {isChatSidebarOpen ? 'Hide Channels' : 'Channels'}
+                        </span>
+                      </>
+                    )}
                   </button>
 
                   <div>
