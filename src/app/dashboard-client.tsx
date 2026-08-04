@@ -300,6 +300,45 @@ const isCurrentSlot = (slotTime: string): boolean => {
   return currentHour >= start && currentHour < end;
 };
 
+const compressImage = (file: File, callback: (base64: string) => void) => {
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const MAX_WIDTH = 1024;
+      const MAX_HEIGHT = 1024;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height) {
+        if (width > MAX_WIDTH) {
+          height *= MAX_WIDTH / width;
+          width = MAX_WIDTH;
+        }
+      } else {
+        if (height > MAX_HEIGHT) {
+          width *= MAX_HEIGHT / height;
+          height = MAX_HEIGHT;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+        callback(dataUrl);
+      } else {
+        callback(event.target?.result as string);
+      }
+    };
+    img.src = event.target?.result as string;
+  };
+  reader.readAsDataURL(file);
+};
+
 interface DashboardClientProps {
   user: UserSession;
 }
@@ -1262,20 +1301,15 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     const files = e.target.files;
     if (files) {
       Array.from(files).forEach((file) => {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          if (event.target?.result) {
-            const dataUrl = event.target.result as string;
-            setNewItemImages(prev => {
-              const updated = [...prev, dataUrl];
-              if (updated.length === 1) {
-                setNewItemImage(dataUrl);
-              }
-              return updated;
-            });
-          }
-        };
-        reader.readAsDataURL(file);
+        compressImage(file, (dataUrl) => {
+          setNewItemImages(prev => {
+            const updated = [...prev, dataUrl];
+            if (updated.length === 1) {
+              setNewItemImage(dataUrl);
+            }
+            return updated;
+          });
+        });
       });
     }
   };
@@ -7971,12 +8005,10 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                          setUploadTimetableFile(reader.result as string);
+                        compressImage(file, (dataUrl) => {
+                          setUploadTimetableFile(dataUrl);
                           setUploadTimetableFileName(file.name);
-                        };
-                        reader.readAsDataURL(file);
+                        });
                       }
                     }}
                     style={{
@@ -8464,11 +8496,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                          setNewListingImage(reader.result as string);
-                        };
-                        reader.readAsDataURL(file);
+                        compressImage(file, (dataUrl) => {
+                          setNewListingImage(dataUrl);
+                        });
                       }
                     }}
                     style={{
