@@ -86,23 +86,22 @@ input, textarea, select, [contenteditable="true"], .selectable-text {
   -webkit-user-select: text;
 }
 
-/* Scrollbar styles */
+/* Scrollbar styles - Hidden globally for a clean native mobile app look */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
-::-webkit-scrollbar-track {
-  background: var(--bg-app);
+* {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
 
-::-webkit-scrollbar-thumb {
-  background: var(--text-placeholder);
-  border-radius: var(--radius-round);
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 /* Typography styles */

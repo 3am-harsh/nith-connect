@@ -2029,6 +2029,11 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               onClick={() => {
                 setActiveTab('chat');
                 setSelectedCommunityTab('chatrooms');
+                if (window.innerWidth < 768) {
+                  setIsChatSidebarOpen(false);
+                } else {
+                  setIsChatSidebarOpen(true);
+                }
               }}
               className="glass-panel-hover"
             >
@@ -3728,10 +3733,11 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))',
+                gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(290px, 1fr))',
                 width: '100%',
-                maxWidth: '740px',
-                gap: '24px',
+                maxWidth: isMobile ? '340px' : '740px',
+                gap: '20px',
+                margin: '0 auto'
               }}>
                 {/* Chatrooms Option Card */}
                 <div
@@ -6376,7 +6382,13 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             return (
               <button
                 key={item.id}
-                onClick={() => setActiveTab(item.id)}
+                onClick={() => {
+                  if (item.id === 'chat') {
+                    setSelectedCommunityTab(null);
+                    setIsChatSidebarOpen(true);
+                  }
+                  setActiveTab(item.id);
+                }}
                 style={styles.bottomNavBtn}
                 className="touch-feedback"
               >
