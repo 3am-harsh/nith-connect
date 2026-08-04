@@ -15,7 +15,6 @@
     "@capacitor/cli": "^8.4.2",
     "@capacitor/core": "^8.4.2",
     "@capacitor/keyboard": "^8.0.5",
-    "better-sqlite3": "^12.11.1",
     "firebase": "^12.15.0",
     "lucide-react": "^1.23.0",
     "next": "^15.5.19",
@@ -24,7 +23,6 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
