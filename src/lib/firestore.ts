@@ -1485,15 +1485,36 @@ export interface FirestoreBreaditComment {
 
 export async function getFirestoreBreaditPosts(): Promise<FirestoreBreaditPost[]> {
   try {
-    const q = query(
-      collection(db, 'breadit_posts'),
-      orderBy('created_at', 'desc')
-    );
+    const q = query(collection(db, 'breadit_posts'));
     const snap = await getDocs(q);
-    return snap.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as FirestoreBreaditPost[];
+    const posts = snap.docs.map(doc => {
+      const data = doc.data();
+      const createdAt = data.created_at;
+      let serializableCreatedAt = null;
+      if (createdAt && typeof createdAt === 'object') {
+        const ts = createdAt as { toDate?: () => { toISOString: () => string }; seconds?: number };
+        if (typeof ts.toDate === 'function') {
+          serializableCreatedAt = ts.toDate().toISOString();
+        } else if (typeof ts.seconds === 'number') {
+          serializableCreatedAt = new Date(ts.seconds * 1000).toISOString();
+        }
+      } else if (createdAt) {
+        serializableCreatedAt = String(createdAt);
+      }
+      return {
+        id: doc.id,
+        ...data,
+        created_at: serializableCreatedAt
+      };
+    }) as FirestoreBreaditPost[];
+    
+    // Sort descending
+    posts.sort((a, b) => {
+      const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return timeB - timeA;
+    });
+    return posts;
   } catch (error) {
     console.error('Error fetching Breadit posts:', error);
     return [];
@@ -1516,14 +1537,37 @@ export async function getFirestoreBreaditComments(postId: string): Promise<Fires
   try {
     const q = query(
       collection(db, 'breadit_comments'),
-      where('post_id', '==', postId),
-      orderBy('created_at', 'asc')
+      where('post_id', '==', postId)
     );
     const snap = await getDocs(q);
-    return snap.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as FirestoreBreaditComment[];
+    const comments = snap.docs.map(doc => {
+      const data = doc.data();
+      const createdAt = data.created_at;
+      let serializableCreatedAt = null;
+      if (createdAt && typeof createdAt === 'object') {
+        const ts = createdAt as { toDate?: () => { toISOString: () => string }; seconds?: number };
+        if (typeof ts.toDate === 'function') {
+          serializableCreatedAt = ts.toDate().toISOString();
+        } else if (typeof ts.seconds === 'number') {
+          serializableCreatedAt = new Date(ts.seconds * 1000).toISOString();
+        }
+      } else if (createdAt) {
+        serializableCreatedAt = String(createdAt);
+      }
+      return {
+        id: doc.id,
+        ...data,
+        created_at: serializableCreatedAt
+      };
+    }) as FirestoreBreaditComment[];
+
+    // Sort ascending
+    comments.sort((a, b) => {
+      const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return timeA - timeB;
+    });
+    return comments;
   } catch (error) {
     console.error('Error fetching Breadit comments:', error);
     return [];

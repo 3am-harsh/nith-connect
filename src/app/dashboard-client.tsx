@@ -644,15 +644,39 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     }
   }, [activeTab]);
 
-  // Real-time listener for Breadit posts
+  // Real-time listener for Breadit posts (sort client-side to bypass indexes and empty fields errors)
   useEffect(() => {
     if (activeTab === 'chat' && selectedCommunityTab === 'breadit') {
-      const q = fsQuery(collection(db, 'breadit_posts'), orderBy('created_at', 'desc'));
+      const q = fsQuery(collection(db, 'breadit_posts'));
       const unsubscribe = onSnapshot(q, (snapshot) => {
-        const postsList = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as FirestoreBreaditPost[];
+        const postsList = snapshot.docs.map(doc => {
+          const data = doc.data();
+          const createdAt = data.created_at;
+          let serializableCreatedAt = null;
+          if (createdAt && typeof createdAt === 'object') {
+            const ts = createdAt as { toDate?: () => { toISOString: () => string }; seconds?: number };
+            if (typeof ts.toDate === 'function') {
+              serializableCreatedAt = ts.toDate().toISOString();
+            } else if (typeof ts.seconds === 'number') {
+              serializableCreatedAt = new Date(ts.seconds * 1000).toISOString();
+            }
+          } else if (createdAt) {
+            serializableCreatedAt = String(createdAt);
+          }
+          return {
+            id: doc.id,
+            ...data,
+            created_at: serializableCreatedAt
+          };
+        }) as FirestoreBreaditPost[];
+
+        // Sort descending
+        postsList.sort((a, b) => {
+          const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+          const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+          return timeB - timeA;
+        });
+
         setBreaditPosts(postsList);
       }, (err) => {
         console.error('Failed to listen to Breadit posts:', err);
@@ -661,19 +685,42 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     }
   }, [activeTab, selectedCommunityTab]);
 
-  // Real-time listener for Breadit comments on selected post
+  // Real-time listener for Breadit comments on selected post (sort client-side to bypass indexes errors)
   useEffect(() => {
     if (activeTab === 'chat' && selectedCommunityTab === 'breadit' && selectedPostId) {
       const q = fsQuery(
         collection(db, 'breadit_comments'), 
-        fsWhere('post_id', '==', selectedPostId), 
-        orderBy('created_at', 'asc')
+        fsWhere('post_id', '==', selectedPostId)
       );
       const unsubscribe = onSnapshot(q, (snapshot) => {
-        const commentsList = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as FirestoreBreaditComment[];
+        const commentsList = snapshot.docs.map(doc => {
+          const data = doc.data();
+          const createdAt = data.created_at;
+          let serializableCreatedAt = null;
+          if (createdAt && typeof createdAt === 'object') {
+            const ts = createdAt as { toDate?: () => { toISOString: () => string }; seconds?: number };
+            if (typeof ts.toDate === 'function') {
+              serializableCreatedAt = ts.toDate().toISOString();
+            } else if (typeof ts.seconds === 'number') {
+              serializableCreatedAt = new Date(ts.seconds * 1000).toISOString();
+            }
+          } else if (createdAt) {
+            serializableCreatedAt = String(createdAt);
+          }
+          return {
+            id: doc.id,
+            ...data,
+            created_at: serializableCreatedAt
+          };
+        }) as FirestoreBreaditComment[];
+
+        // Sort ascending
+        commentsList.sort((a, b) => {
+          const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+          const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+          return timeA - timeB;
+        });
+
         setPostComments(commentsList);
       }, (err) => {
         console.error('Failed to listen to comments:', err);
