@@ -40,43 +40,6 @@ That's it
 
 ---
 
-## 🚀 Setup & Local Running
-
-Follow these steps to run the application locally on your machine:
-
-### 1. Prerequisites
-Ensure you have **Node.js** (v18.x or higher) and **git** installed.
-
-### 2. Clone the Repository
-```bash
-git clone https://github.com/3am-harsh/nith-connect.git
-cd nith-connect
-```
-
-### 3. Install Dependencies
-```bash
-npm install
-```
-
-### 4. Setup Environment Variables
-Create a file named `.env.local` in the root folder and add your Firebase configuration credentials:
-```env
-NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_auth_domain
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_storage_bucket
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
-```
-
-### 5. Run the Local Server
-```bash
-npm run dev
-```
-Open **[http://localhost:3000](http://localhost:3000)** in your browser to view the application.
-
----
-
 ## 🔒 Security & Optimization Note
 *   **Environmental Exclusions:** Secret credential configurations are isolated in `.env.local` and excluded from git tracking via `.gitignore`.
 *   **Database Seeding:** On the first launch, if the Firestore database is empty, the application automatically triggers self-healing seeding methods to populate mess timetables, tech club announcements, and default bulletin cards.
