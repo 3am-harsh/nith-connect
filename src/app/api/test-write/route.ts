@@ -18,14 +18,27 @@ export async function GET() {
       docId: docRef.id
     });
   } catch (error: unknown) {
-    const err = error as any;
+    let errorName = 'Unknown';
+    let errorCode = 'No code';
+    let errorMessage = String(error);
+    let errorStack = '';
+
+    if (error instanceof Error) {
+      errorName = error.name;
+      errorMessage = error.message;
+      errorStack = error.stack || '';
+      if ('code' in error) {
+        errorCode = String((error as { code?: unknown }).code);
+      }
+    }
+
     return NextResponse.json({
       success: false,
       message: 'Firestore write failed',
-      errorName: err.name || 'Unknown',
-      errorCode: err.code || 'No code',
-      errorMessage: err.message || String(error),
-      stack: err.stack || ''
+      errorName,
+      errorCode,
+      errorMessage,
+      stack: errorStack
     }, { status: 500 });
   }
 }
