@@ -17,14 +17,15 @@ export async function GET() {
       message: 'Successfully wrote to Firestore!',
       docId: docRef.id
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as any;
     return NextResponse.json({
       success: false,
       message: 'Firestore write failed',
-      errorName: error.name || 'Unknown',
-      errorCode: error.code || 'No code',
-      errorMessage: error.message || String(error),
-      stack: error.stack || ''
+      errorName: err.name || 'Unknown',
+      errorCode: err.code || 'No code',
+      errorMessage: err.message || String(error),
+      stack: err.stack || ''
     }, { status: 500 });
   }
 }
