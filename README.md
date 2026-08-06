@@ -24,9 +24,6 @@ You can reach me personally through djfgh7033@gmail.com
 That's it 
 
 
-
-You can read AI slob below->
-
 ---
 
 
