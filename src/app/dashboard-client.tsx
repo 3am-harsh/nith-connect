@@ -7165,6 +7165,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     <option value="🚨 Emergency & Security">🚨 Emergency & Security</option>
                     <option value="🛺 Campus Auto Rickshaws">🛺 Campus Auto Rickshaws</option>
                     <option value="🏢 Academic & Bank Contacts">🏢 Academic & Bank Contacts</option>
+                    <option value="💬 Other Contacts">💬 Other Contacts</option>
                   </select>
                   <input
                     type="text"

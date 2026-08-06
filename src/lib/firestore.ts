@@ -1406,16 +1406,16 @@ export async function getFirestoreDirectoryContacts(): Promise<DirectoryContact[
       ...doc.data()
     })) as DirectoryContact[];
     
-    // Seed initial contacts if database is empty
+    // Seed actual Hamirpur contacts if database is empty
     if (list.length === 0) {
       const initial = [
-        { name: "Campus Security Guard", category: "🚨 Emergency & Security", subtext: "Main Gate Helpdesk", phone: "+911972254011" },
-        { name: "NITH Health Centre", category: "🚨 Emergency & Security", subtext: "Ambulance Services", phone: "+911972254900" },
-        { name: "Karan Singh (Auto)", category: "🛺 Campus Auto Rickshaws", subtext: "Available: 7 AM - 9 PM", phone: "+919816045123" },
-        { name: "Ramesh Kumar (Auto)", category: "🛺 Campus Auto Rickshaws", subtext: "Available: 8 AM - 10 PM", phone: "+919418123456" },
-        { name: "Surjeet Auto Service", category: "🛺 Campus Auto Rickshaws", subtext: "Available: 24/7 (Emergency)", phone: "+918219012345" },
-        { name: "SBI NITH Branch", category: "🏢 Academic & Bank Contacts", subtext: "Queries & Banking desks", phone: "+911972254350" },
-        { name: "Academic Branch Desk", category: "🏢 Academic & Bank Contacts", subtext: "Student Section Office", phone: "+911972254077" }
+        { name: "All-in-one Emergency (India)", category: "🚨 Emergency & Security", subtext: "National Helpline", phone: "112" },
+        { name: "Ambulance", category: "🚨 Emergency & Security", subtext: "Emergency Medical Services", phone: "108" },
+        { name: "Police", category: "🚨 Emergency & Security", subtext: "Local Police Helpline", phone: "100" },
+        { name: "Fire", category: "🚨 Emergency & Security", subtext: "Local Fire Department", phone: "101" },
+        { name: "SP Office, Hamirpur", category: "🚨 Emergency & Security", subtext: "Superintendent of Police", phone: "+911972292175" },
+        { name: "Hamirpur Police", category: "🚨 Emergency & Security", subtext: "General Helpline", phone: "+911972222053" },
+        { name: "Bus Stand Enquiry, Hamirpur", category: "💬 Other Contacts", subtext: "HRTC Enquiry Desk", phone: "01972222893" }
       ];
       
       for (const item of initial) {
