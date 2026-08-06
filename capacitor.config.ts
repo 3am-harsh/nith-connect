@@ -10,8 +10,8 @@ const config: CapacitorConfig = {
   },
   plugins: {
     Keyboard: {
-      resize: 'body' as any,
-      style: 'dark' as any
+      resize: 'body' as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+      style: 'dark' as any // eslint-disable-line @typescript-eslint/no-explicit-any
     },
     CapacitorCookies: {
       enabled: true
