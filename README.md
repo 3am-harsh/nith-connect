@@ -1,5 +1,13 @@
 # NITH Connect 🌲🎒
-> **A Premium Campus Companion Web Application for NIT Hamirpur Students**
+> **A Premium Campus Companion Application for NIT Hamirpur Students**
+
+## 📱 Download the Android App (APK)
+
+Try NITH Connect directly on your Android device:
+*   🚀 **[Download Release APK (Recommended)](https://github.com/3am-harsh/nith-connect/raw/main/NITH_Connect_Release.apk)** — *Optimized, clean production build.*
+*   🛠️ **[Download Debug APK](https://github.com/3am-harsh/nith-connect/raw/main/NITH_Connect_Debug.apk)** — *Debug build with developer logs enabled.*
+
+---
 
 NITH Connect is a responsive, feature-rich web application designed to simplify campus life at the **National Institute of Technology Hamirpur (NITH)**. It integrates core student services—such as weekly mess menus, campus announcements, live chatrooms, and a lost-and-found bulletin—into a single glassmorphic dashboard connected to a serverless backend.
 
