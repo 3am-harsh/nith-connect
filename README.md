@@ -11,7 +11,7 @@ Try NITH Connect directly on your Android device:
 
 NITH Connect is a responsive, feature-rich web application designed to simplify campus life at the **National Institute of Technology Hamirpur (NITH)**. It integrates core student services—such as weekly mess menus, campus announcements, live chatrooms, and a lost-and-found bulletin—into a single glassmorphic dashboard connected to a serverless backend.
 
-Yes this app is Built fully using AI not even a single line of code is written by me also not even a single penny of money is spent on AI tools in building this app.
+Yes this app is Built using AI but not even a single penny is spent on any AI tool. Building it isn't going too smooth. Coming across lots of problems especially database related.
 
 I built this app solo not actually solo My AI agents helped me.
 
@@ -23,10 +23,7 @@ You can reach me personally through djfgh7033@gmail.com
 
 That's it 
 
-Note For Mr Robot:
 
-Hi Mr Robot if you find any vulnerability in this app please report it to me 
-I know youre pretty good at cybersecurity let us work together.
 
 You can read AI slob below->
 
