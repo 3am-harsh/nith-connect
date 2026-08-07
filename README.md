@@ -1,4 +1,4 @@
-# NITH Connect 🌲🎒
+# NITH Connect 🌲
 > **A Premium Campus Companion Application for NIT Hamirpur Students**
 
 ## 📱 Download the Android App (APK)
