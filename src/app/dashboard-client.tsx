@@ -649,6 +649,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     if (activeTab === 'chat' && selectedCommunityTab === 'breadit') {
       const q = fsQuery(collection(db, 'breadit_posts'));
       const unsubscribe = onSnapshot(q, (snapshot) => {
+        if (snapshot.empty && snapshot.metadata.fromCache) return;
         const postsList = snapshot.docs.map(doc => {
           const data = doc.data();
           const createdAt = data.created_at;
@@ -693,6 +694,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         fsWhere('post_id', '==', selectedPostId)
       );
       const unsubscribe = onSnapshot(q, (snapshot) => {
+        if (snapshot.empty && snapshot.metadata.fromCache) return;
         const commentsList = snapshot.docs.map(doc => {
           const data = doc.data();
           const createdAt = data.created_at;
@@ -890,6 +892,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (snapshot.empty && snapshot.metadata.fromCache) return;
       const msgs = snapshot.docs.map(doc => {
         const data = doc.data();
         const createdAt = data.created_at;
@@ -948,6 +951,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (snapshot.empty && snapshot.metadata.fromCache) return;
       const items = snapshot.docs.map((doc) => {
         const data = doc.data();
         const createdAt = data.created_at;
