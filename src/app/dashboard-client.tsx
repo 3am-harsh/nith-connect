@@ -65,7 +65,9 @@ import {
   deleteAcademicFileAction
 } from './actions/academics';
 import {
+  fetchBreaditPostsAction,
   createBreaditPostAction,
+  fetchBreaditCommentsAction,
   createBreaditCommentAction,
   reportBreaditPostAction,
   reportBreaditCommentAction,
@@ -647,6 +649,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   // Real-time listener for Breadit posts (sort client-side to bypass indexes and empty fields errors)
   useEffect(() => {
     if (activeTab === 'chat' && selectedCommunityTab === 'breadit') {
+      loadBreaditPosts(); // Load instantly from server action first
       const q = fsQuery(collection(db, 'breadit_posts'));
       const unsubscribe = onSnapshot(q, (snapshot) => {
         if (snapshot.empty && snapshot.metadata.fromCache) return;
@@ -689,6 +692,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   // Real-time listener for Breadit comments on selected post (sort client-side to bypass indexes errors)
   useEffect(() => {
     if (activeTab === 'chat' && selectedCommunityTab === 'breadit' && selectedPostId) {
+      loadBreaditComments(selectedPostId); // Load instantly from server action first
       const q = fsQuery(
         collection(db, 'breadit_comments'), 
         fsWhere('post_id', '==', selectedPostId)
@@ -987,6 +991,24 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
     return () => unsubscribe();
   }, [activeTab]);
+
+  const loadBreaditPosts = async () => {
+    try {
+      const data = await fetchBreaditPostsAction();
+      setBreaditPosts(data);
+    } catch (err) {
+      console.error('Failed to load Breadit posts:', err);
+    }
+  };
+
+  const loadBreaditComments = async (postId: string) => {
+    try {
+      const data = await fetchBreaditCommentsAction(postId);
+      setPostComments(data);
+    } catch (err) {
+      console.error('Failed to load Breadit comments:', err);
+    }
+  };
 
   // Fetch announcements helper
   const loadAnnouncements = async () => {
@@ -3737,6 +3759,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             setNewBreaditPostContent('');
             setIsCreatePostOpen(false);
             showToast('Post published successfully!', 'success');
+            loadBreaditPosts();
           } else {
             showToast(res?.error || 'Failed to publish post.', 'error');
           }
@@ -3750,6 +3773,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           if (res && res.success) {
             setNewBreaditCommentContent('');
             showToast('Comment posted!', 'success');
+            loadBreaditComments(selectedPostId);
           } else {
             showToast(res?.error || 'Failed to post comment.', 'error');
           }
@@ -3759,6 +3783,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           const success = await reportBreaditPostAction(postId, user.id);
           if (success) {
             showToast('Post flagged for review.', 'info');
+            loadBreaditPosts();
           } else {
             showToast('Failed to report post.', 'error');
           }
@@ -3768,6 +3793,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           const success = await reportBreaditCommentAction(commentId, user.id);
           if (success) {
             showToast('Comment flagged for review.', 'info');
+            if (selectedPostId) {
+              loadBreaditComments(selectedPostId);
+            }
           } else {
             showToast('Failed to report comment.', 'error');
           }
@@ -3778,6 +3806,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           const success = await deleteBreaditPostAction(postId);
           if (success) {
             showToast('Post deleted successfully.', 'success');
+            loadBreaditPosts();
             if (selectedPostId === postId) {
               setSelectedPostId(null);
             }
@@ -3791,6 +3820,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           const success = await deleteBreaditCommentAction(commentId, postId);
           if (success) {
             showToast('Comment deleted.', 'success');
+            loadBreaditComments(postId);
           } else {
             showToast('Failed to delete comment.', 'error');
           }
