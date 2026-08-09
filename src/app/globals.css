@@ -2,22 +2,22 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-  /* Himalayan Mist Light Theme Variables */
-  --bg-app: #f4f8f6;            /* Light misty-mint gray canvas */
-  --bg-card: rgba(255, 255, 255, 0.85); /* Translucent crisp white glass */
+  /* Himalayan Mist Warm Editorial Variables */
+  --bg-app: #fbf9f6;            /* Warm editorial off-white canvas */
+  --bg-card: rgba(255, 255, 255, 0.9); /* Frosted warm glass surface */
   --bg-card-solid: #ffffff;      /* Solid white for dropdowns/popovers */
-  --bg-input: #eff4f2;           /* Light mint-gray inputs */
-  --bg-hover: #e6f0eb;           /* Fresh soft green hover state */
+  --bg-input: #f5f2eb;           /* Warmer soft beige-mint inputs */
+  --bg-hover: #f0ede5;           /* Warmer soft beige hover states */
   
   /* Primary Accent - Pine Green */
   --pine-deep: #0e3d2f;          /* High contrast dark forest text */
-  --pine-primary: #125b44;       /* Primary button & brand color */
-  --pine-medium: #1b7e61;        /* Secondary action icons/tabs */
-  --pine-light: #e5f4ee;         /* Badges, backgrounds, highlights */
+  --pine-primary: #125b44;       /* Brand accent focal points & CTA */
+  --pine-medium: #1b7e61;        
+  --pine-light: #f0f7f4;         
   
   /* Secondary Accent - Misty Aqua */
-  --aqua-primary: #1d9598;       /* Accent headings, tags, active states */
-  --aqua-light: #e7f7f8;         /* Teal highlights */
+  --aqua-primary: #1d9598;       
+  --aqua-light: #e7f7f8;         
   --aqua-deep: #136a6d;
   
   /* System colors */
@@ -29,27 +29,27 @@
   --warning-light: #fef9ed;
   
   /* Text values */
-  --text-main: #182e27;          /* Crisp deep pine for standard text */
-  --text-muted: #536d64;         /* Soft muted sage-gray for secondary text */
-  --text-placeholder: #8ea59d;   /* Light gray placeholder text */
-  --text-light: #ffffff;         /* Absolute white text */
+  --text-main: #1d2b26;          
+  --text-muted: #5e736b;         
+  --text-placeholder: #a0b5ad;   
+  --text-light: #ffffff;         
 
-  /* Borders and Glass */
-  --border-subtle: rgba(18, 91, 68, 0.08);
-  --border-focus: rgba(18, 91, 68, 0.25);
-  --border-thick: rgba(18, 91, 68, 0.15);
+  /* Soft borders and Subtle Layering */
+  --border-subtle: rgba(14, 61, 47, 0.03); /* Virtually borderless */
+  --border-focus: rgba(18, 91, 68, 0.15);
+  --border-thick: rgba(14, 61, 47, 0.07);
   
-  --glass-bg: rgba(255, 255, 255, 0.75);
-  --glass-border: rgba(255, 255, 255, 0.45);
-  --glass-shadow: 0 10px 30px -10px rgba(18, 91, 68, 0.08), 
-                  0 1px 3px rgba(18, 91, 68, 0.04);
-  --glass-shadow-lg: 0 20px 40px -15px rgba(18, 91, 68, 0.12);
+  --glass-bg: rgba(255, 255, 255, 0.9);
+  --glass-border: transparent;  /* Removed mechanical outline borders */
+  --glass-shadow: 0 20px 40px -10px rgba(14, 61, 47, 0.04), 
+                  0 1px 3px rgba(14, 61, 47, 0.02);
+  --glass-shadow-lg: 0 30px 60px -15px rgba(14, 61, 47, 0.06);
   
-  /* Spacing and Radius */
-  --radius-sm: 10px;
-  --radius-md: 16px;
-  --radius-lg: 24px;
-  --radius-xl: 30px;
+  /* Spacing and Radius (Pebble-like organic curves) */
+  --radius-sm: 12px;
+  --radius-md: 20px;
+  --radius-lg: 32px;
+  --radius-xl: 40px;
   --radius-round: 9999px;
   
   --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -71,6 +71,8 @@ html, body {
   background-color: var(--bg-app);
   color: var(--text-main);
   font-family: var(--font-body);
+  line-height: 1.65; /* Increased line height for editorial breathing room */
+  letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
@@ -107,9 +109,15 @@ input, textarea, select, [contenteditable="true"], .selectable-text {
 /* Typography styles */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);
-  font-weight: 600;
+  font-weight: 400; /* Lighter font weight for headers */
+  letter-spacing: 0.035em; /* Increased tracking for magazine quality */
   color: var(--pine-deep);
-  line-height: 1.2;
+  line-height: 1.3;
+}
+
+/* Thinner stroke weight for Lucide icons for high-end look */
+svg.lucide, .lucide {
+  stroke-width: 1.5px !important;
 }
 
 a {
@@ -150,12 +158,12 @@ button, input, select, textarea {
   background: linear-gradient(135deg, var(--pine-primary) 0%, var(--pine-medium) 100%);
   color: var(--text-light);
   border: none;
-  padding: 12px 24px;
+  padding: 12px 26px;
   border-radius: var(--radius-md);
-  font-weight: 600;
+  font-weight: 500;
   font-family: var(--font-display);
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(18, 91, 68, 0.15);
+  box-shadow: 0 10px 25px -5px rgba(18, 91, 68, 0.12);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -165,7 +173,7 @@ button, input, select, textarea {
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(18, 91, 68, 0.25);
+  box-shadow: 0 14px 30px -5px rgba(18, 91, 68, 0.22);
   opacity: 0.95;
 }
 
@@ -174,12 +182,12 @@ button, input, select, textarea {
 }
 
 .btn-secondary {
-  background: var(--bg-hover);
-  color: var(--pine-primary);
-  border: 1px solid var(--border-thick);
-  padding: 12px 24px;
+  background: var(--bg-input);
+  color: var(--text-main);
+  border: none;
+  padding: 12px 26px;
   border-radius: var(--radius-md);
-  font-weight: 600;
+  font-weight: 500;
   font-family: var(--font-display);
   cursor: pointer;
   display: inline-flex;
@@ -187,11 +195,12 @@ button, input, select, textarea {
   justify-content: center;
   gap: 8px;
   transition: var(--transition-smooth);
+  box-shadow: 0 4px 10px rgba(14, 61, 47, 0.02);
 }
 
 .btn-secondary:hover {
-  background: var(--pine-light);
-  border-color: var(--pine-primary);
+  background: var(--bg-hover);
+  color: var(--pine-primary);
 }
 
 .form-group {

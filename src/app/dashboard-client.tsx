@@ -3834,14 +3834,14 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     backdropFilter: 'blur(20px)',
                     WebkitBackdropFilter: 'blur(20px)',
                     border: '1px solid rgba(255, 255, 255, 0.6)',
-                    borderRadius: '24px',
+                    borderRadius: 'var(--radius-lg)',
                     padding: '28px 24px',
                     cursor: 'pointer',
                     position: 'relative',
                     overflow: 'hidden',
                     boxShadow: hoveredCard === 'chatrooms'
-                      ? '0 12px 40px rgba(18, 91, 68, 0.12), inset 0 0 0 1px rgba(255,255,255,0.8)'
-                      : '0 8px 32px rgba(18, 91, 68, 0.05)',
+                      ? '0 20px 40px rgba(14, 61, 47, 0.08)'
+                      : '0 8px 32px rgba(14, 61, 47, 0.02)',
                     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                     transform: hoveredCard === 'chatrooms' ? 'translateY(-6px) scale(1.02)' : 'translateY(0) scale(1)',
                     display: 'flex',
@@ -3853,7 +3853,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     <div style={{
                       width: '52px',
                       height: '52px',
-                      borderRadius: '14px',
+                      borderRadius: 'var(--radius-sm)',
                       background: 'linear-gradient(135deg, rgba(42, 157, 143, 0.2) 0%, rgba(18, 91, 68, 0.2) 100%)',
                       display: 'flex',
                       alignItems: 'center',
@@ -3898,14 +3898,14 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     backdropFilter: 'blur(20px)',
                     WebkitBackdropFilter: 'blur(20px)',
                     border: '1px solid rgba(255, 255, 255, 0.6)',
-                    borderRadius: '24px',
+                    borderRadius: 'var(--radius-lg)',
                     padding: '28px 24px',
                     cursor: 'pointer',
                     position: 'relative',
                     overflow: 'hidden',
                     boxShadow: hoveredCard === 'breadit'
-                      ? '0 12px 40px rgba(18, 91, 68, 0.12), inset 0 0 0 1px rgba(255,255,255,0.8)'
-                      : '0 8px 32px rgba(18, 91, 68, 0.05)',
+                      ? '0 20px 40px rgba(14, 61, 47, 0.08)'
+                      : '0 8px 32px rgba(14, 61, 47, 0.02)',
                     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                     transform: hoveredCard === 'breadit' ? 'translateY(-6px) scale(1.02)' : 'translateY(0) scale(1)',
                     display: 'flex',
@@ -3917,7 +3917,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     <div style={{
                       width: '52px',
                       height: '52px',
-                      borderRadius: '14px',
+                      borderRadius: 'var(--radius-sm)',
                       background: 'linear-gradient(135deg, rgba(230, 92, 0, 0.15) 0%, rgba(255, 153, 51, 0.15) 100%)',
                       display: 'flex',
                       alignItems: 'center',
@@ -9058,8 +9058,9 @@ const styles: Record<string, React.CSSProperties> = {
   sidebarTitle: {
     fontSize: '20px',
     color: '#ffffff',
-    fontWeight: '800',
+    fontWeight: '500',
     fontFamily: 'var(--font-display)',
+    letterSpacing: '0.04em',
     margin: 0,
   },
   sidebarNav: {
