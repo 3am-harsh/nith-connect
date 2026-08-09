@@ -4,11 +4,11 @@
     "type": "split",
     "children": [
       {
-        "id": "3ef5230b12d393bf",
+        "id": "09b12a2fa8e2ef72",
         "type": "tabs",
         "children": [
           {
-            "id": "a716661250eb5d22",
+            "id": "6474ce5d72f0c712",
             "type": "leaf",
             "state": {
               "type": "graph",
@@ -74,7 +74,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 200
   },
   "right": {
     "id": "3406486f3bd10ad3",
@@ -176,8 +176,14 @@
       "bases:Create new base": false
     }
   },
-  "active": "a716661250eb5d22",
+  "active": "6474ce5d72f0c712",
   "lastOpenFiles": [
-    "Welcome.md"
+    "Welcome.md",
+    "App Architecture Index.md",
+    "Real-Time Data Sync.md",
+    "Frontend Layout.md",
+    "Database and Seeding.md",
+    "Backend Actions.md",
+    "Authentication and Roles.md"
   ]
 }

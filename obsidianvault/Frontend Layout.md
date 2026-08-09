@@ -1,29 +1,49 @@
 # 🎨 Frontend Layout
 
-The frontend is the visual interface that users see. It's designed to feel fast, modern, and work on both computers and mobile screens.
+The frontend is the visual and user-interactive layer of NITH Connect. It is designed as a hybrid application that bridges modern web technologies with native mobile functionality.
 
 ---
 
-## 📱 Mobile App vs Web
-NITH Connect is built using **Next.js** (React) and styled using custom **Vanilla CSS**.
-* **For Web**: It runs directly in any browser (Google Chrome, Safari, etc.) at `http://localhost:3000`.
-* **For Mobile**: It uses a tool called **Capacitor**. Capacitor wraps the web application in a "native container" (a webview) and allows it to run as a native Android app (producing an `.apk` file) or iOS app.
+## 🛠️ Technology Stack
+* **Framework**: **Next.js 15.5** (React 19) for routing, server actions, and layout rendering.
+* **Language**: **TypeScript 5** ensuring strict compile-time types for components and database objects.
+* **Styling**: **Vanilla CSS** + custom global variables defined in `src/app/globals.css`, integrated with Tailwind CSS 4 & PostCSS for styling compilation.
+* **Native wrapper**: **Capacitor 8.4** wrapping the Next.js static output into a native webview container for Android and iOS.
 
 ---
 
-## 🗂️ Single-Page Dashboard Structure
-Almost the entire application interface is powered by a single large component: [`dashboard-client.tsx`](file:///c:/Users/harsh/Desktop/NIT%20HAMIRPUR%20APP/src/app/dashboard-client.tsx).
+## 📲 Capacitor Mobile Integration
+Capacitor links the webview with native mobile devices using plugins:
+1. **`@capacitor/keyboard`**: Listens to keyboard open/close events (`setIsKeyboardOpen(true/false)`) to adjust UI layout dynamically so input fields are not hidden behind the mobile keyboard.
+2. **`@capacitor/app`**: Manages native hardware events (like Android physical back-button navigation).
+3. **`@capacitor-firebase/authentication`**: Calls native Google sign-in dialogs instead of web redirects, creating a smoother user experience.
 
-It keeps track of the active view using a React state variable called `activeTab`. Depending on the tab, it renders different layouts:
-1. **Home**: Dashboard showing quick stats, achievements, and announcements.
-2. **Mess**: Hostel weekly meals menus.
-3. **Timetable**: Uploaded and approved class schedules.
-4. **Chat**: Community chatrooms and the **[[Real-Time Data Sync|Breadit Forum]]**.
-5. **Marketplace**: Campus buy-and-sell listings.
-6. **Lost & Found**: Lost/found items with search and image preview.
+---
+
+## 🗂️ The Dashboard Architecture (`dashboard-client.tsx`)
+Almost the entire user interface of the app resides in a single, comprehensive React component: [`dashboard-client.tsx`](file:///c:/Users/harsh/Desktop/NIT%20HAMIRPUR%20APP/src/app/dashboard-client.tsx). It controls the user flow via state hooks:
+
+### 1. View Controllers (Active Tabs)
+The interface switches pages using the `activeTab` state:
+- `'home'`: General dashboard cards, quick links, daily achievements, and campus announcement sliders.
+- `'chat'`: Renders the community directory and handles navigation between chatrooms or the Breadit forum.
+- `'marketplace'`: Displays categorized active listings (Bicycles, Books, Hostel Gear, Electronics).
+- `'lostfound'`: Shows lost and found item grids, categories, search, and a photo zoom lightbox.
+- `'calculator'`: A built-in GPA/CGPA calculator for NIT Hamirpur students.
+
+### 2. Modals and Drawers
+Interactive popups are controlled by independent boolean states:
+- `isProfileOpen`: Controls the sliding profile drawer.
+- `isAddListingOpen`: The form modal for listing items on the marketplace.
+- `isReportLostFoundOpen`: The form modal for reporting lost or found items.
+- `isCreatePostOpen`: The editor window for posting on the Breadit forum.
+
+### 3. Touch Swipes & Navigation Fixes
+- **Gesture Listeners**: Tracks `onTouchStart` and `onTouchEnd` on mobile to let users swipe open the side drawer menu.
+- **Optimistic Rendering**: When a user sends a chat message, it is immediately pushed to the client state (`setChatMessages`) with a temporary ID so it renders instantly, before the server finishes saving it.
 
 ---
 
 ## 🔗 Connections
 * Back to: **[[App Architecture Index]]**
-* Next: Learn about the backend operations in **[[Backend Actions]]**
+* Next: Learn about Server Actions in **[[Backend Actions]]**

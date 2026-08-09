@@ -1,28 +1,38 @@
 # 🗺️ NITH Connect Architecture Map
 
-Welcome to your Obsidian Architecture Vault for **NITH Connect**! This vault explains how the app works in simple terms using linked notes. Click on any of the double-bracketed links (e.g., `[[Link]]`) to jump directly to that topic.
+Welcome to your interactive Obsidian Architecture Vault for **NITH Connect**! This documentation explains the system architecture, file organization, and security model in a simple, connection-driven format.
 
 ---
 
-## 🏗️ Core Architecture Overview
+## 🏗️ Core System Layers
+Explore the foundational layers of the application:
 
-NITH Connect is a hybrid mobile app built for NIT Hamirpur. It is structured into three main layers:
-
-1. **[[Frontend Layout]]**: The visual part of the app that you see and interact with. It runs in Next.js and is packaged for mobile devices using Capacitor.
-2. **[[Backend Actions]]**: The brain of the app that runs on the server. It handles logic, checks permissions, and performs operations.
-3. **[[Database and Seeding]]**: The memory of the app. It stores data using Google Firebase Firestore and initializes sample data automatically.
-
----
-
-## 🔒 Security & Live Sync
-
-- **[[Authentication and Roles]]**: How users log in (via Google or guest) and how the app controls access for different roles like `student`, `cr` (Class Representative), and `developer`.
-- **[[Real-Time Data Sync]]**: How the app keeps things like chats and lost & found lists up-to-date instantly without reloading the page.
+1. **[[Frontend Layout]]**
+   * *What it covers*: Next.js structure, vanilla styling system, Capacitor plugins, mobile back-button handling, keyboard display listeners, and mobile navigation layouts.
+2. **[[Backend Actions]]**
+   * *What it covers*: Next.js Server Actions execution sequence, JWT session token validation, permission checks, and server code modules for chat, lost & found, and marketplace.
+3. **[[Database and Seeding]]**
+   * *What it covers*: Google Firestore Collections schema mappings (document tables for profiles, messages, marketplace, Breadit), and details on the automatic `seedFirestore()` logic.
 
 ---
 
-## 🛠️ Main Features Map
-- **Marketplace (Buy & Sell)**: Sell or purchase hostel gear, books, and cycles.
-- **Lost & Found**: Post lost belongings and contact reporters via WhatsApp/Call.
-- **Breadit (Reddit Clone)**: Share campus problems, updates, and chat in threads.
-- **Timetable & Mess Menu**: Keep track of daily schedules and food menus.
+## 🛡️ Security, Roles, & Synchronization
+Explore user permissions and live features:
+
+* **[[Authentication and Roles]]**
+  * *What it covers*: Native Google login integration, role-based access rules (Guest, Student, CR, Developer) implemented on both client and server side, and the user ban/moderation mechanism.
+* **[[Real-Time Data Sync]]**
+  * *What it covers*: WebSocket-based live database listener operation, hybrid initial-render server-action flow, and details of the local offline cache guard fix.
+
+---
+
+## 🛠️ Feature Directory
+NITH Connect packs several campus utilities:
+* **Marketplace (Buy & Sell)**: Real-time listings for students to trade gear.
+* **Lost & Found**: Visual board for posting and claiming lost items.
+* **Breadit**: Student forum supporting threads, comments, and flags.
+* **Timetables & Mess Menu**: Live schedule uploads and hostel menu sheets.
+
+---
+
+*💡 Tip: Click on any bracketed note link above to jump directly to its description. Open the **Graph View** (Ctrl+G) in Obsidian to see a visual map of these notes and their relationships!*
