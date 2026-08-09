@@ -1310,8 +1310,10 @@ export default function DashboardClient({ user }: DashboardClientProps) {
       return;
     }
 
-    if (newItemContact.replace(/\D/g, '').length !== 10) {
-      showToast('Please enter a valid 10-digit phone number.', 'error');
+    const cleanContact = newItemContact.replace(/\D/g, '');
+    const isFakeContact = newItemContact.toUpperCase().includes('X');
+    if (!isFakeContact && cleanContact.length !== 10) {
+      showToast('Please enter a valid 10-digit phone number or a masked number (e.g. XXXX1213489).', 'error');
       return;
     }
 
@@ -8454,8 +8456,10 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 return;
               }
 
-              if (newListingContact.replace(/\D/g, '').length !== 10) {
-                showToast('Please enter a valid 10-digit WhatsApp number.', 'error');
+              const cleanContact = newListingContact.replace(/\D/g, '');
+              const isFakeContact = newListingContact.toUpperCase().includes('X');
+              if (!isFakeContact && cleanContact.length !== 10) {
+                showToast('Please enter a valid 10-digit WhatsApp number or a masked number (e.g. XXXX1213489).', 'error');
                 return;
               }
 
@@ -8645,18 +8649,17 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
               {/* Contact number */}
               <div>
-                <label style={styles.formLabel}>WhatsApp Contact Number (10-Digit Phone Number) *</label>
+                <label style={styles.formLabel}>WhatsApp Contact Number *</label>
                 <input 
-                  type="tel" 
-                  maxLength={10}
-                  pattern="[0-9]{10}"
-                  placeholder="e.g. 9816012345"
+                  type="text" 
+                  maxLength={15}
+                  placeholder="e.g. 9816012345 or XXXX1213489"
                   value={newListingContact}
-                  onChange={(e) => setNewListingContact(e.target.value.replace(/\D/g, ''))}
+                  onChange={(e) => setNewListingContact(e.target.value)}
                   style={styles.formInput}
                   required
                 />
-                <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Provide a valid 10-digit number for direct WhatsApp text routing.</span>
+                <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Provide a contact number for routing (accepts fake numbers like XXXX1213489).</span>
               </div>
 
               {/* Actions */}
@@ -8793,15 +8796,14 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               </div>
 
               <div>
-                <label style={styles.formLabel}>Contact Details (10-Digit Phone Number) *</label>
+                <label style={styles.formLabel}>Contact Details *</label>
                 <input 
-                  type="tel" 
+                  type="text" 
                   required
-                  maxLength={10}
-                  pattern="[0-9]{10}"
-                  placeholder="e.g. 9816012345" 
+                  maxLength={15}
+                  placeholder="e.g. 9816012345 or XXXX1213489" 
                   value={newItemContact} 
-                  onChange={(e) => setNewItemContact(e.target.value.replace(/\D/g, ''))} 
+                  onChange={(e) => setNewItemContact(e.target.value)} 
                   style={styles.formInput} 
                 />
               </div>

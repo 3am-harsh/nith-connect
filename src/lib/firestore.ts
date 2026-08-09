@@ -241,49 +241,138 @@ export async function seedFirestore() {
       }
     }
 
-    // 4. Check if lost_found collection is populated
-    const lostFoundSnap = await getDocs(query(collection(db, 'lost_found'), limit(1)));
-    if (lostFoundSnap.empty) {
-      console.log('Seeding default lost & found items to Firestore...');
-      const sampleItems = [
-        {
-          title: 'Adidas Black Backpack',
-          description: 'Left a black Adidas school bag with a blue water bottle and notebook inside. Please contact if found.',
-          type: 'lost',
-          location: 'Auditorium Hall, 2nd Row',
-          date: '28 Jun 2026',
-          contact: '94597-07009',
-          user_id: 'sample-user-1',
-          user_name: 'Rahul Verma'
-        },
-        {
-          title: 'Bunch of Keys with NITH Keychain',
-          description: 'Found a keyring containing 3 keys and a wooden NIT Hamirpur logo keychain near the sports ground.',
-          type: 'found',
-          location: 'Basketball Court benches',
-          date: '30 Jun 2026',
-          contact: '98822-12345',
-          user_id: 'sample-user-2',
-          user_name: 'Ananya Sharma'
-        },
-        {
-          title: 'HP Laptop Charger (65W)',
-          description: 'Lost my HP blue pin laptop charger while studying in the library reading room. Please return if spotted.',
-          type: 'lost',
-          location: 'Central Library, 1st floor reading room',
-          date: '29 Jun 2026',
-          contact: '90123-45678',
-          user_id: 'sample-user-3',
-          user_name: 'Sameer Sen'
-        }
-      ];
-
-      for (const item of sampleItems) {
-        await addDoc(collection(db, 'lost_found'), {
-          ...item,
-          created_at: serverTimestamp()
-        });
+    // 4. Ensure lost_found collection has default items with images and fake numbers
+    // Delete any old default items that didn't have images
+    const oldContacts = ['94597-07009', '98822-12345', '90123-45678'];
+    for (const contact of oldContacts) {
+      const q = query(collection(db, 'lost_found'), where('contact', '==', contact));
+      const snap = await getDocs(q);
+      for (const docSnap of snap.docs) {
+        await deleteDoc(doc(db, 'lost_found', docSnap.id));
       }
+    }
+
+    const lostFoundItems = [
+      {
+        id: 'sample-lost-1',
+        title: 'Adidas Black Backpack',
+        description: 'Left a black Adidas school bag with a blue water bottle and notebook inside. Please contact if found.',
+        type: 'lost',
+        location: 'Auditorium Hall, 2nd Row',
+        date: '28 Jun 2026',
+        contact: 'XXXX1213489',
+        image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=600&auto=format&fit=crop&q=80',
+        images: ['https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=600&auto=format&fit=crop&q=80'],
+        user_id: 'sample-user-1',
+        user_name: 'Rahul Verma'
+      },
+      {
+        id: 'sample-found-1',
+        title: 'Bunch of Keys with NITH Keychain',
+        description: 'Found a keyring containing 3 keys and a wooden NIT Hamirpur logo keychain near the sports ground.',
+        type: 'found',
+        location: 'Basketball Court benches',
+        date: '30 Jun 2026',
+        contact: 'XXXX1213489',
+        image: 'https://images.unsplash.com/photo-1582139329536-e7284fece509?w=600&auto=format&fit=crop&q=80',
+        images: ['https://images.unsplash.com/photo-1582139329536-e7284fece509?w=600&auto=format&fit=crop&q=80'],
+        user_id: 'sample-user-2',
+        user_name: 'Ananya Sharma'
+      },
+      {
+        id: 'sample-lost-2',
+        title: 'HP Laptop Charger (65W)',
+        description: 'Lost my HP blue pin laptop charger while studying in the library reading room. Please return if spotted.',
+        type: 'lost',
+        location: 'Central Library, 1st floor reading room',
+        date: '29 Jun 2026',
+        contact: 'XXXX1213489',
+        image: 'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=600&auto=format&fit=crop&q=80',
+        images: ['https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=600&auto=format&fit=crop&q=80'],
+        user_id: 'sample-user-3',
+        user_name: 'Sameer Sen'
+      },
+      {
+        id: 'sample-found-2',
+        title: 'Fossil Smartwatch',
+        description: 'Found a Fossil Gen 6 smartwatch with a brown leather strap in the campus cafeteria.',
+        type: 'found',
+        location: 'Campus Cafeteria Table 4',
+        date: '02 Jul 2026',
+        contact: 'XXXX1213489',
+        image: 'https://images.unsplash.com/photo-1544256718-3bcf237f3974?w=600&auto=format&fit=crop&q=80',
+        images: ['https://images.unsplash.com/photo-1544256718-3bcf237f3974?w=600&auto=format&fit=crop&q=80'],
+        user_id: 'sample-user-4',
+        user_name: 'Vikram Singh'
+      }
+    ];
+
+    for (const item of lostFoundItems) {
+      const { id, ...itemData } = item;
+      await setDoc(doc(db, 'lost_found', id), {
+        ...itemData,
+        created_at: serverTimestamp()
+      }, { merge: true });
+    }
+
+    // 5. Ensure marketplace collection has default items with images and fake numbers
+    const marketplaceItems = [
+      {
+        title: 'Hero Sprint 18-Speed Bicycle',
+        description: 'Excellent condition geared bicycle, 1.5 years old. Brand new tires and rear brake pads. Perfect for riding up the NITH slopes!',
+        original_price: 9500,
+        selling_price: 4500,
+        contact_number: 'XXXX1213489',
+        image: 'https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=600&auto=format&fit=crop&q=80',
+        user_id: 'sample-user-1',
+        user_name: 'Rahul Verma',
+        category: 'Cycle',
+        status: 'active' as const
+      },
+      {
+        title: 'Engineering Mathematics by NP Bali',
+        description: 'Latest edition textbook, very clean pages, no pen marks. Essential for 1st and 2nd semester courses.',
+        original_price: 850,
+        selling_price: 350,
+        contact_number: 'XXXX1213489',
+        image: 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=600&auto=format&fit=crop&q=80',
+        user_id: 'sample-user-2',
+        user_name: 'Ananya Sharma',
+        category: 'Books',
+        status: 'active' as const
+      },
+      {
+        title: 'LED Study Table Lamp',
+        description: 'USB rechargeable table lamp with 3 level brightness. Flexible neck, perfect for late night study during mid-sem exams.',
+        original_price: 1200,
+        selling_price: 500,
+        contact_number: 'XXXX1213489',
+        image: 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=600&auto=format&fit=crop&q=80',
+        user_id: 'sample-user-3',
+        user_name: 'Sameer Sen',
+        category: 'Hostel Gear',
+        status: 'active' as const
+      },
+      {
+        title: 'Sony CH720N ANC Headphones',
+        description: 'Over-ear wireless headphones with active noise cancellation. 35 hours battery life. Includes box and charging cable.',
+        original_price: 9990,
+        selling_price: 5500,
+        contact_number: 'XXXX1213489',
+        image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&auto=format&fit=crop&q=80',
+        user_id: 'sample-user-4',
+        user_name: 'Vikram Singh',
+        category: 'Electronics',
+        status: 'active' as const
+      }
+    ];
+
+    for (let i = 0; i < marketplaceItems.length; i++) {
+      const item = marketplaceItems[i];
+      await setDoc(doc(db, 'marketplace', `sample-market-${i + 1}`), {
+        ...item,
+        created_at: serverTimestamp()
+      }, { merge: true });
     }
   } catch (error) {
     console.error('Error seeding Firestore:', error);
